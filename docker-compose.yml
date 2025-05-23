@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: global-gate-db
+    environment:
+      POSTGRES_DB: global_gate
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qeqe
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d global_gate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # FastAPI Application  
+  app:
+    build: .
+    container_name: global-gate-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=global_gate
+      - DB_USER=postgres
+      - DB_PASSWORD=qeqe
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+volumes:
+  db_data:

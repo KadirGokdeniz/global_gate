@@ -30,6 +30,8 @@ class DatabaseSettings(BaseSettings):
     # 👈 EKLENDİ: SSL and advanced settings
     ssl: bool = Field(default=False, description="Enable SSL connection")
     echo: bool = Field(default=False, description="Echo SQL queries (debug)")
+
+    openai_api_key: str
     
     class Config:
         env_prefix = "DB_"
@@ -534,9 +536,9 @@ async def get_database_config():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        app, 
+        "myapp:app",  # Import string olarak geç
         host="0.0.0.0", 
         port=8000,
-        reload=True,  # Development için
+        reload=True,  # Development için auto-reload
         log_level="info"
     )
