@@ -7,10 +7,10 @@ services:
     container_name: global-gate-db
     environment:
       POSTGRES_DB: global_gate
-      POSTGRES_USER: postgres
+      POSTGRES_USER: postgres  
       POSTGRES_PASSWORD: qeqe
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
