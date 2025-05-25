@@ -34,3 +34,22 @@ VALUES (
     1.0,
     'manual'
 ) ON CONFLICT (content_hash) DO NOTHING;
+
+-- Vector column ve index ekle
+ALTER TABLE baggage_policies 
+ADD COLUMN IF NOT EXISTS embedding vector(384);
+
+-- Vector similarity için index
+CREATE INDEX IF NOT EXISTS idx_embedding_cosine 
+ON baggage_policies 
+USING ivfflat (embedding vector_cosine_ops) 
+WITH (lists = 100);
+
+-- Vector stats view (opsiyonel)
+CREATE OR REPLACE VIEW embedding_stats AS
+SELECT 
+    COUNT(*) as total_policies,
+    COUNT(embedding) as embedded_policies,
+    COUNT(*) - COUNT(embedding) as missing_embeddings,
+    ROUND((COUNT(embedding)::float / COUNT(*) * 100)::numeric, 2) as coverage_percent
+FROM baggage_policies;

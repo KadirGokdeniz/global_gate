@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 
+# ===== YENİ RAG IMPORT'LARI =====
+from embedding_service import get_embedding_service
+from vector_operations import VectorOperations
+
 # Logging ayarları
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,14 +56,17 @@ def get_settings() -> DatabaseSettings:
     return DatabaseSettings()
 
 settings = get_settings()
+
 # Global connection pool
 db_pool = None
+# ===== YENİ RAG GLOBAL VARIABLE =====
+vector_ops = None
 
 # Lifecycle management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Uygulama başlatma ve kapatma işlemleri"""
-    global db_pool
+    global db_pool, vector_ops  # <=== vector_ops eklendi
     
     # Startup
     logger.info("🚀 Turkish Airlines API başlatılıyor...")
@@ -76,6 +83,19 @@ async def lifespan(app: FastAPI):
         async with db_pool.acquire() as conn:
             result = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
             logger.info(f"📊 Veritabanında {result} policy bulundu")
+        
+        # ===== YENİ RAG INITIALIZATION =====
+        try:
+            vector_ops = VectorOperations(db_pool)
+            logger.info("✅ Vector operations initialized")
+            
+            # Auto-embed existing policies
+            embedded_count = await vector_ops.embed_existing_policies()
+            logger.info(f"🧠 Embedded {embedded_count} policies on startup")
+            
+        except Exception as ve:
+            logger.error(f"⚠️ Vector operations init warning: {ve}")
+            # Don't fail startup if vector ops fail
             
     except Exception as e:
         logger.error(f"❌ Veritabanı bağlantı hatası: {e}")
@@ -91,8 +111,8 @@ async def lifespan(app: FastAPI):
 # FastAPI instance
 app = FastAPI(
     title="Turkish Airlines Baggage Policy API",
-    description="Turkish Airlines baggage kuralları - PostgreSQL API",
-    version="3.0.0",
+    description="Turkish Airlines baggage kuralları - RAG-powered PostgreSQL API",
+    version="4.0.0",  # <=== Version bump for RAG
     lifespan=lifespan
 )
 
@@ -147,15 +167,18 @@ async def read_root(db = Depends(get_db_connection)):
         sources = await db.fetch("SELECT source, COUNT(*) as count FROM baggage_policies GROUP BY source")
         
         return {
-            "service": "Turkish Airlines Baggage Policy API",
-            "version": "3.0.0",
-            "data_source": "PostgreSQL Database",
+            "service": "Turkish Airlines RAG-Powered Baggage Policy API",
+            "version": "4.0.0",
+            "data_source": "PostgreSQL Database + Vector Search",
             "status": "active",
+            "rag_features": "enabled",  # <=== YENİ
             "endpoints": {
                 "all_policies": "/policies",
                 "search": "/search?q=yoursearchterm",
+                "vector_search": "/vector/similarity-search?q=yoursearchterm",  # <=== YENİ
                 "by_source": "/policies/{source_name}",
                 "stats": "/stats",
+                "vector_stats": "/vector/stats",  # <=== YENİ
                 "health": "/health",
                 "documentation": "/docs"
             },
@@ -467,9 +490,22 @@ async def health_check():
             test_result = await conn.fetchval("SELECT 1")
             policy_count = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
         
+        # ===== YENİ RAG HEALTH CHECK =====
+        vector_status = "available" if vector_ops else "unavailable"
+        embedding_service_status = "available"
+        try:
+            embedding_service = get_embedding_service()
+            embedding_service_status = "available"
+        except:
+            embedding_service_status = "unavailable"
+        
         return {
             "status": "healthy",
             "database": "connected",
+            "rag_features": {  # <=== YENİ
+                "vector_operations": vector_status,
+                "embedding_service": embedding_service_status
+            },
             "connection_pool": {
                 "size": db_pool.get_size(),
                 "max_size": db_pool.get_max_size(),
@@ -532,6 +568,90 @@ async def get_database_config():
             "max_size": settings.max_pool_size
         }
     }
+
+# ===============================================
+# ===== YENİ RAG VECTOR ENDPOINTS =====
+# ===============================================
+
+@app.get("/vector/similarity-search")
+async def vector_similarity_search(
+    q: str = Query(..., description="Search query", min_length=2),
+    limit: int = Query(5, description="Maximum results", le=20),
+    threshold: float = Query(0.3, description="Similarity threshold", ge=0.0, le=1.0),
+    source: Optional[str] = Query(None, description="Source filter")
+):
+    """Vector similarity search endpoint"""
+    
+    if not vector_ops:
+        raise HTTPException(status_code=503, detail="Vector operations not initialized")
+    
+    try:
+        results = await vector_ops.similarity_search(
+            query=q,
+            limit=limit,
+            similarity_threshold=threshold,
+            source_filter=source
+        )
+        
+        return {
+            "success": True,
+            "query": q,
+            "method": "vector_similarity",
+            "results": results,
+            "count": len(results),
+            "parameters": {
+                "similarity_threshold": threshold,
+                "source_filter": source
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Vector search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Vector search error: {str(e)}")
+
+@app.post("/vector/embed-policies")
+async def embed_existing_policies():
+    """Mevcut policy'leri embed et (manual trigger)"""
+    
+    if not vector_ops:
+        raise HTTPException(status_code=503, detail="Vector operations not initialized")
+    
+    try:
+        embedded_count = await vector_ops.embed_existing_policies()
+        
+        return {
+            "success": True,
+            "message": f"Successfully embedded {embedded_count} policies",
+            "embedded_count": embedded_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Embedding error: {e}")
+        raise HTTPException(status_code=500, detail=f"Embedding error: {str(e)}")
+
+@app.get("/vector/stats")
+async def get_vector_stats():
+    """Vector/embedding istatistikleri"""
+    
+    if not vector_ops:
+        raise HTTPException(status_code=503, detail="Vector operations not initialized")
+    
+    try:
+        stats = await vector_ops.get_embedding_stats()
+        
+        # Embedding service info
+        embedding_service = get_embedding_service()
+        
+        return {
+            "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2",
+            "embedding_dimension": embedding_service.embedding_dimension,
+            "database_stats": stats,
+            "vector_search": "enabled"
+        }
+        
+    except Exception as e:
+        logger.error(f"Vector stats error: {e}")
+        raise HTTPException(status_code=500, detail=f"Vector stats error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
