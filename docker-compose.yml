@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   db:
     image: pgvector/pgvector:pg15
     container_name: global-gate-db
@@ -19,7 +18,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # FastAPI Application  
   app:
     build: .
     container_name: global-gate-app
@@ -31,9 +29,17 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=qeqe
       - DB_OPENAI_API_KEY=dummy_key_for_testing
+      - TRANSFORMERS_CACHE=/app/model_cache
+      - HF_HOME=/app/model_cache
+      - TORCH_HOME=/app/model_cache
+      - HF_HUB_CACHE=/app/model_cache/hub
+      - SENTENCE_TRANSFORMERS_HOME=/app/model_cache/sentence_transformers
+    volumes:
+      - model_cache:/app/model_cache
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   db_data:
+  model_cache: 
