@@ -14,9 +14,7 @@ RUN pip install -r requirements.txt
 RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
 
 # STAGE 3: ML dependencies (after PyTorch)
-RUN pip install transformers==4.35.2  
-
-RUN pip install tokenizers==0.15.0
+RUN pip install transformers==4.35.2 tokenizers==0.15.0
 
 RUN pip install sentence-transformers==2.2.2
 

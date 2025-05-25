@@ -47,7 +47,7 @@ class VectorOperations:
                         UPDATE baggage_policies 
                         SET embedding = $1::vector
                         WHERE id = $2
-                    """, embedding.tolist(), row['id'])
+                    """, "[" + ",".join(map(str, embedding.tolist())) + "]", row['id'])
                 
                 total_embedded += len(batch)
                 logger.info(f"  ✅ Embedded batch {i//batch_size + 1}: {total_embedded}/{len(unembedded)}")
@@ -75,7 +75,7 @@ class VectorOperations:
             FROM baggage_policies 
             WHERE embedding IS NOT NULL
         """
-        params = [query_embedding.tolist()]
+        params = ["[" + ",".join(map(str, query_embedding.tolist())) + "]"]
         
         # Add source filter
         if source_filter:
