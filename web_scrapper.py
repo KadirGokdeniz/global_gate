@@ -442,25 +442,32 @@ def get_database_stats():
         print(f"❌ Stats alma hatası: {e}")
         return {}
 
-# Ana execution
+# Ana execution (dosyanın sonunda)
 if __name__ == "__main__":
     print("=" * 60)
-    print("TURKISH AIRLINES SCRAPER - POSTGRESQL ENTEGRASYONU")
+    print("TURKISH AIRLINES SCRAPER - CONTAINER STARTUP")
     print("=" * 60)
     
     # 1. Database setup
+    print("🔧 Database setup kontrol ediliyor...")
     if not setup_database():
         print("❌ Database setup başarısız - çıkılıyor")
         exit(1)
     
-    # 2. Eski verileri temizle (fresh start)
-    clear_old_data()
+    # 2. Mevcut veri kontrolü
+    existing_stats = get_database_stats()
+    if existing_stats.get('total_policies', 0) > 0:
+        print(f"📊 Database'de zaten {existing_stats['total_policies']} policy var")
+        print("🤔 Yeniden scraping yapmak istiyor musunuz? (Container startup)")
+        # Container'da otomatik evet diyoruz
+        print("✅ Container startup - fresh scraping yapılıyor")
+        clear_old_data()
     
     # 3. Scraping ve PostgreSQL'e kayıt
     saved_count = scrape_all_turkish_airlines()
     
     if saved_count > 0:
-        print(f"\n📊 POSTGRESQL İSTATİSTİKLERİ:")
+        print(f"\n📊 FINAL İSTATİSTİKLERİ:")
         stats = get_database_stats()
         
         if stats:
@@ -472,11 +479,11 @@ if __name__ == "__main__":
             for source, info in stats.get('source_breakdown', {}).items():
                 print(f"  - {source}: {info['count']} policy (kalite: {info['avg_quality']})")
         
-        print(f"\n🎯 ÖZET:")
-        print(f"✅ Scraping tamamlandı")
-        print(f"✅ Duplicate removal uygulandı")
-        print(f"✅ PostgreSQL'e kaydedildi")
-        print(f"🚀 FastAPI artık PostgreSQL'den serve edebilir!")
+        print(f"\n🎯 CONTAINER STARTUP BAŞARILI:")
+        print(f"✅ {saved_count} policy yüklendi")
+        print(f"✅ Database hazır")
+        print(f"🚀 FastAPI başlatılabilir!")
         
     else:
-        print("❌ Hiç veri işlenemedi")
+        print("⚠️ Hiç veri yüklenemedi - API yine de başlatılacak")
+        exit(0)  # API'nin başlamasına izin ver
