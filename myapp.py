@@ -1,77 +1,98 @@
-# myapp.py - Temizlenmiş ve Düzeltilmiş Versiyon
-
+# Gerekli importlar
 from fastapi import FastAPI, HTTPException, Query, Depends
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional
 import asyncpg
-import time
+import os
 from contextlib import asynccontextmanager
 import logging
-from config import get_settings
-from smart_embedding_service_fixed import SmartEmbeddingService
+from pydantic import BaseModel, Field
+from functools import lru_cache
+from pydantic_settings import BaseSettings
 
-# OpenAI import'u - sadece gerektiğinde kullanılacak
-try:
-    from openai import AsyncOpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-
-# Settings
-settings = get_settings()
+# Logging ayarları
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global variables
+class DatabaseSettings(BaseSettings):
+    # Database connection parameters
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432, ge=1, le=65535)
+    database: str = Field(..., description="Database name (required)")
+    user: str = Field(..., description="Database user (required)")
+    password: str = Field(..., description="Database password (required)")
+    
+    # Connection pool settings
+    min_pool_size: int = Field(default=5, ge=1, le=20)
+    max_pool_size: int = Field(default=20, ge=5, le=100)
+    command_timeout: int = Field(default=60, ge=10, le=300)
+    
+    # 👈 EKLENDİ: SSL and advanced settings
+    ssl: bool = Field(default=False, description="Enable SSL connection")
+    echo: bool = Field(default=False, description="Echo SQL queries (debug)")
+
+    openai_api_key: str
+    
+    class Config:
+        env_prefix = "DB_"
+        env_file = ".env"
+        case_sensitive = False
+    
+    def get_asyncpg_params(self) -> dict:
+        return {
+            "host": self.host,
+            "port": self.port,
+            "database": self.database,
+            "user": self.user,
+            "password": self.password,
+        }
+
+@lru_cache()
+def get_settings() -> DatabaseSettings:
+    return DatabaseSettings()
+
+settings = get_settings()
+# Global connection pool
 db_pool = None
-embedding_service = SmartEmbeddingService(
-    openai_api_key=settings.openai_api_key  # Optional, fallback if unavailable
-)
+
+# Lifecycle management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global db_pool, embedding_service
+    """Uygulama başlatma ve kapatma işlemleri"""
+    global db_pool
     
-    logger.info("🚀 Turkish Airlines RAG API başlatılıyor...")
+    # Startup
+    logger.info("🚀 Turkish Airlines API başlatılıyor...")
     try:
-        # Database pool
         db_pool = await asyncpg.create_pool(
             **settings.get_asyncpg_params(),
-            min_size=settings.db_min_pool_size,
-            max_size=settings.db_max_pool_size,
-            command_timeout=settings.db_command_timeout
+            min_size=settings.min_pool_size,
+            max_size=settings.max_pool_size,
+            command_timeout=settings.command_timeout
         )
         logger.info("✅ PostgreSQL bağlantı havuzu oluşturuldu")
         
-        # Initialize Smart embedding service with OpenAI support
-        embedding_service = SmartEmbeddingService(
-                openai_api_key=settings.openai_api_key
-            )
-        await embedding_service.initialize()
-        logger.info("✅ Simple embedding service başlatıldı")
-        
-        # Database status check
+        # Test bağlantısı
         async with db_pool.acquire() as conn:
-            total = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
-            embedded = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies WHERE embedding IS NOT NULL")
-            logger.info(f"📊 Database: {total} policies, {embedded} embedded")
+            result = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
+            logger.info(f"📊 Veritabanında {result} policy bulundu")
             
     except Exception as e:
-        logger.error(f"❌ Başlatma hatası: {e}")
+        logger.error(f"❌ Veritabanı bağlantı hatası: {e}")
         raise
     
     yield
     
-    # Cleanup
-    if embedding_service:
-        await embedding_service.cleanup()
+    # Shutdown
     if db_pool:
         await db_pool.close()
-    logger.info("🔒 Servisler kapatıldı")
+        logger.info("🔒 Veritabanı bağlantıları kapatıldı")
 
+# FastAPI instance
 app = FastAPI(
-    title="Turkish Airlines RAG API",
-    description="AI-powered baggage policy search",
-    version="4.0.0",
+    title="Turkish Airlines Baggage Policy API",
+    description="Turkish Airlines baggage kuralları - PostgreSQL API",
+    version="3.0.0",
     lifespan=lifespan
 )
 
@@ -83,386 +104,441 @@ class BaggagePolicy(BaseModel):
     created_at: Optional[str] = None
     quality_score: Optional[float] = None
 
-class SemanticSearchResponse(BaseModel):
+class ApiResponse(BaseModel):
+    success: bool
+    message: str
+    data: Optional[List[BaggagePolicy]] = None
+    count: int = 0
+
+class SearchResponse(BaseModel):
     success: bool
     query: str
-    results: List[dict]
+    results: List[BaggagePolicy]
     found_count: int
-    processing_time_ms: float
+    total_in_db: int
+
+class StatsResponse(BaseModel):
+    total_policies: int
+    source_breakdown: dict
+    database_info: dict
 
 # Database Dependency
 async def get_db_connection():
+    """Veritabanı bağlantısı dependency"""
     if not db_pool:
-        raise HTTPException(status_code=503, detail="Database connection unavailable")
+        raise HTTPException(status_code=503, detail="Veritabanı bağlantısı mevcut değil")
     
     try:
         async with db_pool.acquire() as connection:
             yield connection
     except Exception as e:
-        logger.error(f"DB connection error: {e}")
-        raise HTTPException(status_code=503, detail="Database connection error")
+        logger.error(f"DB bağlantı hatası: {e}")
+        raise HTTPException(status_code=503, detail="Veritabanı bağlantı hatası")
 
-# Mock RAG Service
-class MockRAGService:
-    """Simple mock RAG service without OpenAI dependency"""
-    
-    def __init__(self):
-        self.responses = {
-            "laptop": "Laptops are allowed in carry-on baggage up to 8kg. Lithium batteries should stay in carry-on only.",
-            "baggage": "Carry-on baggage limits: 8kg weight, 55x40x23cm dimensions for most airlines.",
-            "liquid": "Liquids must be in 100ml containers or less, in a clear plastic bag.",
-            "battery": "Lithium batteries must be in carry-on luggage. Power banks limited to 100Wh.",
-            "electronics": "Electronic devices including laptops and tablets are allowed in carry-on baggage.",
-            "weight": "Typical carry-on weight limit is 8kg for most airlines."
-        }
-    
-    def get_answer(self, query: str, context_docs: List[Dict]) -> Dict:
-        """Generate answer based on query keywords"""
-        query_lower = query.lower()
-        
-        # Find best matching response
-        answer = "I can help with baggage policies. Ask about laptops, liquids, weight limits, or electronics."
-        
-        for keyword, response in self.responses.items():
-            if keyword in query_lower:
-                answer = response
-                break
-        
-        # Add source information if available
-        if context_docs:
-            sources = list(set([doc.get('source', 'Unknown') for doc in context_docs]))
-            answer += f" (Based on {', '.join(sources)} policies)"
-        
-        return {
-            "answer": answer,
-            "sources": context_docs[:3],
-            "confidence_score": 0.85,
-            "provider": "Mock RAG Service"
-        }
-
-# CORE ENDPOINTS
-
+# Ana Sayfa
 @app.get("/")
-async def root(db = Depends(get_db_connection)):
-    """API status and statistics"""
+async def read_root(db = Depends(get_db_connection)):
+    """API ana sayfa ve genel bilgiler"""
     try:
-        total = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
-        embedded = await db.fetchval("SELECT COUNT(*) FROM baggage_policies WHERE embedding IS NOT NULL")
+        # Toplam policy sayısı
+        total_count = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
+        
+        # Mevcut kaynaklar
+        sources = await db.fetch("SELECT source, COUNT(*) as count FROM baggage_policies GROUP BY source")
         
         return {
-            "service": "Turkish Airlines RAG API",
-            "version": "4.0.0",
+            "service": "Turkish Airlines Baggage Policy API",
+            "version": "3.0.0",
+            "data_source": "PostgreSQL Database",
             "status": "active",
-            "statistics": {
-                "total_policies": total,
-                "embedded_policies": embedded
-            },
             "endpoints": {
-                "semantic_search": "/search/semantic?q=laptop",
-                "traditional_search": "/search?q=laptop",
-                "mock_rag": "/test/rag-mock?q=laptop",
-                "real_rag": "/test/rag?q=laptop",
-                "health": "/health"
+                "all_policies": "/policies",
+                "search": "/search?q=yoursearchterm",
+                "by_source": "/policies/{source_name}",
+                "stats": "/stats",
+                "health": "/health",
+                "documentation": "/docs"
+            },
+            "statistics": {
+                "total_policies": total_count,
+                "available_sources": [dict(row) for row in sources]
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Ana sayfa yükleme hatası: {str(e)}")
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint - optimized"""
-    try:
-        if not db_pool:
-            return {"status": "unhealthy", "error": "No database connection"}
-        
-        # Sadece connection test, COUNT query'si yok
-        async with db_pool.acquire() as conn:
-            await conn.fetchval("SELECT 1")
-        
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "embedding_service": "active" if embedding_service else "inactive"
-            # total_policies satırını kaldır - bu COUNT query yavaş
-        }
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
-
-@app.get("/search", response_model=List[BaggagePolicy])
-async def traditional_search(
-    q: str = Query(..., min_length=2),
-    limit: int = Query(10, le=50),
+# Tüm Policies
+@app.get("/policies", response_model=ApiResponse)
+async def get_policies(
+    limit: int = Query(50, description="Maksimum döndürülecek policy sayısı", le=500),
+    offset: int = Query(0, description="Başlangıç pozisyonu", ge=0),
+    source: Optional[str] = Query(None, description="Kaynak filtresi"),
+    min_quality: Optional[float] = Query(None, description="Minimum kalite skoru"),
     db = Depends(get_db_connection)
 ):
-    """Traditional keyword search"""
+    """Tüm baggage policies'leri döndür"""
+    
     try:
-        query = """
+        # Base query
+        query = "SELECT id, source, content, created_at, quality_score FROM baggage_policies WHERE 1=1"
+        params = []
+        param_count = 0
+        
+        # Filtreleme
+        if source:
+            param_count += 1
+            query += f" AND source = ${param_count}"
+            params.append(source)
+        
+        if min_quality is not None:
+            param_count += 1
+            query += f" AND quality_score >= ${param_count}"
+            params.append(min_quality)
+        
+        # Sıralama ve limit
+        query += " ORDER BY created_at DESC"
+        
+        param_count += 1
+        query += f" LIMIT ${param_count}"
+        params.append(limit)
+        
+        param_count += 1
+        query += f" OFFSET ${param_count}"
+        params.append(offset)
+        
+        # Veriyi çek
+        rows = await db.fetch(query, *params)
+        
+        policies = []
+        for row in rows:
+            policy_dict = dict(row)
+            if policy_dict.get('created_at'):
+                policy_dict['created_at'] = policy_dict['created_at'].isoformat()
+            policies.append(BaggagePolicy(**policy_dict))
+        
+        return ApiResponse(
+            success=True,
+            message=f"Policies başarıyla getirildi (PostgreSQL)",
+            data=policies,
+            count=len(policies)
+        )
+        
+    except Exception as e:
+        logger.error(f"Policies getirme hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Veri getirme hatası: {str(e)}")
+
+# Arama
+@app.get("/search", response_model=SearchResponse)
+async def search_policies(
+    q: str = Query(..., description="Arama terimi", min_length=2),
+    limit: int = Query(10, description="Maksimum sonuç sayısı", le=100),
+    source: Optional[str] = Query(None, description="Kaynak filtresi"),
+    db = Depends(get_db_connection)
+):
+    """Gelişmiş metin araması (PostgreSQL ILIKE)"""
+    
+    try:
+        # Toplam kayıt sayısı
+        total_query = "SELECT COUNT(*) FROM baggage_policies"
+        total_count = await db.fetchval(total_query)
+        
+        # Arama query'si
+        search_query = """
         SELECT id, source, content, created_at, quality_score 
         FROM baggage_policies 
         WHERE content ILIKE $1
-        ORDER BY quality_score DESC NULLS LAST 
-        LIMIT $2
         """
+        params = [f"%{q}%"]
         
-        rows = await db.fetch(query, f"%{q}%", limit)
+        # Kaynak filtresi
+        if source:
+            search_query += " AND source = $2"
+            params.append(source)
+        
+        # Sıralama ve limit
+        search_query += " ORDER BY quality_score DESC NULLS LAST, created_at DESC LIMIT $" + str(len(params) + 1)
+        params.append(limit)
+        
+        # Arama yap
+        rows = await db.fetch(search_query, *params)
         
         results = []
         for row in rows:
-            policy = dict(row)
-            if policy.get('created_at'):
-                policy['created_at'] = policy['created_at'].isoformat()
-            results.append(BaggagePolicy(**policy))
+            policy_dict = dict(row)
+            if policy_dict.get('created_at'):
+                policy_dict['created_at'] = policy_dict['created_at'].isoformat()
+            results.append(BaggagePolicy(**policy_dict))
         
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/search/semantic", response_model=SemanticSearchResponse)
-async def semantic_search(
-    q: str = Query(..., min_length=2),
-    limit: int = Query(5, le=20),
-    threshold: float = Query(0.3, ge=0.0, le=1.0),
-    db = Depends(get_db_connection)
-):
-    """Vector similarity search with pgvector"""
-    start_time = time.time()
-    
-    try:
-        if not embedding_service:
-            raise HTTPException(status_code=503, detail="Embedding service not available")
-        
-        # Generate query embedding
-        query_embedding = await embedding_service.create_embedding(q)
-        
-        # Convert to vector format string
-        vector_str = '[' + ','.join(map(str, query_embedding)) + ']'
-        
-        # pgvector similarity search using cosine distance
-        similarity_query = """
-        SELECT 
-            id, source, content, quality_score, created_at,
-            1 - (embedding <=> $1::vector) as similarity_score
-        FROM baggage_policies 
-        WHERE embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::vector) >= $2
-        ORDER BY embedding <=> $1::vector
-        LIMIT $3
-        """
-        
-        rows = await db.fetch(similarity_query, vector_str, threshold, limit)
-        
-        # Format results
-        results = [
-            {
-                "id": row['id'],
-                "source": row['source'],
-                "content": row['content'],
-                "similarity_score": round(float(row['similarity_score']), 3),
-                "quality_score": float(row['quality_score']) if row['quality_score'] else None
-            }
-            for row in rows
-        ]
-        
-        processing_time = (time.time() - start_time) * 1000
-        
-        return SemanticSearchResponse(
+        return SearchResponse(
             success=True,
             query=q,
             results=results,
             found_count=len(results),
-            processing_time_ms=round(processing_time, 2)
+            total_in_db=total_count
         )
         
     except Exception as e:
-        logger.error(f"Semantic search error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Arama hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Arama hatası: {str(e)}")
 
-# RAG ENDPOINTS
-
-@app.get("/test/rag-mock")
-async def mock_rag(
-    q: str = Query(..., min_length=2),
+# Source'a Göre Getir
+@app.get("/policies/{source}", response_model=ApiResponse)
+async def get_policies_by_source(
+    source: str,
+    limit: int = Query(100, description="Maksimum policy sayısı"),
     db = Depends(get_db_connection)
 ):
-    """Mock RAG with pgvector similarity search"""
+    """Belirli kaynağa göre policies getir"""
+    
     try:
-        context_docs = []
+        # Önce kaynak var mı kontrol et
+        source_check = await db.fetchval(
+            "SELECT COUNT(*) FROM baggage_policies WHERE source = $1", 
+            source
+        )
         
-        if embedding_service:
-            try:
-                query_embedding = await embedding_service.create_embedding(q)
-                vector_str = '[' + ','.join(map(str, query_embedding)) + ']'
-                
-                # pgvector similarity search
-                similarity_query = """
-                SELECT 
-                    id, source, content,
-                    1 - (embedding <=> $1::vector) as similarity_score
-                FROM baggage_policies 
-                WHERE embedding IS NOT NULL
-                AND 1 - (embedding <=> $1::vector) >= 0.3
-                ORDER BY embedding <=> $1::vector
-                LIMIT 3
-                """
-                
-                rows = await db.fetch(similarity_query, vector_str)
-                
-                context_docs = [
-                    {
-                        "id": row['id'],
-                        "source": row['source'],
-                        "content": row['content'][:200] + "...",
-                        "similarity_score": round(float(row['similarity_score']), 3)
-                    }
-                    for row in rows
-                ]
-                    
-            except Exception as e:
-                logger.warning(f"Semantic search failed: {e}")
+        if source_check == 0:
+            # Mevcut kaynakları göster
+            available = await db.fetch("SELECT DISTINCT source FROM baggage_policies ORDER BY source")
+            available_sources = [row['source'] for row in available]
+            
+            raise HTTPException(
+                status_code=404,
+                detail=f"Kaynak '{source}' bulunamadı. Mevcut kaynaklar: {available_sources}"
+            )
         
-        # Generate mock answer
-        mock_service = MockRAGService()
-        result = mock_service.get_answer(q, context_docs)
-        
-        return {
-            "success": True,
-            "query": q,
-            **result
-        }
-        
-    except Exception as e:
-        logger.error(f"Mock RAG error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "query": q
-        }
-
-@app.get("/test/rag")
-async def real_rag(
-    q: str = Query(..., min_length=2),
-    db = Depends(get_db_connection)
-):
-    """Real RAG with OpenAI GPT (if API key available)"""
-    try:
-        # Check OpenAI availability
-        if not OPENAI_AVAILABLE or not settings.openai_api_key or settings.openai_api_key == "your_openai_api_key_here":
-            return {
-                "success": False,
-                "error": "OpenAI not configured",
-                "suggestion": f"Try mock version: /test/rag-mock?q={q}",
-                "query": q
-            }
-        
-        # Get relevant documents using pgvector
-        if not embedding_service:
-            raise HTTPException(status_code=503, detail="Embedding service not available")
-        
-        query_embedding = await embedding_service.create_embedding(q)
-        vector_str = '[' + ','.join(map(str, query_embedding)) + ']'
-        
-        similarity_query = """
-        SELECT 
-            id, source, content,
-            1 - (embedding <=> $1::vector) as similarity_score
+        # Veriyi getir
+        query = """
+        SELECT id, source, content, created_at, quality_score 
         FROM baggage_policies 
-        WHERE embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::vector) >= 0.3
-        ORDER BY embedding <=> $1::vector
-        LIMIT 3
+        WHERE source = $1 
+        ORDER BY quality_score DESC NULLS LAST, created_at DESC 
+        LIMIT $2
         """
         
-        rows = await db.fetch(similarity_query, vector_str)
+        rows = await db.fetch(query, source, limit)
         
-        if not rows:
-            return {
-                "success": False,
-                "error": "No relevant documents found",
-                "suggestion": "Try generating embeddings first",
-                "query": q
-            }
+        policies = []
+        for row in rows:
+            policy_dict = dict(row)
+            if policy_dict.get('created_at'):
+                policy_dict['created_at'] = policy_dict['created_at'].isoformat()
+            policies.append(BaggagePolicy(**policy_dict))
         
-        # Format context for OpenAI
-        context = "\n".join([f"Source: {row['source']}\n{row['content']}" for row in rows])
-        
-        # Call OpenAI API
-        client = AsyncOpenAI(api_key=settings.openai_api_key)
-        
-        response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful travel assistant. Answer questions based on provided airline policies. Be specific and helpful."
-                },
-                {
-                    "role": "user",
-                    "content": f"Context:\n{context}\n\nQuestion: {q}\n\nAnswer based on the context above:"
-                }
-            ],
-            max_tokens=300,
-            temperature=0.1
+        return ApiResponse(
+            success=True,
+            message=f"'{source}' kaynağından {len(policies)} policy getirildi",
+            data=policies,
+            count=len(policies)
         )
         
-        answer = response.choices[0].message.content
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Source policies getirme hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Veri getirme hatası: {str(e)}")
+
+# Kaynakları Listele
+@app.get("/sources")
+async def get_available_sources(db = Depends(get_db_connection)):
+    """Mevcut veri kaynaklarını listele"""
+    
+    try:
+        query = """
+        SELECT 
+            source,
+            COUNT(*) as policy_count,
+            AVG(quality_score) as avg_quality,
+            MIN(created_at) as first_added,
+            MAX(created_at) as last_added
+        FROM baggage_policies 
+        GROUP BY source 
+        ORDER BY source
+        """
         
-        sources = [
-            {
-                "id": row['id'],
-                "source": row['source'],
-                "excerpt": row['content'][:200] + "...",
-                "similarity_score": round(float(row['similarity_score']), 3)
+        rows = await db.fetch(query)
+        
+        source_info = {}
+        for row in rows:
+            row_dict = dict(row)
+            source = row_dict['source']
+            
+            # Tarihleri string'e çevir
+            if row_dict.get('first_added'):
+                row_dict['first_added'] = row_dict['first_added'].isoformat()
+            if row_dict.get('last_added'):
+                row_dict['last_added'] = row_dict['last_added'].isoformat()
+            
+            source_info[source] = {
+                "policy_count": row_dict['policy_count'],
+                "avg_quality": float(row_dict['avg_quality']) if row_dict['avg_quality'] else None,
+                "first_added": row_dict['first_added'],
+                "last_added": row_dict['last_added']
             }
-            for row in rows
-        ]
+        
+        total_policies = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
+        
+        return {
+            "available_sources": source_info,
+            "total_sources": len(source_info),
+            "total_policies": total_policies
+        }
+        
+    except Exception as e:
+        logger.error(f"Sources listeleme hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Kaynak listeleme hatası: {str(e)}")
+
+# İstatistikler
+@app.get("/stats", response_model=StatsResponse)
+async def get_stats(db = Depends(get_db_connection)):
+    """Detaylı istatistikler"""
+    
+    try:
+        # Toplam policy sayısı
+        total_count = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
+        
+        # Kaynak bazlı istatistikler
+        source_stats_query = """
+        SELECT 
+            source,
+            COUNT(*) as count,
+            AVG(quality_score) as avg_quality,
+            MIN(quality_score) as min_quality,
+            MAX(quality_score) as max_quality
+        FROM baggage_policies 
+        GROUP BY source 
+        ORDER BY count DESC
+        """
+        
+        source_rows = await db.fetch(source_stats_query)
+        
+        source_breakdown = {}
+        for row in source_rows:
+            source_breakdown[row['source']] = {
+                "count": row['count'],
+                "avg_quality": float(row['avg_quality']) if row['avg_quality'] else None,
+                "min_quality": float(row['min_quality']) if row['min_quality'] else None,
+                "max_quality": float(row['max_quality']) if row['max_quality'] else None
+            }
+        
+        # Database bilgileri
+        db_info_query = """
+        SELECT 
+            MIN(created_at) as oldest_record,
+            MAX(created_at) as newest_record,
+            COUNT(DISTINCT source) as unique_sources
+        FROM baggage_policies
+        """
+        
+        db_info = await db.fetchrow(db_info_query)
+        
+        database_info = {
+            "oldest_record": db_info['oldest_record'].isoformat() if db_info['oldest_record'] else None,
+            "newest_record": db_info['newest_record'].isoformat() if db_info['newest_record'] else None,
+            "unique_sources": db_info['unique_sources'],
+            "connection_pool": "Active"
+        }
+        
+        return StatsResponse(
+            total_policies=total_count,
+            source_breakdown=source_breakdown,
+            database_info=database_info
+        )
+        
+    except Exception as e:
+        logger.error(f"Stats hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"İstatistik hatası: {str(e)}")
+
+# Health Check
+@app.get("/health")
+async def health_check():
+    """API ve veritabanı health check"""
+    
+    try:
+        if not db_pool:
+            return {
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": "Connection pool not available"
+            }
+        
+        # Database connectivity test
+        async with db_pool.acquire() as conn:
+            test_result = await conn.fetchval("SELECT 1")
+            policy_count = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "connection_pool": {
+                "size": db_pool.get_size(),
+                "max_size": db_pool.get_max_size(),
+                "min_size": db_pool.get_min_size()
+            },
+            "data": {
+                "total_policies": policy_count
+            },
+            "timestamp": "auto-generated"
+        }
+        
+    except Exception as e:
+        logger.error(f"Health check hatası: {e}")
+        return {
+            "status": "unhealthy",
+            "database": "error",
+            "error": str(e)
+        }
+
+# Yeni Policy Ekleme (Bonus)
+@app.post("/policies", response_model=dict)
+async def add_policy(
+    source: str,
+    content: str,
+    quality_score: Optional[float] = None,
+    db = Depends(get_db_connection)
+):
+    """Yeni baggage policy ekle"""
+    
+    try:
+        query = """
+        INSERT INTO baggage_policies (source, content, quality_score, created_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id, created_at
+        """
+        
+        result = await db.fetchrow(query, source, content, quality_score)
         
         return {
             "success": True,
-            "query": q,
-            "answer": answer,
-            "sources": sources,
-            "provider": "OpenAI GPT-3.5-turbo"
+            "message": "Policy başarıyla eklendi",
+            "policy_id": result['id'],
+            "created_at": result['created_at'].isoformat()
         }
         
     except Exception as e:
-        logger.error(f"Real RAG error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "query": q
+        logger.error(f"Policy ekleme hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Ekleme hatası: {str(e)}")
+    
+@app.get("/config/database")
+async def get_database_config():
+    """Database configuration görüntüle"""
+    return {
+        "host": settings.host,
+        "port": settings.port,
+        "database": settings.database,
+        "user": settings.user,
+        "pool_config": {
+            "min_size": settings.min_pool_size,
+            "max_size": settings.max_pool_size
         }
-
-# UTILITY ENDPOINTS
-
-@app.get("/test/embedding")
-async def test_embedding():
-    """Test embedding service"""
-    try:
-        if not embedding_service:
-            return {"status": "error", "message": "Embedding service not available"}
-        
-        test_text = "Can I bring my laptop on the plane?"
-        start_time = time.time()
-        embedding = await embedding_service.create_embedding(test_text)
-        elapsed = (time.time() - start_time) * 1000
-        
-        return {
-            "status": "success",
-            "test_text": test_text,
-            "dimension": len(embedding),
-            "processing_time_ms": round(elapsed, 2),
-            "sample_values": embedding[:3]
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-@app.get("/embedding/stats")
-async def embedding_stats():
-    """Get embedding service statistics"""
-    if embedding_service:
-        return embedding_service.get_stats()
-    return {"error": "Embedding service not available"}
+    }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("myapp:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "myapp:app",  # Import string olarak geç
+        host="0.0.0.0", 
+        port=8000,
+        reload=True,  # Development için auto-reload
+        log_level="info"
+    )
