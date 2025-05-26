@@ -1,4 +1,4 @@
-# Dockerfile - Two Stage Installation
+# Dockerfile - Updated for Streamlit + FastAPI
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -15,11 +15,16 @@ RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
 
 # STAGE 3: ML dependencies (after PyTorch)
 RUN pip install transformers==4.35.2 tokenizers==0.15.0
-
 RUN pip install sentence-transformers==2.2.2
 
 # Copy application code
 COPY . .
 
-# startup.py'yi çalıştır
-CMD ["python", "startup.py"]
+# Create necessary directories
+RUN mkdir -p /app/model_cache
+
+# NEW: Expose both ports
+EXPOSE 8000 8501
+
+# NEW: Startup script that runs both services
+CMD ["python", "simple_start.py"]
