@@ -14,6 +14,9 @@ from pydantic_settings import BaseSettings
 from embedding_service import get_embedding_service
 from vector_operations import VectorOperations
 
+# ===== NEW: OpenAI Integration Import =====
+from openai_service import get_openai_service
+
 # Logging ayarları
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -171,16 +174,17 @@ async def read_root(db = Depends(get_db_connection)):
             "version": "4.0.0",
             "data_source": "PostgreSQL Database + Vector Search",
             "status": "active",
-            "rag_features": "enabled",  # <=== YENİ
+            "rag_features": "enabled",
             "endpoints": {
                 "all_policies": "/policies",
                 "search": "/search?q=yoursearchterm",
-                "vector_search": "/vector/similarity-search?q=yoursearchterm",  # <=== YENİ
+                "vector_search": "/vector/similarity-search?q=yoursearchterm",
                 "by_source": "/policies/{source_name}",
                 "stats": "/stats",
-                "vector_stats": "/vector/stats",  # <=== YENİ
+                "vector_stats": "/vector/stats",
                 "health": "/health",
-                "documentation": "/docs"
+                "documentation": "/docs",
+                "openai_rag_chat": "/chat/openai"
             },
             "statistics": {
                 "total_policies": total_count,
@@ -473,9 +477,10 @@ async def get_stats(db = Depends(get_db_connection)):
         raise HTTPException(status_code=500, detail=f"İstatistik hatası: {str(e)}")
 
 # Health Check
+# Health Check - UPDATE EXISTING FUNCTION
 @app.get("/health")
 async def health_check():
-    """API ve veritabanı health check"""
+    """API ve veritabanı health check - Enhanced with OpenAI status"""
     
     try:
         if not db_pool:
@@ -490,7 +495,7 @@ async def health_check():
             test_result = await conn.fetchval("SELECT 1")
             policy_count = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
         
-        # ===== YENİ RAG HEALTH CHECK =====
+        # ===== EXISTING RAG STATUS CHECKS =====
         vector_status = "available" if vector_ops else "unavailable"
         embedding_service_status = "available"
         try:
@@ -499,12 +504,28 @@ async def health_check():
         except:
             embedding_service_status = "unavailable"
         
+        # ===== NEW: OpenAI STATUS CHECK =====
+        openai_status = "unavailable"
+        openai_model = "unknown"
+        try:
+            openai_service = get_openai_service()
+            connection_test = openai_service.test_connection()
+            if connection_test["success"]:
+                openai_status = "available"
+                openai_model = openai_service.default_model
+            else:
+                openai_status = f"error: {connection_test.get('message', 'unknown')}"
+        except Exception as e:
+            openai_status = f"error: {str(e)}"
+        
         return {
             "status": "healthy",
             "database": "connected",
-            "rag_features": {  # <=== YENİ
+            "rag_features": {
                 "vector_operations": vector_status,
-                "embedding_service": embedding_service_status
+                "embedding_service": embedding_service_status,
+                "openai_service": openai_status,  # NEW
+                "openai_model": openai_model      # NEW
             },
             "connection_pool": {
                 "size": db_pool.get_size(),
@@ -513,6 +534,12 @@ async def health_check():
             },
             "data": {
                 "total_policies": policy_count
+            },
+            "endpoints": {
+                "traditional_search": "/search",
+                "vector_search": "/vector/similarity-search",
+                "openai_rag_chat": "/chat/openai",  # NEW
+                "docs": "/docs"
             },
             "timestamp": "auto-generated"
         }
@@ -652,6 +679,83 @@ async def get_vector_stats():
     except Exception as e:
         logger.error(f"Vector stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Vector stats error: {str(e)}")
+
+@app.post("/chat/openai")
+async def chat_with_openai_rag(
+    question: str = Query(..., description="User question", min_length=3, max_length=500),
+    max_results: int = Query(2, description="Max retrieved documents", le=5, ge=1),
+    similarity_threshold: float = Query(0.5, description="Similarity threshold", ge=0.3, le=0.9),
+    model: str = Query("gpt-3.5-turbo", description="OpenAI model to use")
+):
+    """RAG Chat with OpenAI - Production ready endpoint"""
+    
+    if not vector_ops:
+        raise HTTPException(status_code=503, detail="Vector operations not available")
+    
+    try:
+        # Step 1: Retrieve relevant documents using existing vector search
+        logger.info(f"🔍 OpenAI RAG Query: '{question}' with model: {model}")
+        
+        retrieved_docs = await vector_ops.similarity_search(
+            query=question,
+            limit=max_results,
+            similarity_threshold=similarity_threshold
+        )
+        
+        logger.info(f"📊 Retrieved {len(retrieved_docs)} documents")
+        
+        # Step 2: Generate response using OpenAI
+        openai_service = get_openai_service()
+        
+        # Handle both empty and populated context cases
+        openai_response = openai_service.generate_rag_response(
+            retrieved_docs, question, model
+        )
+        
+        if not openai_response["success"]:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"OpenAI generation failed: {openai_response.get('error', 'Unknown error')}"
+            )
+        
+        # Step 3: Prepare detailed response
+        response_data = {
+            "success": True,
+            "question": question,
+            "answer": openai_response["answer"],
+            "model_used": openai_response["model_used"],
+            "context_used": openai_response["context_used"],
+            "retrieved_docs": [
+                {
+                    "source": doc["source"],
+                    "content_preview": doc["content"][:200] + "..." if len(doc["content"]) > 200 else doc["content"],
+                    "similarity_score": round(doc["similarity_score"], 3)
+                }
+                for doc in retrieved_docs
+            ],
+            "retrieval_stats": {
+                "total_retrieved": len(retrieved_docs),
+                "avg_similarity": round(
+                    sum(doc["similarity_score"] for doc in retrieved_docs) / len(retrieved_docs), 3
+                ) if retrieved_docs else 0,
+                "min_similarity": round(min(doc["similarity_score"] for doc in retrieved_docs), 3) if retrieved_docs else 0,
+                "max_similarity": round(max(doc["similarity_score"] for doc in retrieved_docs), 3) if retrieved_docs else 0,
+                "context_quality": "high" if len(retrieved_docs) >= 2 and retrieved_docs[0]["similarity_score"] > 0.5 else "medium" if retrieved_docs else "low"
+            },
+            "usage_stats": openai_response.get("usage", {}),
+            "timestamp": "auto-generated"
+        }
+        
+        logger.info(f"✅ OpenAI RAG response generated successfully. Cost: ${openai_response.get('usage', {}).get('estimated_cost', 0):.4f}")
+        
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OpenAI RAG chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

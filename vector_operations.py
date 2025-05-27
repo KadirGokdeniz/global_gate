@@ -119,3 +119,27 @@ class VectorOperations:
             """)
             
             return dict(stats)
+    
+    async def similarity_search_fast(self, query: str, limit: int = 2):
+        # İlk threshold'ı geçen 2 sonucu bulunca dur
+        sql += " AND (1 - (embedding <=> $1::vector)) >= 0.6"  # Yüksek threshold
+        sql += " ORDER BY embedding <=> $1::vector LIMIT 2"  # Küçük limit
+    
+    def optimize_query(query: str) -> str:
+        # Stop words removal (basit)
+        stop_words = ['the', 'is', 'at', 'which', 'on', 'a', 'an']
+        words = [w for w in query.split() if w.lower() not in stop_words]
+        return ' '.join(words[:10])  # Max 10 kelime
+    
+    CATEGORIES = {
+    'baggage': ['baggage', 'luggage', 'suitcase', 'weight'],
+    'pets': ['pet', 'dog', 'cat', 'animal'],
+    'sports': ['sports', 'equipment', 'golf', 'ski']
+        }
+
+    def category_pre_filter(query: str) -> str:
+        # Önce kategori belirle, sonra o kategoride ara
+        for category, keywords in CATEGORIES.items():
+            if any(keyword in query.lower() for keyword in keywords):
+                return f"source LIKE '%{category}%'"
+        return ""
