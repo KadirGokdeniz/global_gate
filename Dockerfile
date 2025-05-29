@@ -27,4 +27,4 @@ RUN mkdir -p /app/model_cache
 EXPOSE 8000 8501
 
 # NEW: Startup script that runs both services
-CMD ["python", "simple_start.py"]
+CMD ["python", "startup_dual.py"]

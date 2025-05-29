@@ -1,6 +1,5 @@
 # Gerekli importlar
 from fastapi import FastAPI, HTTPException, Query, Depends
-from pydantic import BaseModel
 from typing import List, Optional
 import asyncpg
 import os
