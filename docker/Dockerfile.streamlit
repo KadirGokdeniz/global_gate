@@ -5,8 +5,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY frontend/requirements.txt .
-RUN pip install -r requirements.txt
+COPY frontend/requirements.frontend.txt .
+RUN pip install -r requirements.frontend.txt
 
 # Copy frontend files
 COPY frontend/ .
