@@ -5,8 +5,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY scraper/requirements.txt .
-RUN pip install -r requirements.txt
+COPY scraper/requirements.scraper.txt .
+RUN pip install -r requirements.scraper.txt
 
 # ML dependencies
 RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
