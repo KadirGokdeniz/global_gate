@@ -28,7 +28,7 @@ services:
   scraper:
     build:
       context: .
-      dockerfile: Dockerfile.scraper
+      dockerfile: docker/Dockerfile.scraper
     container_name: global-gate-scraper
     depends_on:
       db:
@@ -47,7 +47,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: docker/Dockerfile.api
     container_name: global-gate-api
     depends_on:
       db:
@@ -77,7 +77,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.streamlit
+      dockerfile: docker/Dockerfile.streamlit
     container_name: global-gate-frontend
     depends_on:
       api:
