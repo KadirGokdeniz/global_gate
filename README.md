@@ -67,7 +67,6 @@ EOF
 
 3. **Deploy**
 ```bash
-cd docker
 
 # Start all services
 docker-compose up -d
