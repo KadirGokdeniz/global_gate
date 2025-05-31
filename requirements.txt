@@ -1,4 +1,7 @@
-# Basic FastAPI dependencies (EXISTING - keep these)
+# ===============================================
+# requirements.txt - Full (development için)
+# ===============================================
+# FastAPI dependencies
 fastapi==0.104.1
 asyncpg==0.29.0
 pydantic==2.5.0
@@ -6,25 +9,27 @@ pydantic-settings==2.1.0
 uvicorn==0.24.0
 psycopg2-binary==2.9.9
 
-# Web scraping dependencies (EXISTING - keep these)
+# Web scraping dependencies
 beautifulsoup4==4.12.2
 requests==2.31.0
 
-# Basic scientific libraries (EXISTING - keep these)
+# Scientific libraries
 numpy==1.24.3
 scikit-learn==1.3.0
 
-# HuggingFace Hub (EXISTING - keep these)
+# HuggingFace Hub
 huggingface-hub==0.17.3
 
-# NEW: OpenAI & Streamlit dependencies (ADD THESE)
+# OpenAI & Streamlit
 openai==1.6.1
+httpx==0.25.2
 streamlit==1.28.0
 python-dotenv==1.0.0
 plotly==5.17.0
-
-# NEW: Additional utilities for Streamlit
 pandas==2.1.0
 altair==5.1.0
 
-redis==4.6.0
+# PyTorch (CPU only) - will be installed separately in Dockerfiles
+# torch==2.1.0
+# transformers==4.35.2
+# sentence-transformers==2.2.2

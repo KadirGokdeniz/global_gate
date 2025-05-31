@@ -1,47 +1,108 @@
+# docker-compose.yml - ENHANCED VERSION
+# Improved dependencies and health checks
+
 services:
+  # 1. Database (ilk başlar)
   db:
     image: pgvector/pgvector:pg15
     container_name: global-gate-db
     environment:
-      POSTGRES_DB: global_gate
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: qeqe
+      POSTGRES_DB: ${DB_DATABASE:-global_gate}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-qeqe}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d global_gate"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-global_gate}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 30s
+    networks:
+      - turkish_airlines_net
 
-  app:
-    build: .
-    container_name: global-gate-app
-    ports:
-      - "8000:8000"  # FastAPI
-      - "8501:8501"  # Streamlit (NEW)
-    environment:
-      - DB_HOST=db
-      - DB_DATABASE=global_gate
-      - DB_USER=postgres
-      - DB_PASSWORD=qeqe
-      - DB_OPENAI_API_KEY=dummy_key_for_testing
-      - TRANSFORMERS_CACHE=/app/model_cache
-      - HF_HOME=/app/model_cache
-      - TORCH_HOME=/app/model_cache
-      - HF_HUB_CACHE=/app/model_cache/hub
-      - SENTENCE_TRANSFORMERS_HOME=/app/model_cache/sentence_transformers
-      - OPENAI_API_KEY=${OPENAI_API_KEY}  # NEW: OpenAI API Key
-    volumes:
-      - model_cache:/app/model_cache
+  # 2. Data Scraper (ikinci çalışır, işini bitirir, kapanır)
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    container_name: global-gate-scraper
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=${DB_DATABASE:-global_gate}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-qeqe}
+    command: python scraper_only.py
+    restart: "no"  # Bir kez çalışır, kapanır
+    networks:
+      - turkish_airlines_net
+
+  # 3. FastAPI Backend (üçüncü başlar)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: global-gate-api
+    depends_on:
+      db:
+        condition: service_healthy
+      scraper:
+        condition: service_completed_successfully
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=${DB_DATABASE:-global_gate}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-qeqe}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "8000:8000"
+    command: uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s  # More time for model loading
+    restart: unless-stopped
+    networks:
+      - turkish_airlines_net
+
+  # 4. Streamlit Frontend (en son başlar)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: global-gate-frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - DEFAULT_API_URL=http://api:8000
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    ports:
+      - "8501:8501"
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - turkish_airlines_net
 
 volumes:
-  db_data:
-  model_cache:
+  postgres_data:
+
+networks:
+  turkish_airlines_net:
+    driver: bridge
