@@ -16,6 +16,8 @@ from vector_operations import VectorOperations
 # ===== NEW: OpenAI Integration Import =====
 from openai_service import get_openai_service
 
+import math
+
 # Logging ayarları
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,8 +38,8 @@ class DatabaseSettings(BaseSettings):
     # 👈 EKLENDİ: SSL and advanced settings
     ssl: bool = Field(default=False, description="Enable SSL connection")
     echo: bool = Field(default=False, description="Echo SQL queries (debug)")
-
-    openai_api_key: str
+    
+    openai_api_key: str = Field(default_factory=lambda: os.getenv('OPENAI_API_KEY', 'dummy'))
     
     class Config:
         env_prefix = "DB_"
@@ -747,6 +749,21 @@ async def chat_with_openai_rag(
         
         logger.info(f"✅ OpenAI RAG response generated successfully. Cost: ${openai_response.get('usage', {}).get('estimated_cost', 0):.4f}")
         
+        def fix_float_values(obj):
+            """Fix NaN and Infinity values for JSON"""
+            if isinstance(obj, dict):
+                return {k: fix_float_values(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [fix_float_values(item) for item in obj]
+            elif isinstance(obj, float):
+                if math.isnan(obj) or math.isinf(obj):
+                    return 0.0
+                return obj
+            return obj
+
+        # Fix the response data
+        response_data = fix_float_values(response_data)
+
         return response_data
         
     except HTTPException:

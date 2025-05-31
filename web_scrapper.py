@@ -7,6 +7,9 @@ import re
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+import asyncio
+from vector_operations import VectorOperations
+import asyncpg
 
 # PostgreSQL Configuration
 DB_CONFIG = {
@@ -487,3 +490,39 @@ if __name__ == "__main__":
     else:
         print("⚠️ Hiç veri yüklenemedi - API yine de başlatılacak")
         exit(0)  # API'nin başlamasına izin ver
+    # web_scrapper.py sonuna ekleyin
+
+    # run_embedding fonksiyonunu aşağıdaki gibi güncelleyin
+    async def run_embedding():
+        """Doğrudan embedding işlemini çalıştır"""
+        print("🚀 Doğrudan embedding işlemi başlatılıyor...")
+        
+        pool = None
+        try:
+            # Havuz oluştur
+            pool = await asyncpg.create_pool(
+                host=DB_CONFIG['host'],
+                database=DB_CONFIG['database'],
+                user=DB_CONFIG['user'],
+                password=DB_CONFIG['password'],
+                min_size=1,
+                max_size=5
+            )
+            
+            print("🔗 Database havuzu oluşturuldu")
+            
+            # VectorOperations için havuzu doğrudan kullan
+            vector_ops = VectorOperations(pool)
+            count = await vector_ops.embed_existing_policies()
+            print(f"✅ {count} politika embed edildi")
+            
+        except Exception as e:
+            print(f"❌ Embedding hatası: {e}")
+        finally:
+            if pool:
+                await pool.close()
+                print("🔌 Database havuzu kapatıldı")
+
+    # Ana kısımda, scraping başarılı olduktan sonra çağırın
+    if saved_count > 0:
+        asyncio.run(run_embedding())

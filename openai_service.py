@@ -1,5 +1,5 @@
 import openai
-from typing import List, Dict
+from typing import List, Dict, Optional
 import logging
 from dotenv import load_dotenv
 import os
@@ -11,142 +11,158 @@ class OpenAIService:
     """OpenAI service for RAG responses - FIXED VERSION"""
     
     def __init__(self):
-        """Initialize OpenAI client with correct syntax"""
+        """Initialize OpenAI client"""
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
-        
-        # FIXED: Simple initialization without deprecated parameters
-        self.client = openai.OpenAI(api_key=api_key)
+            logger.warning("OPENAI_API_KEY not found - OpenAI features will be limited")
+            self.client = None
+        else:
+            try:
+                self.client = openai.OpenAI(api_key=api_key)
+                logger.info("✅ OpenAI service initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ OpenAI initialization failed: {e}")
+                self.client = None
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
         self.max_tokens = 400
         self.temperature = 0.7
-        
-        logger.info(f"✅ OpenAI service initialized with model: {self.default_model}")
-    
-    def generate_rag_response(self, retrieved_docs: List[Dict], user_question: str, model: str = None) -> Dict:
-        """Generate response using OpenAI with retrieved context"""
-        model = model or self.default_model
+
+    def test_connection(self) -> Dict:
+        """Test OpenAI API connection"""
+        if not self.client:
+            return {
+                "success": False,
+                "message": "OpenAI client not initialized (missing API key)"
+            }
         
         try:
-            logger.info(f"🧠 Generating response for: {user_question[:50]}...")
-            
-            # Prepare context
-            context = self._prepare_context(retrieved_docs)
-            
-            # Create prompts
-            system_prompt = """You are a helpful Turkish Airlines customer service assistant. 
-Answer questions about baggage policies based only on the provided context.
-Be specific, accurate, and professional."""
-            
-            user_prompt = f"""Based on these Turkish Airlines baggage policies:
+            # Simple test call
+            response = self.client.chat.completions.create(
+                model=self.default_model,
+                messages=[{"role": "user", "content": "Hi"}],
+                max_tokens=5
+            )
+            return {
+                "success": True,
+                "message": "OpenAI API connection successful",
+                "model": self.default_model
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"OpenAI API error: {str(e)}"
+            }
 
+    def generate_rag_response(self, retrieved_docs: List[Dict], question: str, model: str = None) -> Dict:
+        """Generate RAG response using OpenAI"""
+        
+        if not self.client:
+            return {
+                "success": False,
+                "error": "OpenAI client not available",
+                "answer": "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.",
+                "model_used": "none",
+                "context_used": False,
+                "usage": {}
+            }
+        
+        try:
+            # Use provided model or default
+            model_to_use = model or self.default_model
+            
+            # Build context from retrieved documents
+            if retrieved_docs:
+                context_parts = []
+                for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
+                    context_parts.append(f"""
+Document {i} (Source: {doc.get('source', 'Unknown')}):
+{doc.get('content', '')[:500]}...
+""")
+                context = "\n".join(context_parts)
+                context_used = True
+            else:
+                context = "No specific policy documents found."
+                context_used = False
+            
+            # Create system prompt
+            system_prompt = """You are a helpful Turkish Airlines customer service assistant. 
+Answer questions about baggage policies clearly and accurately based on the provided context.
+If no relevant context is provided, politely indicate that you don't have specific policy information."""
+            
+            # Create user prompt
+            user_prompt = f"""Context from Turkish Airlines policies:
 {context}
 
-Customer Question: {user_question}
+Customer Question: {question}
 
-Please provide a helpful and accurate answer:"""
+Please provide a helpful and accurate answer based on the context above."""
             
-            # Call OpenAI API
+            # Generate response
             response = self.client.chat.completions.create(
-                model=model,
+                model=model_to_use,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_tokens=self.max_tokens,
+                temperature=self.temperature
             )
             
-            # Extract response
-            answer = response.choices[0].message.content.strip()
-            
-            # Calculate cost
-            prompt_tokens = response.usage.prompt_tokens
-            completion_tokens = response.usage.completion_tokens
-            total_tokens = response.usage.total_tokens
-            estimated_cost = (prompt_tokens * 0.0015 + completion_tokens * 0.002) / 1000
-            
-            logger.info(f"✅ Response generated. Tokens: {total_tokens}, Cost: ${estimated_cost:.4f}")
+            # Extract usage information
+            usage_info = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens, 
+                "total_tokens": response.usage.total_tokens,
+                "estimated_cost": self._estimate_cost(response.usage, model_to_use)
+            }
             
             return {
                 "success": True,
-                "answer": answer,
-                "usage": {
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": total_tokens,
-                    "estimated_cost": estimated_cost
-                },
-                "model_used": model,
-                "context_used": len(retrieved_docs) > 0
+                "answer": response.choices[0].message.content,
+                "model_used": model_to_use,
+                "context_used": context_used,
+                "usage": usage_info
             }
             
         except Exception as e:
-            logger.error(f"OpenAI generation error: {e}")
+            logger.error(f"❌ OpenAI RAG generation error: {e}")
             return {
                 "success": False,
-                "answer": f"I apologize, but I encountered an error: {str(e)}",
-                "error": str(e)
+                "error": str(e),
+                "answer": f"I apologize, but I'm having trouble processing your request right now. Error: {str(e)}",
+                "model_used": model_to_use if 'model_to_use' in locals() else "unknown",
+                "context_used": False,
+                "usage": {}
             }
     
-    def _prepare_context(self, retrieved_docs: List[Dict], max_context_length: int = 1500) -> str:
-        """Prepare context from retrieved documents"""
-        if not retrieved_docs:
-            return "No relevant Turkish Airlines baggage policies found."
+    def _estimate_cost(self, usage, model: str) -> float:
+        """Estimate cost based on token usage"""
         
-        context_parts = []
-        current_length = 0
+        # Pricing per 1K tokens (as of 2024)
+        pricing = {
+            "gpt-3.5-turbo": {"input": 0.001, "output": 0.002},
+            "gpt-4": {"input": 0.03, "output": 0.06},
+            "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+            "gpt-4o-mini": {"input": 0.00015, "output": 0.0006}
+        }
         
-        # Sort by similarity score
-        sorted_docs = sorted(retrieved_docs, key=lambda x: x.get('similarity_score', 0), reverse=True)
+        if model not in pricing:
+            model = "gpt-3.5-turbo"  # Default pricing
         
-        for doc in sorted_docs:
-            content = doc.get('content', '')
-            source = doc.get('source', 'unknown')
-            similarity = doc.get('similarity_score', 0)
-            
-            if similarity > 0.25:
-                doc_text = f"[Source: {source}]\n{content}\n"
-                
-                if current_length + len(doc_text) < max_context_length:
-                    context_parts.append(doc_text)
-                    current_length += len(doc_text)
-                else:
-                    break
+        input_cost = (usage.prompt_tokens / 1000) * pricing[model]["input"]
+        output_cost = (usage.completion_tokens / 1000) * pricing[model]["output"]
         
-        return "\n---\n".join(context_parts)
+        return input_cost + output_cost
+
+_openai_service_instance = None
+
+def get_openai_service():
+    """Get OpenAI service instance (singleton pattern)"""
+    global _openai_service_instance
     
-    def test_connection(self) -> Dict:
-        """Test OpenAI connection"""
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": "Hello, this is a connection test."}],
-                max_tokens=10
-            )
-            
-            return {
-                "success": True,
-                "message": "OpenAI connection successful",
-                "model": "gpt-3.5-turbo"
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "message": f"OpenAI connection failed: {str(e)}",
-                "error": str(e)
-            }
-
-# Global instance
-_openai_service = None
-
-def get_openai_service() -> OpenAIService:
-    """Get global OpenAI service instance"""
-    global _openai_service
-    if _openai_service is None:
-        _openai_service = OpenAIService()
-    return _openai_service
+    if _openai_service_instance is None:
+        _openai_service_instance = OpenAIService()
+    
+    return _openai_service_instance
