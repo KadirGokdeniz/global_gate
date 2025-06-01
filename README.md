@@ -182,10 +182,6 @@ SCRAPE_AIRLINES=all  # all|thy_only|pegasus_only
 #### ❌ "Database has 0 policies"
 **Cause**: Scraper didn't run during initial startup (timing issue)
 
-**Solution**:
-```bash
-# Manual scraper execution
-docker-compose run scraper python scraper_only.py
 
 # Verify data
 curl http://localhost:8000/stats
