@@ -1,15 +1,8 @@
-# 🇹🇷 Turkish Airlines Baggage Policy RAG Assistant
-
-> **AI-Powered Customer Service System for Turkish Airlines Baggage Policies**
-
-
-
 # ✈️ Multi-Airline RAG Policy Assistant
 
 ## Frontend Interface
 
 ![Multi-Airline RAG Policy Assistant Interface](streamlit_interface1.png)
-![Multi-Airline RAG Policy Assistant Interface](streamlit_interface2.png)
 
 The intuitive chat interface allows customers to ask questions in natural language and receive instant, accurate responses about Turkish Airlines baggage policies.
 
@@ -174,44 +167,6 @@ SCRAPE_AIRLINES=all  # all|thy_only|pegasus_only
 - **Turkish Airlines**: Baggage, pets, sports equipment, restrictions
 - **Pegasus Airlines**: General rules, pricing, pet travel
 - **Extensible**: Add new airlines via `airline_configs.py`
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### ❌ "Database has 0 policies"
-**Cause**: Scraper didn't run during initial startup (timing issue)
-
-
-# Verify data
-curl http://localhost:8000/stats
-```
-
-#### ❌ "Vector operations timeout"
-**Cause**: Embeddings not generated yet
-
-**Solution**:
-```bash
-# Generate embeddings
-curl -X POST http://localhost:8000/vector/embed-policies
-
-# Check status
-curl http://localhost:8000/vector/stats
-```
-
-#### ❌ "API connection failed"
-**Cause**: Services still starting up
-
-**Solution**:
-```bash
-# Check service status
-docker-compose ps
-
-# Restart if needed
-docker-compose restart api
-
-# Wait and retry (services need 2-3 minutes)
-```
 
 ### System Health Check
 ```bash
