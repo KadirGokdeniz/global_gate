@@ -87,12 +87,12 @@ Document {i} (Source: {doc.get('source', 'Unknown')}):
                 context_used = False
             
             # Create system prompt
-            system_prompt = """You are a helpful Turkish Airlines customer service assistant. 
+            system_prompt = """You are a helpful airlines customer service assistant. 
 Answer questions about baggage policies clearly and accurately based on the provided context.
 If no relevant context is provided, politely indicate that you don't have specific policy information."""
             
             # Create user prompt
-            user_prompt = f"""Context from Turkish Airlines policies:
+            user_prompt = f"""Context from airlines policies:
 {context}
 
 Customer Question: {question}
