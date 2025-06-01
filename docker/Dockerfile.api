@@ -16,7 +16,7 @@ RUN pip install sentence-transformers==2.2.2
 
 # Copy backend files
 COPY backend/ .
-COPY config/init.sql .
+COPY init.sql .
 
 # Create model cache
 RUN mkdir -p /app/model_cache
