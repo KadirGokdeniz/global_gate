@@ -1,9 +1,3 @@
-# 🇹🇷 Turkish Airlines Baggage Policy RAG Assistant
-
-> **AI-Powered Customer Service System for Turkish Airlines Baggage Policies**
-
-
-
 # ✈️ Multi-Airline RAG Policy Assistant
 
 ## Frontend Interface
