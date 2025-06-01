@@ -9,7 +9,6 @@
 ## Frontend Interface
 
 ![Multi-Airline RAG Policy Assistant Interface](streamlit_interface1.png)
-![Multi-Airline RAG Policy Assistant Interface](streamlit_interface2.png)
 
 The intuitive chat interface allows customers to ask questions in natural language and receive instant, accurate responses about Turkish Airlines baggage policies.
 
