@@ -168,44 +168,6 @@ SCRAPE_AIRLINES=all  # all|thy_only|pegasus_only
 - **Pegasus Airlines**: General rules, pricing, pet travel
 - **Extensible**: Add new airlines via `airline_configs.py`
 
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### ❌ "Database has 0 policies"
-**Cause**: Scraper didn't run during initial startup (timing issue)
-
-
-# Verify data
-curl http://localhost:8000/stats
-```
-
-#### ❌ "Vector operations timeout"
-**Cause**: Embeddings not generated yet
-
-**Solution**:
-```bash
-# Generate embeddings
-curl -X POST http://localhost:8000/vector/embed-policies
-
-# Check status
-curl http://localhost:8000/vector/stats
-```
-
-#### ❌ "API connection failed"
-**Cause**: Services still starting up
-
-**Solution**:
-```bash
-# Check service status
-docker-compose ps
-
-# Restart if needed
-docker-compose restart api
-
-# Wait and retry (services need 2-3 minutes)
-```
-
 ### System Health Check
 ```bash
 # Complete system test
