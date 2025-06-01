@@ -4,8 +4,6 @@
 
 ![Multi-Airline RAG Policy Assistant Interface](streamlit_interface1.png)
 
-The intuitive chat interface allows customers to ask questions in natural language and receive instant, accurate responses about Turkish Airlines baggage policies.
-
 > **AI-powered airline policy query system with intelligent document retrieval and natural language responses**
 
 A production-ready RAG (Retrieval Augmented Generation) system that automatically scrapes, processes, and enables intelligent querying of airline baggage policies through natural language interactions.
