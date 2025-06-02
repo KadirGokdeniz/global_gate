@@ -1,86 +1,137 @@
-# ✈️ AI-Powered Airline Policy Assistant
+# AI-Powered Multi-Airline Policy Assistant
 
-![Multi-Airline RAG Policy Assistant Interface](streamlit_interface1.png)
+![Airline Policy Assistant Interface](streamlit_interface1.png)
 
-> **Ask any airline policy question and get instant, accurate answers powered by AI**
+*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
 
-Stop digging through confusing airline websites. Just ask naturally: *"Can I bring my guitar on board?"* or *"What's the pet policy for international flights?"*
+## Problem Statement & Solution
 
-## 💡 Why This Matters
+**Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
-**Before**: 😤 Spend 30+ minutes navigating multiple airline websites  
-**After**: ⚡ Get precise answers in seconds with AI-powered search
+**Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses.
 
-🎯 **Real-time policy data** from major airlines  
-🤖 **Natural language** - ask questions like you're talking to a travel agent  
-🔍 **Smart search** - finds relevant info even with vague questions
+## Technology Stack
 
-## ⚡ Get Started in 2 Minutes
+| Technology | Purpose | Why Chosen |
+|------------|---------|------------|
+| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
+| **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
+| **OpenAI Embeddings** | Natural Language Processing | State-of-the-art semantic understanding and search |
+| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
+| **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
 
+## System Architecture
+
+The system follows a microservices architecture with orchestrated startup sequence:
+
+```mermaid
+graph TD
+    A[1. PostgreSQL Database] --> B[2. Data Scraper]
+    B --> C[3. FastAPI Backend]
+    C --> D[4. Streamlit Frontend]
+    
+    A -.->|Health Check| B
+    B -.->|Completion Check| C
+    C -.->|Health Check| D
+```
+
+**Startup Sequence (Docker Compose)**:
+1. **Database Service** - Initializes PostgreSQL with pgvector extension
+2. **Scraper Service** - Collects airline policy data, then terminates
+3. **API Service** - Loads ML models and serves endpoints
+4. **Frontend Service** - Provides user interface
+
+**Data Flow**:
+```
+User Query → Embedding Generation → Vector Search → Context Retrieval → AI Response
+```
+
+## Key Advantages
+
+- **Time Efficiency**: Reduces policy research time from 30+ minutes to seconds
+- **Accuracy**: Real-time data ensures up-to-date policy information
+- **Natural Interface**: Ask questions in plain language, get human-like responses
+- **Multi-Airline Support**: Unified access to policies from multiple airlines
+- **Bilingual Support**: Handles both English and Turkish queries
+- **Scalability**: Microservices architecture allows easy expansion
+- **Cost-Effective**: Automated data collection reduces manual maintenance
+
+## Installation & Setup
+
+### Prerequisites
+- Docker & Docker Compose
+- OpenAI API Key
+
+### Quick Start
 ```bash
-# 1. Clone & Start
-git clone <repo-url> && cd multi-airline-rag-system
+# 1. Clone repository
+git clone <repository-url>
+cd multi-airline-rag-system
+
+# 2. Set environment variables
+cp .env.example .env
+# Edit .env file with your OpenAI API key
+
+# 3. Start all services
 docker-compose up -d
 
-# 2. Load Data (one-time setup)
+# 4. Load initial data (one-time setup)
 docker-compose run scraper python scraper_only.py
 
-# 3. Start Asking Questions!
-# Open: http://localhost:8501
+# 5. Access the application
+# Web Interface: http://localhost:8501
+# API Documentation: http://localhost:8000/docs
 ```
 
-## 🚀 What You Get
-
-| Feature | Benefit |
-|---------|---------|
-| 🎯 **Smart Q&A** | Ask complex questions, get precise answers |
-| ✈️ **Multi-Airlines** | Turkish Airlines + Pegasus (more coming) |
-| 🔄 **Always Updated** | Policies sync automatically from airline websites |
-| 🌍 **Bilingual** | Works in English & Turkish |
-| 📱 **Easy Interface** | Clean, intuitive web dashboard |
-
-## 💻 Quick Examples
-
-**Try these questions:**
-- *"What items are banned in carry-on luggage?"*
-- *"How much does excess baggage cost?"*
-- *"Can I travel with my cat in the cabin?"*
-- *"Compare baggage policies between airlines"*
-
-**API Access:**
+### Health Check
 ```bash
-curl "http://localhost:8000/search?q=pet+travel"
-curl -X POST "http://localhost:8000/chat/openai?question=baggage+fees"
+# Verify all services are running
+curl http://localhost:8000/health
+curl http://localhost:8501/_stcore/health
 ```
 
-## 🛠️ Under the Hood
+## Usage & API Reference
 
-**Tech**: FastAPI + PostgreSQL + OpenAI + Docker  
-**How it works**: Web scraping → AI embeddings → Semantic search → Natural answers
+### Web Interface
+Navigate to `http://localhost:8501` and ask questions like:
+- "What's the baggage allowance for international flights?"
+- "Can I bring my pet in the cabin?"
+- "Compare carry-on policies between airlines"
 
+### API Endpoints
+```bash
+# Semantic search
+curl "http://localhost:8000/search?q=pet+travel+policy"
+
+# AI-powered chat
+curl -X POST "http://localhost:8000/chat/openai" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What items are prohibited in carry-on?"}'
 ```
-Your Question → AI Search → Airline Policies → Smart Answer
-```
 
-## 🔧 Quick Fixes
+## Contributing
 
-**No data?** Run: `docker-compose run scraper python scraper_only.py`  
-**Still loading?** Wait 2-3 minutes for full startup  
-**Check status**: `curl http://localhost:8000/health`
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit changes: `git commit -am 'Add feature'`
+4. Push to branch: `git push origin feature-name`
+5. Submit a Pull Request
+
+### Adding New Airlines
+1. Implement scraper in `scrapers/` directory
+2. Update database schema if needed
+3. Add airline configuration to settings
+4. Test data collection and search functionality
+
+## Project Summary
+
+This AI-powered airline policy assistant represents a modern approach to information retrieval in the travel industry. By combining web scraping, vector databases, and large language models, we've created a system that transforms how travelers access airline policy information. The solution addresses real pain points in travel planning while demonstrating practical applications of RAG architecture in production environments.
+
+## Conclusion
+
+Built with modern AI and microservices principles, this system showcases how intelligent automation can significantly improve user experience in complex information domains. The project serves both as a practical travel tool and a reference implementation for RAG-based information systems.
 
 ---
 
-## 🌟 Ready to Try?
-
-1. **Clone** the repo
-2. **Run** `docker-compose up -d`  
-3. **Load** data with the scraper
-4. **Ask** your first question!
-
-**🔗 Access Points:**
-- 🖥️ **Web App**: http://localhost:8501
-- 📚 **API Docs**: http://localhost:8000/docs
-
----
-
-**Built with ❤️ for effortless travel**
+**Ready to streamline your travel planning? Start asking questions and experience the future of airline policy assistance.**
