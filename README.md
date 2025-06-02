@@ -25,15 +25,16 @@
 
 The system follows a microservices architecture with orchestrated startup sequence:
 
-```mermaid
-graph TD
-    A[1. PostgreSQL Database] --> B[2. Data Scraper]
-    B --> C[3. FastAPI Backend]
-    C --> D[4. Streamlit Frontend]
-    
-    A -.->|Health Check| B
-    B -.->|Completion Check| C
-    C -.->|Health Check| D
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  1. PostgreSQL  │───▶│  2. Data        │───▶│  3. FastAPI     │───▶│  4. Streamlit   │
+│     Database    │    │     Scraper     │    │     Backend     │    │     Frontend    │
+│                 │    │                 │    │                 │    │                 │
+│ • Stores data   │    │ • Scrapes       │    │ • Serves API    │    │ • User          │
+│ • Vector search │    │   policies      │    │ • ML processing │    │   interface     │
+│ • Health checks │    │ • Exits on      │    │ • Health checks │    │ • Natural       │
+│                 │    │   completion    │    │                 │    │   language UI   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 **Startup Sequence (Docker Compose)**:
