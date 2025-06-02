@@ -26,15 +26,15 @@
 The system follows a microservices architecture with orchestrated startup sequence:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+┌─────────────────┐     ┌─────────────────┐    ┌─────────────────┐     ┌─────────────────┐
 │  1. PostgreSQL  │───▶│  2. Data        │───▶│  3. FastAPI     │───▶│  4. Streamlit   │
-│     Database    │    │     Scraper     │    │     Backend     │    │     Frontend    │
-│                 │    │                 │    │                 │    │                 │
-│ • Stores data   │    │ • Scrapes       │    │ • Serves API    │    │ • User          │
-│ • Vector search │    │   policies      │    │ • ML processing │    │   interface     │
-│ • Health checks │    │ • Exits on      │    │ • Health checks │    │ • Natural       │
-│                 │    │   completion    │    │                 │    │   language UI   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+│     Database    │     │     Scraper     │    │     Backend     │     │     Frontend    │
+│                 │     │                 │    │                 │     │                 │
+│ • Stores data   │     │ • Scrapes       │    │ • Serves API    │     │ • User          │
+│ • Vector search │     │   policies      │    │ • ML processing │     │   interface     │
+│ • Health checks │     │ • Exits on      │    │ • Health checks │     │ • Natural       │
+│                 │     │   completion    │    │                 │     │   language UI   │
+└─────────────────┘     └─────────────────┘    └─────────────────┘     └─────────────────┘
 ```
 
 **Startup Sequence (Docker Compose)**:
