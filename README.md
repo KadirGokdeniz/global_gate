@@ -23,7 +23,7 @@
 
 ## System Architecture
 
-The system follows a microservices architecture with orchestrated startup sequence:
+The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
