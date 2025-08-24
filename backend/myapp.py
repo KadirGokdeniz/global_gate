@@ -8,12 +8,8 @@ import logging
 from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
-
-# ===== YENİ RAG IMPORT'LARI =====
 from embedding_service import get_embedding_service
 from vector_operations import VectorOperations
-
-# ===== NEW: OpenAI Integration Import =====
 from openai_service import get_openai_service
 
 import math
@@ -35,7 +31,7 @@ class DatabaseSettings(BaseSettings):
     max_pool_size: int = Field(default=20, ge=5, le=100)
     command_timeout: int = Field(default=60, ge=10, le=300)
     
-    # 👈 EKLENDİ: SSL and advanced settings
+    # SSL and advanced settings
     ssl: bool = Field(default=False, description="Enable SSL connection")
     echo: bool = Field(default=False, description="Echo SQL queries (debug)")
     
