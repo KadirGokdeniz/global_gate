@@ -1,5 +1,4 @@
 -- Multi-Airline Database Schema for Turkish Airlines + Pegasus
--- Bu dosya config/init.sql olarak kaydedilmeli
 
 -- pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -10,10 +9,8 @@ DROP TABLE IF EXISTS baggage_policies CASCADE;
 CREATE TABLE baggage_policies (
     id SERIAL PRIMARY KEY,
     
-    -- YENİ: Airline identifier
-    airline VARCHAR(50) NOT NULL DEFAULT 'turkish_airlines',
+    airline VARCHAR(50) NOT NULL DEFAULT 'unknown',
     
-    -- Existing fields
     source VARCHAR(50) NOT NULL,  -- checked_baggage, sports_equipment, etc.
     content TEXT NOT NULL,
     content_hash VARCHAR(32) NOT NULL,
@@ -120,16 +117,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Sample data insertion (for testing)
+-- Sample data insertion (for testing) it is needed for database readiness
 INSERT INTO baggage_policies (airline, source, content, content_hash, quality_score, extraction_type) 
 VALUES 
     ('turkish_airlines', 'test_source', 'Test Turkish Airlines policy content', md5('test_thy'), 0.8, 'manual'),
     ('pegasus', 'test_source', 'Test Pegasus Airlines policy content', md5('test_pegasus'), 0.7, 'manual')
 ON CONFLICT (airline, source, content_hash) DO NOTHING;
 
--- Grant permissions (if needed)
--- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
--- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
 -- Database ready confirmation
 DO $$
@@ -138,5 +132,5 @@ BEGIN
     RAISE NOTICE '📊 Tables: baggage_policies';
     RAISE NOTICE '📈 Views: multi_airline_stats, overall_stats';
     RAISE NOTICE '🔍 Functions: check_data_quality()';
-    RAISE NOTICE '🚀 Ready for Turkish Airlines + Pegasus data';
+    RAISE NOTICE '🚀 Ready ';
 END $$;

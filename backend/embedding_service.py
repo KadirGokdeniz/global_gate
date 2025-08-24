@@ -1,6 +1,4 @@
 # STEP 1: Optimized Embedding Service
-# Değişiklikler: Model persistence, better caching, batch optimization
-
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Optional
@@ -15,7 +13,7 @@ import os
 logger = logging.getLogger(__name__)
 
 class ImprovedLRUCache:
-    """Geliştirilmiş LRU Cache - mevcut cache'den daha verimli"""
+    """Optimized LRU Cache"""
     
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
@@ -83,7 +81,7 @@ class ImprovedLRUCache:
         }
 
 class OptimizedEmbeddingService:
-    """İyileştirilmiş embedding service - step by step optimization"""
+    """Embedding service - step by step optimization"""
     
     def __init__(self, cache_size: int = 2000):
         # Model konfigürasyonu
@@ -106,7 +104,7 @@ class OptimizedEmbeddingService:
         logger.info(f"🧠 Optimized Embedding Service initialized with cache size: {cache_size}")
     
     def _load_model_once(self):
-        """Model'i sadece bir kez yükle ve memory'de tut"""
+        """Load model once and keep it in the memory"""
         
         if self._model_loaded:
             return self.model
@@ -142,7 +140,7 @@ class OptimizedEmbeddingService:
         return self.model
     
     def _optimize_cache_key(self, text: str) -> str:
-        """Optimize edilmiş cache key generation"""
+        """Optimized cache key generation """
         
         # Basit normalization
         normalized = text.lower().strip()
@@ -157,7 +155,7 @@ class OptimizedEmbeddingService:
             return f"text_{normalized[:100]}"
     
     def _preprocess_text_fast(self, text: str) -> str:
-        """Hızlı text preprocessing"""
+        """Fast text preprocessing"""
         
         if not text:
             return ""
@@ -168,7 +166,7 @@ class OptimizedEmbeddingService:
         
         # Simple preprocessing
         cleaned = text.strip()
-        cleaned = ' '.join(cleaned.split())  # Normalize whitespace
+        cleaned = ' '.join(cleaned.split())
         
         # Truncate if too long (prevent memory issues)
         if len(cleaned) > 1000:
@@ -181,7 +179,7 @@ class OptimizedEmbeddingService:
         return cleaned
     
     def generate_embedding(self, text: str) -> np.ndarray:
-        """Ana embedding generation - optimized version"""
+        """Main embedding generation - optimized version"""
         
         # Step 1: Preprocess
         cleaned_text = self._preprocess_text_fast(text)
