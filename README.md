@@ -16,7 +16,7 @@
 |------------|---------|------------|
 | **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
-| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | State-of-the-art semantic understanding and search |
+| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding and search |
 | **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
