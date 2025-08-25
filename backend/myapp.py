@@ -59,17 +59,17 @@ settings = get_settings()
 
 # Global connection pool
 db_pool = None
-# ===== YENİ RAG GLOBAL VARIABLE =====
+# ===== New RAG GLOBAL VARIABLE =====
 vector_ops = None
 
 # Lifecycle management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Uygulama başlatma ve kapatma işlemleri"""
-    global db_pool, vector_ops  # <=== vector_ops eklendi
+    global db_pool, vector_ops 
     
     # Startup
-    logger.info("🚀 Turkish Airlines API başlatılıyor...")
+    logger.info("🚀 Turkish Airlines API is starting...")
     try:
         db_pool = await asyncpg.create_pool(
             **settings.get_asyncpg_params(),
@@ -77,14 +77,14 @@ async def lifespan(app: FastAPI):
             max_size=settings.max_pool_size,
             command_timeout=settings.command_timeout
         )
-        logger.info("✅ PostgreSQL bağlantı havuzu oluşturuldu")
+        logger.info("✅ PostgreSQL connection pool was created.")
         
         # Test bağlantısı
         async with db_pool.acquire() as conn:
             result = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
-            logger.info(f"📊 Veritabanında {result} policy bulundu")
+            logger.info(f"📊 In the database, {result} policy are available.")
         
-        # ===== YENİ RAG INITIALIZATION =====
+        # ===== New RAG INITIALIZATION =====
         try:
             vector_ops = VectorOperations(db_pool)
             logger.info("✅ Vector operations initialized")
@@ -98,7 +98,7 @@ async def lifespan(app: FastAPI):
             # Don't fail startup if vector ops fail
             
     except Exception as e:
-        logger.error(f"❌ Veritabanı bağlantı hatası: {e}")
+        logger.error(f"❌ Database connection error: {e}")
         raise
     
     yield
@@ -106,13 +106,13 @@ async def lifespan(app: FastAPI):
     # Shutdown
     if db_pool:
         await db_pool.close()
-        logger.info("🔒 Veritabanı bağlantıları kapatıldı")
+        logger.info("🔒 Database connection is closed")
 
 # FastAPI instance
 app = FastAPI(
-    title="Turkish Airlines Baggage Policy API",
-    description="Turkish Airlines baggage kuralları - RAG-powered PostgreSQL API",
-    version="4.0.0",  # <=== Version bump for RAG
+    title="Airlines Policy API",
+    description="RAG-powered PostgreSQL API",
+    version="4.0.0", # dummy
     lifespan=lifespan
 )
 
@@ -144,21 +144,21 @@ class StatsResponse(BaseModel):
 
 # Database Dependency
 async def get_db_connection():
-    """Veritabanı bağlantısı dependency"""
+    """Database conenction dependency"""
     if not db_pool:
-        raise HTTPException(status_code=503, detail="Veritabanı bağlantısı mevcut değil")
+        raise HTTPException(status_code=503, detail="Database coonection is not available.")
     
     try:
         async with db_pool.acquire() as connection:
             yield connection
     except Exception as e:
-        logger.error(f"DB bağlantı hatası: {e}")
-        raise HTTPException(status_code=503, detail="Veritabanı bağlantı hatası")
+        logger.error(f"DB connection error: {e}")
+        raise HTTPException(status_code=503, detail="DB connection error")
 
-# Ana Sayfa
+# Main Page
 @app.get("/")
 async def read_root(db = Depends(get_db_connection)):
-    """API ana sayfa ve genel bilgiler"""
+    """API main page and general information"""
     try:
         # Toplam policy sayısı
         total_count = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
@@ -167,7 +167,7 @@ async def read_root(db = Depends(get_db_connection)):
         sources = await db.fetch("SELECT source, COUNT(*) as count FROM baggage_policies GROUP BY source")
         
         return {
-            "service": "Turkish Airlines RAG-Powered Baggage Policy API",
+            "service": "Airlines Policy API",
             "version": "4.0.0",
             "data_source": "PostgreSQL Database + Vector Search",
             "status": "active",
@@ -189,18 +189,18 @@ async def read_root(db = Depends(get_db_connection)):
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ana sayfa yükleme hatası: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Main page loading error: {str(e)}")
 
 # Tüm Policies
 @app.get("/policies", response_model=ApiResponse)
 async def get_policies(
-    limit: int = Query(50, description="Maksimum döndürülecek policy sayısı", le=500),
-    offset: int = Query(0, description="Başlangıç pozisyonu", ge=0),
-    source: Optional[str] = Query(None, description="Kaynak filtresi"),
-    min_quality: Optional[float] = Query(None, description="Minimum kalite skoru"),
+    limit: int = Query(50, description="Maximum can be returned policy number", le=500),
+    offset: int = Query(0, description="Starting point", ge=0),
+    source: Optional[str] = Query(None, description="Source filter"),
+    min_quality: Optional[float] = Query(None, description="Minimum quality score"),
     db = Depends(get_db_connection)
 ):
-    """Tüm baggage policies'leri döndür"""
+    """Retun all policies"""
     
     try:
         # Base query
@@ -208,7 +208,7 @@ async def get_policies(
         params = []
         param_count = 0
         
-        # Filtreleme
+        # Filter
         if source:
             param_count += 1
             query += f" AND source = ${param_count}"
@@ -219,7 +219,7 @@ async def get_policies(
             query += f" AND quality_score >= ${param_count}"
             params.append(min_quality)
         
-        # Sıralama ve limit
+        # Rate and limit
         query += " ORDER BY created_at DESC"
         
         param_count += 1
@@ -242,27 +242,27 @@ async def get_policies(
         
         return ApiResponse(
             success=True,
-            message=f"Policies başarıyla getirildi (PostgreSQL)",
+            message=f"Policies successfully returned (PostgreSQL)",
             data=policies,
             count=len(policies)
         )
         
     except Exception as e:
-        logger.error(f"Policies getirme hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Veri getirme hatası: {str(e)}")
+        logger.error(f"Policies return error: {e}")
+        raise HTTPException(status_code=500, detail=f"Policies return error: {str(e)}")
 
-# Arama
+# Search
 @app.get("/search", response_model=SearchResponse)
 async def search_policies(
-    q: str = Query(..., description="Arama terimi", min_length=2),
-    limit: int = Query(10, description="Maksimum sonuç sayısı", le=100),
-    source: Optional[str] = Query(None, description="Kaynak filtresi"),
+    q: str = Query(..., description="Search term", min_length=2),
+    limit: int = Query(10, description="Maximum result number", le=100),
+    source: Optional[str] = Query(None, description="Source Filter"),
     db = Depends(get_db_connection)
 ):
-    """Gelişmiş metin araması (PostgreSQL ILIKE)"""
+    """Advanced text search (PostgreSQL ILIKE)"""
     
     try:
-        # Toplam kayıt sayısı
+        # Total record number
         total_query = "SELECT COUNT(*) FROM baggage_policies"
         total_count = await db.fetchval(total_query)
         
