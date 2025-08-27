@@ -1,0 +1,47 @@
+# ===============================================
+# requirements.api.txt - FastAPI Backend (FIXED)
+# ===============================================
+
+# FastAPI Core - Updated versions
+fastapi==0.108.0
+uvicorn[standard]==0.25.0
+
+# Database
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# Pydantic and settings - Compatible versions
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Machine Learning (lighter versions for API)
+numpy==1.26.3
+scikit-learn==1.4.0
+
+# OpenAI - Updated
+openai==1.8.0
+anthropic>=0.7.0
+
+# Utilities
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# HTTP and networking
+httpx==0.26.0
+requests==2.31.0
+
+# Data processing
+pandas==2.1.4
+
+# FIXED: Pin compatible ML dependencies
+huggingface_hub==0.17.3
+
+# REMOVED: anyio (FastAPI will handle its own dependency)
+# REMOVED: pathlib2 (not needed in Python 3.11)
+# REMOVED: structlog (not essential for basic functionality)
+
+# Async utilities - Let FastAPI manage this
+# anyio - REMOVED due to version conflict
+
+# Optional: Add back if needed
+# structlog==23.2.0

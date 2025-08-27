@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY scraper/requirements.scraper.txt .
+RUN pip install -r requirements.scraper.txt
+
+# ML dependencies
+RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install huggingface_hub==0.17.3
+RUN pip install transformers==4.35.2
+RUN pip install sentence-transformers==2.2.2
+
+# Copy scraper files
+COPY scraper/ .
+COPY backend/embedding_service.py .
+COPY backend/vector_operations.py .
+
+# Create model cache
+RUN mkdir -p /app/model_cache
+
+CMD ["python", "scraper_only.py"]
