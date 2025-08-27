@@ -14,12 +14,13 @@
 
 | Technology | Purpose | Why Chosen |
 |------------|---------|------------|
-| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
+| **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
 | **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding and search |
-| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
+| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
 
 ## System Architecture
 
@@ -62,6 +63,7 @@ User Query → Embedding Generation → Vector Search → Context Retrieval → 
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
+- Claude API Key
 
 ### Quick Start
 ```bash
