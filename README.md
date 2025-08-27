@@ -21,7 +21,7 @@
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
 | **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
-| **Open API & Claude API** | LLM interaction | Response Generation for RAG applications |
+| **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
 
 ## System Architecture
 
