@@ -1,16 +1,26 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-![Airline Policy Assistant Interface 1](assets/streamlit_interface1.png)
-![Airline Policy Assistant Interface 2](assets/streamlit_interface2.png)
-![Airline Policy Assistant Interface 3](assets/streamlit_interface3.png)
-
-*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
-
 ## Problem Statement & Solution
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
 **Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses.
+
+### **A Quick Tour of the Application**
+
+This intelligent RAG (Retrieval-Augmented Generation) system streamlines the process of finding airline policy information. Here's a quick look at the user experience from start to finish.
+
+**1. The Main Interface:** Simply select an airline and type your question in natural language.
+
+**2. The Backend in Action:** The system instantly connects to the API and processes your request.
+
+**3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
+
+| The Main Interface | The Backend in Action | The Final Result |
+|:------------:|:--------------:|:------------:|
+| ![How It Works](assets/streamlit_interface1.png) | ![System Process](assets/streamlit_interface3.png) | ![Final Answer](assets/streamlit_interface2.png) |
+
+*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
 
 ## Technology Stack
 
