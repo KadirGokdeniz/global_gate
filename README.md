@@ -14,12 +14,14 @@
 
 | Technology | Purpose | Why Chosen |
 |------------|---------|------------|
-| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
-| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding and search |
-| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
+| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding for searching |
+| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
+| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
 
 ## System Architecture
 
@@ -62,6 +64,7 @@ User Query → Embedding Generation → Vector Search → Context Retrieval → 
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
+- Claude API Key
 
 ### Quick Start
 ```bash
@@ -114,7 +117,7 @@ curl -X POST "http://localhost:8000/chat/openai" \
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
+3. Commit changes: `git commit -m 'Add feature'`
 4. Push to branch: `git push origin feature-name`
 5. Submit a Pull Request
 
