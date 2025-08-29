@@ -1,6 +1,8 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-![Airline Policy Assistant Interface](streamlit_interface1.png)
+![Airline Policy Assistant Interface 1](assets/streamlit_interface1.png)
+![Airline Policy Assistant Interface 2](assets/streamlit_interface2.png)
+![Airline Policy Assistant Interface 3](assets/streamlit_interface3.png)
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
 
