@@ -1,10 +1,6 @@
 # Gerekli importlar
 from fastapi import FastAPI, HTTPException, Query, Depends
-<<<<<<< HEAD
 from typing import List, Optional, Dict, Any
-=======
-from typing import List, Optional
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 import asyncpg
 import os
 from contextlib import asynccontextmanager
@@ -12,21 +8,10 @@ import logging
 from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
-<<<<<<< HEAD
 from embedding_service import get_embedding_service
 from vector_operations import VectorOperations
 from openai_service import get_openai_service
 from claude_service import get_claude_service
-=======
-
-# ===== YENİ RAG IMPORT'LARI =====
-from embedding_service import get_embedding_service
-from vector_operations import VectorOperations
-
-# ===== NEW: OpenAI Integration Import =====
-from openai_service import get_openai_service
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-
 import math
 
 # Logging ayarları
@@ -46,11 +31,7 @@ class DatabaseSettings(BaseSettings):
     max_pool_size: int = Field(default=20, ge=5, le=100)
     command_timeout: int = Field(default=60, ge=10, le=300)
     
-<<<<<<< HEAD
     # SSL and advanced settings
-=======
-    # 👈 EKLENDİ: SSL and advanced settings
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     ssl: bool = Field(default=False, description="Enable SSL connection")
     echo: bool = Field(default=False, description="Echo SQL queries (debug)")
     
@@ -76,100 +57,129 @@ def get_settings() -> DatabaseSettings:
 
 settings = get_settings()
 
-<<<<<<< HEAD
-# Global variables
+# Global variables - AI servisleri önceden yüklenecek
 db_pool = None
-=======
-# Global connection pool
-db_pool = None
-# ===== YENİ RAG GLOBAL VARIABLE =====
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 vector_ops = None
+embedding_service = None
+openai_service = None
+claude_service = None
 
 # Lifecycle management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Uygulama başlatma ve kapatma işlemleri"""
-<<<<<<< HEAD
-    global db_pool, vector_ops 
+    global db_pool, vector_ops, embedding_service, openai_service, claude_service
     
     # Startup
-    logger.info("🚀 Turkish Airlines API is starting...")
-=======
-    global db_pool, vector_ops  # <=== vector_ops eklendi
-    
-    # Startup
-    logger.info("🚀 Turkish Airlines API başlatılıyor...")
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    logger.info("🚀 Airlines Policy API is starting...")
     try:
+        # 1. Database bağlantısı
         db_pool = await asyncpg.create_pool(
             **settings.get_asyncpg_params(),
             min_size=settings.min_pool_size,
             max_size=settings.max_pool_size,
             command_timeout=settings.command_timeout
         )
-<<<<<<< HEAD
         logger.info("✅ PostgreSQL connection pool was created.")
-=======
-        logger.info("✅ PostgreSQL bağlantı havuzu oluşturuldu")
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         
         # Test bağlantısı
         async with db_pool.acquire() as conn:
             result = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
-<<<<<<< HEAD
             logger.info(f"📊 In the database, {result} policy are available.")
         
-        # Vector operations initialization
-=======
-            logger.info(f"📊 Veritabanında {result} policy bulundu")
+        # 2. AI Servislerini önceden yükle
+        logger.info("🧠 Loading AI services...")
         
-        # ===== YENİ RAG INITIALIZATION =====
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+        # Embedding service yükle
         try:
-            vector_ops = VectorOperations(db_pool)
-            logger.info("✅ Vector operations initialized")
-            
-            # Auto-embed existing policies
-            embedded_count = await vector_ops.embed_existing_policies()
-            logger.info(f"🧠 Embedded {embedded_count} policies on startup")
-            
+            embedding_service = get_embedding_service()
+            logger.info(f"✅ Embedding service loaded (Model: {embedding_service._model_name})")
+        except Exception as e:
+            logger.error(f"❌ Embedding service load failed: {e}")
+            embedding_service = None
+        
+        # OpenAI service yükle
+        try:
+            openai_service = get_openai_service()
+            # Test connection
+            test_result = openai_service.test_connection()
+            if test_result["success"]:
+                logger.info(f"✅ OpenAI service loaded (Model: {openai_service.default_model})")
+            else:
+                logger.warning(f"⚠️ OpenAI service warning: {test_result.get('message', 'Unknown')}")
+        except Exception as e:
+            logger.error(f"❌ OpenAI service load failed: {e}")
+            openai_service = None
+        
+        # Claude service yükle
+        try:
+            claude_service = get_claude_service()
+            # Test connection
+            test_result = claude_service.test_connection()
+            if test_result["success"]:
+                logger.info(f"✅ Claude service loaded (Model: {claude_service.default_model})")
+            else:
+                logger.warning(f"⚠️ Claude service warning: {test_result.get('message', 'Unknown')}")
+        except Exception as e:
+            logger.error(f"❌ Claude service load failed: {e}")
+            claude_service = None
+        
+        # 3. Vector operations initialization
+        try:
+            if embedding_service:
+                vector_ops = VectorOperations(db_pool)
+                logger.info("✅ Vector operations initialized")
+                
+                # Auto-embed existing policies
+                embedded_count = await vector_ops.embed_existing_policies()
+                logger.info(f"🧠 Embedded {embedded_count} policies on startup")
+            else:
+                logger.warning("⚠️ Vector operations skipped (no embedding service)")
         except Exception as ve:
-            logger.error(f"⚠️ Vector operations init warning: {ve}")
-<<<<<<< HEAD
+            logger.error(f"❌ Vector operations init failed: {ve}")
+            vector_ops = None
+        
+        # 4. Startup summary
+        services_status = {
+            "database": "✅" if db_pool else "❌",
+            "embedding": "✅" if embedding_service else "❌",
+            "openai": "✅" if openai_service else "❌",
+            "claude": "✅" if claude_service else "❌",
+            "vector_ops": "✅" if vector_ops else "❌"
+        }
+        
+        logger.info("🎯 Startup Summary:")
+        for service, status in services_status.items():
+            logger.info(f"   {service}: {status}")
+        
+        logger.info("🚀 Airlines Policy API is ready!")
             
     except Exception as e:
-        logger.error(f"❌ Database connection error: {e}")
-=======
-            # Don't fail startup if vector ops fail
-            
-    except Exception as e:
-        logger.error(f"❌ Veritabanı bağlantı hatası: {e}")
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+        logger.error(f"❌ Critical startup error: {e}")
         raise
     
     yield
     
     # Shutdown
+    logger.info("🛑 Shutting down Airlines Policy API...")
+    
     if db_pool:
         await db_pool.close()
-<<<<<<< HEAD
         logger.info("🔒 Database connection is closed")
+    
+    # AI servislerini temizle
+    embedding_service = None
+    openai_service = None
+    claude_service = None
+    vector_ops = None
+    
+    logger.info("✅ Shutdown completed")
 
 # FastAPI instance
 app = FastAPI(
     title="Airlines Policy API",
-    description="RAG-powered PostgreSQL API with OpenAI & Claude",
-    version="4.1.0",
-=======
-        logger.info("🔒 Veritabanı bağlantıları kapatıldı")
-
-# FastAPI instance
-app = FastAPI(
-    title="Turkish Airlines Baggage Policy API",
-    description="Turkish Airlines baggage kuralları - RAG-powered PostgreSQL API",
-    version="4.0.0",  # <=== Version bump for RAG
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    description="RAG-powered PostgreSQL API with OpenAI & Claude (Preloaded Models)",
+    version="4.2.0",
     lifespan=lifespan
 )
 
@@ -199,11 +209,10 @@ class StatsResponse(BaseModel):
     source_breakdown: dict
     database_info: dict
 
-<<<<<<< HEAD
 class ChatRequest(BaseModel):
-    question: str = Field(..., description="User question", min_length=3, max_length=500)
-    max_results: int = Field(default=3, description="Max retrieved documents", le=5, ge=1)
-    similarity_threshold: float = Field(default=0.5, description="Similarity threshold", ge=0.3, le=0.9)
+    question: str = Field(..., description="User question", min_length=3, max_length=2000)  # Uzun sorular için artırıldı
+    max_results: int = Field(default=3, description="Max retrieved documents", le=10, ge=1)  # Limit artırıldı
+    similarity_threshold: float = Field(default=0.3, description="Similarity threshold", ge=0.1, le=0.9)  # Daha geniş aralık
     model: Optional[str] = Field(default=None, description="Model to use (optional)")
 
 # Database Dependency
@@ -211,19 +220,11 @@ async def get_db_connection():
     """Database connection dependency"""
     if not db_pool:
         raise HTTPException(status_code=503, detail="Database connection is not available.")
-=======
-# Database Dependency
-async def get_db_connection():
-    """Veritabanı bağlantısı dependency"""
-    if not db_pool:
-        raise HTTPException(status_code=503, detail="Veritabanı bağlantısı mevcut değil")
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     
     try:
         async with db_pool.acquire() as connection:
             yield connection
     except Exception as e:
-<<<<<<< HEAD
         logger.error(f"DB connection error: {e}")
         raise HTTPException(status_code=503, detail="DB connection error")
 
@@ -304,15 +305,6 @@ def fix_float_values(obj):
 @app.get("/")
 async def read_root(db = Depends(get_db_connection)):
     """API main page and general information"""
-=======
-        logger.error(f"DB bağlantı hatası: {e}")
-        raise HTTPException(status_code=503, detail="Veritabanı bağlantı hatası")
-
-# Ana Sayfa
-@app.get("/")
-async def read_root(db = Depends(get_db_connection)):
-    """API ana sayfa ve genel bilgiler"""
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     try:
         # Toplam policy sayısı
         total_count = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
@@ -320,21 +312,22 @@ async def read_root(db = Depends(get_db_connection)):
         # Mevcut kaynaklar
         sources = await db.fetch("SELECT source, COUNT(*) as count FROM baggage_policies GROUP BY source")
         
+        # AI services status
+        ai_status = {
+            "embedding_service": "loaded" if embedding_service else "failed",
+            "openai_service": "loaded" if openai_service else "failed",
+            "claude_service": "loaded" if claude_service else "failed",
+            "vector_operations": "enabled" if vector_ops else "disabled"
+        }
+        
         return {
-<<<<<<< HEAD
             "service": "Airlines Policy API",
-            "version": "4.1.0",
+            "version": "4.2.0 (Preloaded Models)",
             "data_source": "PostgreSQL Database + Vector Search",
             "status": "active",
+            "ai_services_status": ai_status,
             "rag_features": "enabled",
             "ai_models": ["OpenAI GPT", "Claude"],
-=======
-            "service": "Turkish Airlines RAG-Powered Baggage Policy API",
-            "version": "4.0.0",
-            "data_source": "PostgreSQL Database + Vector Search",
-            "status": "active",
-            "rag_features": "enabled",
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
             "endpoints": {
                 "all_policies": "/policies",
                 "search": "/search?q=yoursearchterm",
@@ -343,14 +336,10 @@ async def read_root(db = Depends(get_db_connection)):
                 "stats": "/stats",
                 "vector_stats": "/vector/stats",
                 "health": "/health",
-<<<<<<< HEAD
                 "openai_chat": "/chat/openai",
                 "claude_chat": "/chat/claude",
+                "test_models": "/test/models",
                 "documentation": "/docs"
-=======
-                "documentation": "/docs",
-                "openai_rag_chat": "/chat/openai"
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
             },
             "statistics": {
                 "total_policies": total_count,
@@ -358,16 +347,11 @@ async def read_root(db = Depends(get_db_connection)):
             }
         }
     except Exception as e:
-<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=f"Main page loading error: {str(e)}")
-=======
-        raise HTTPException(status_code=500, detail=f"Ana sayfa yükleme hatası: {str(e)}")
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 
 # Tüm Policies
 @app.get("/policies", response_model=ApiResponse)
-async def get_policies(
-<<<<<<< HEAD
+async def get_all_policies(
     limit: int = Query(50, description="Maximum can be returned policy number", le=500),
     offset: int = Query(0, description="Starting point", ge=0),
     source: Optional[str] = Query(None, description="Source filter"),
@@ -375,15 +359,6 @@ async def get_policies(
     db = Depends(get_db_connection)
 ):
     """Return all policies"""
-=======
-    limit: int = Query(50, description="Maksimum döndürülecek policy sayısı", le=500),
-    offset: int = Query(0, description="Başlangıç pozisyonu", ge=0),
-    source: Optional[str] = Query(None, description="Kaynak filtresi"),
-    min_quality: Optional[float] = Query(None, description="Minimum kalite skoru"),
-    db = Depends(get_db_connection)
-):
-    """Tüm baggage policies'leri döndür"""
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     
     try:
         # Base query
@@ -391,11 +366,7 @@ async def get_policies(
         params = []
         param_count = 0
         
-<<<<<<< HEAD
         # Filter
-=======
-        # Filtreleme
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         if source:
             param_count += 1
             query += f" AND source = ${param_count}"
@@ -406,11 +377,7 @@ async def get_policies(
             query += f" AND quality_score >= ${param_count}"
             params.append(min_quality)
         
-<<<<<<< HEAD
         # Order and limit
-=======
-        # Sıralama ve limit
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         query += " ORDER BY created_at DESC"
         
         param_count += 1
@@ -433,17 +400,12 @@ async def get_policies(
         
         return ApiResponse(
             success=True,
-<<<<<<< HEAD
             message=f"Policies successfully returned (PostgreSQL)",
-=======
-            message=f"Policies başarıyla getirildi (PostgreSQL)",
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
             data=policies,
             count=len(policies)
         )
         
     except Exception as e:
-<<<<<<< HEAD
         logger.error(f"Policies return error: {e}")
         raise HTTPException(status_code=500, detail=f"Policies return error: {str(e)}")
 
@@ -459,23 +421,6 @@ async def search_policies(
     
     try:
         # Total record number
-=======
-        logger.error(f"Policies getirme hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Veri getirme hatası: {str(e)}")
-
-# Arama
-@app.get("/search", response_model=SearchResponse)
-async def search_policies(
-    q: str = Query(..., description="Arama terimi", min_length=2),
-    limit: int = Query(10, description="Maksimum sonuç sayısı", le=100),
-    source: Optional[str] = Query(None, description="Kaynak filtresi"),
-    db = Depends(get_db_connection)
-):
-    """Gelişmiş metin araması (PostgreSQL ILIKE)"""
-    
-    try:
-        # Toplam kayıt sayısı
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         total_query = "SELECT COUNT(*) FROM baggage_policies"
         total_count = await db.fetchval(total_query)
         
@@ -518,116 +463,6 @@ async def search_policies(
         logger.error(f"Arama hatası: {e}")
         raise HTTPException(status_code=500, detail=f"Arama hatası: {str(e)}")
 
-<<<<<<< HEAD
-=======
-# Source'a Göre Getir
-@app.get("/policies/{source}", response_model=ApiResponse)
-async def get_policies_by_source(
-    source: str,
-    limit: int = Query(100, description="Maksimum policy sayısı"),
-    db = Depends(get_db_connection)
-):
-    """Belirli kaynağa göre policies getir"""
-    
-    try:
-        # Önce kaynak var mı kontrol et
-        source_check = await db.fetchval(
-            "SELECT COUNT(*) FROM baggage_policies WHERE source = $1", 
-            source
-        )
-        
-        if source_check == 0:
-            # Mevcut kaynakları göster
-            available = await db.fetch("SELECT DISTINCT source FROM baggage_policies ORDER BY source")
-            available_sources = [row['source'] for row in available]
-            
-            raise HTTPException(
-                status_code=404,
-                detail=f"Kaynak '{source}' bulunamadı. Mevcut kaynaklar: {available_sources}"
-            )
-        
-        # Veriyi getir
-        query = """
-        SELECT id, source, content, created_at, quality_score 
-        FROM baggage_policies 
-        WHERE source = $1 
-        ORDER BY quality_score DESC NULLS LAST, created_at DESC 
-        LIMIT $2
-        """
-        
-        rows = await db.fetch(query, source, limit)
-        
-        policies = []
-        for row in rows:
-            policy_dict = dict(row)
-            if policy_dict.get('created_at'):
-                policy_dict['created_at'] = policy_dict['created_at'].isoformat()
-            policies.append(BaggagePolicy(**policy_dict))
-        
-        return ApiResponse(
-            success=True,
-            message=f"'{source}' kaynağından {len(policies)} policy getirildi",
-            data=policies,
-            count=len(policies)
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Source policies getirme hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Veri getirme hatası: {str(e)}")
-
-# Kaynakları Listele
-@app.get("/sources")
-async def get_available_sources(db = Depends(get_db_connection)):
-    """Mevcut veri kaynaklarını listele"""
-    
-    try:
-        query = """
-        SELECT 
-            source,
-            COUNT(*) as policy_count,
-            AVG(quality_score) as avg_quality,
-            MIN(created_at) as first_added,
-            MAX(created_at) as last_added
-        FROM baggage_policies 
-        GROUP BY source 
-        ORDER BY source
-        """
-        
-        rows = await db.fetch(query)
-        
-        source_info = {}
-        for row in rows:
-            row_dict = dict(row)
-            source = row_dict['source']
-            
-            # Tarihleri string'e çevir
-            if row_dict.get('first_added'):
-                row_dict['first_added'] = row_dict['first_added'].isoformat()
-            if row_dict.get('last_added'):
-                row_dict['last_added'] = row_dict['last_added'].isoformat()
-            
-            source_info[source] = {
-                "policy_count": row_dict['policy_count'],
-                "avg_quality": float(row_dict['avg_quality']) if row_dict['avg_quality'] else None,
-                "first_added": row_dict['first_added'],
-                "last_added": row_dict['last_added']
-            }
-        
-        total_policies = await db.fetchval("SELECT COUNT(*) FROM baggage_policies")
-        
-        return {
-            "available_sources": source_info,
-            "total_sources": len(source_info),
-            "total_policies": total_policies
-        }
-        
-    except Exception as e:
-        logger.error(f"Sources listeleme hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Kaynak listeleme hatası: {str(e)}")
-
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 # İstatistikler
 @app.get("/stats", response_model=StatsResponse)
 async def get_stats(db = Depends(get_db_connection)):
@@ -689,17 +524,10 @@ async def get_stats(db = Depends(get_db_connection)):
         logger.error(f"Stats hatası: {e}")
         raise HTTPException(status_code=500, detail=f"İstatistik hatası: {str(e)}")
 
-# Health Check
-<<<<<<< HEAD
+# Health Check - Updated
 @app.get("/health")
 async def health_check():
-    """API ve veritabanı health check - Enhanced with AI services status"""
-=======
-# Health Check - UPDATE EXISTING FUNCTION
-@app.get("/health")
-async def health_check():
-    """API ve veritabanı health check - Enhanced with OpenAI status"""
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    """API ve veritabanı health check - Enhanced with preloaded AI services status"""
     
     try:
         if not db_pool:
@@ -714,81 +542,34 @@ async def health_check():
             test_result = await conn.fetchval("SELECT 1")
             policy_count = await conn.fetchval("SELECT COUNT(*) FROM baggage_policies")
         
-<<<<<<< HEAD
-        # Vector operations status
-        vector_status = "available" if vector_ops else "unavailable"
-        
-        # Embedding service status
-        embedding_service_status = "unavailable"
-=======
-        # ===== EXISTING RAG STATUS CHECKS =====
-        vector_status = "available" if vector_ops else "unavailable"
-        embedding_service_status = "available"
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-        try:
-            embedding_service = get_embedding_service()
-            embedding_service_status = "available"
-        except:
-            embedding_service_status = "unavailable"
-        
-<<<<<<< HEAD
-        # OpenAI status
-=======
-        # ===== NEW: OpenAI STATUS CHECK =====
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-        openai_status = "unavailable"
-        openai_model = "unknown"
-        try:
-            openai_service = get_openai_service()
-            connection_test = openai_service.test_connection()
-            if connection_test["success"]:
-                openai_status = "available"
-                openai_model = openai_service.default_model
-            else:
-                openai_status = f"error: {connection_test.get('message', 'unknown')}"
-        except Exception as e:
-            openai_status = f"error: {str(e)}"
-        
-<<<<<<< HEAD
-        # Claude status
-        claude_status = "unavailable"
-        claude_model = "unknown"
-        try:
-            claude_service = get_claude_service()
-            connection_test = claude_service.test_connection()
-            if connection_test["success"]:
-                claude_status = "available"
-                claude_model = claude_service.default_model
-            else:
-                claude_status = f"error: {connection_test.get('message', 'unknown')}"
-        except Exception as e:
-            claude_status = f"error: {str(e)}"
-        
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "ai_services": {
-                "vector_operations": vector_status,
-                "embedding_service": embedding_service_status,
-                "openai": {
-                    "status": openai_status,  
-                    "model": openai_model
-                },
-                "claude": {
-                    "status": claude_status,
-                    "model": claude_model
-                }
-=======
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "rag_features": {
-                "vector_operations": vector_status,
-                "embedding_service": embedding_service_status,
-                "openai_service": openai_status,  # NEW
-                "openai_model": openai_model      # NEW
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+        # Preloaded AI services status
+        ai_services_health = {
+            "embedding_service": {
+                "status": "ready" if embedding_service else "unavailable",
+                "model": embedding_service._model_name if embedding_service else "not loaded"
             },
+            "vector_operations": {
+                "status": "ready" if vector_ops else "unavailable"
+            },
+            "openai": {
+                "status": "ready" if openai_service else "unavailable",
+                "model": openai_service.default_model if openai_service else "not loaded"
+            },
+            "claude": {
+                "status": "ready" if claude_service else "unavailable", 
+                "model": claude_service.default_model if claude_service else "not loaded"
+            }
+        }
+        
+        # Overall health status
+        all_services_ready = all(
+            service["status"] == "ready" for service in ai_services_health.values()
+        )
+        
+        return {
+            "status": "healthy" if all_services_ready else "partially_healthy",
+            "database": "connected",
+            "preloaded_ai_services": ai_services_health,
             "connection_pool": {
                 "size": db_pool.get_size(),
                 "max_size": db_pool.get_max_size(),
@@ -797,15 +578,7 @@ async def health_check():
             "data": {
                 "total_policies": policy_count
             },
-<<<<<<< HEAD
-=======
-            "endpoints": {
-                "traditional_search": "/search",
-                "vector_search": "/vector/similarity-search",
-                "openai_rag_chat": "/chat/openai",  # NEW
-                "docs": "/docs"
-            },
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+            "models_preloaded": True,
             "timestamp": "auto-generated"
         }
         
@@ -817,57 +590,196 @@ async def health_check():
             "error": str(e)
         }
 
-<<<<<<< HEAD
 # ===============================================
-# VECTOR SEARCH ENDPOINTS
-=======
-# Yeni Policy Ekleme (Bonus)
-@app.post("/policies", response_model=dict)
-async def add_policy(
-    source: str,
-    content: str,
-    quality_score: Optional[float] = None,
-    db = Depends(get_db_connection)
-):
-    """Yeni baggage policy ekle"""
+# AI CHAT ENDPOINTS (USING PRELOADED MODELS)
+# ===============================================
+
+# Ortak chat logic fonksiyonları
+async def _chat_with_openai_logic(question: str, max_results: int, similarity_threshold: float, model: Optional[str]):
+    """OpenAI chat logic"""
+    if not openai_service:
+        raise HTTPException(
+            status_code=503, 
+            detail="OpenAI service not available. Service may have failed to load at startup."
+        )
     
     try:
-        query = """
-        INSERT INTO baggage_policies (source, content, quality_score, created_at)
-        VALUES ($1, $2, $3, NOW())
-        RETURNING id, created_at
-        """
+        logger.info(f"🔍 OpenAI RAG Query: '{question}' with model: {model}")
         
-        result = await db.fetchrow(query, source, content, quality_score)
+        # Step 1: Retrieve relevant documents
+        retrieved_docs = await retrieve_relevant_docs(question, max_results, similarity_threshold)
         
-        return {
+        # Step 2: Generate response using PRELOADED OpenAI service
+        openai_response = openai_service.generate_rag_response(retrieved_docs, question, model)
+        
+        if not openai_response["success"]:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"OpenAI generation failed: {openai_response.get('error', 'Unknown error')}"
+            )
+        
+        # Step 3: Prepare response
+        response_data = {
             "success": True,
-            "message": "Policy başarıyla eklendi",
-            "policy_id": result['id'],
-            "created_at": result['created_at'].isoformat()
+            "ai_provider": "OpenAI (Preloaded)",
+            "question": question,
+            "answer": openai_response["answer"],
+            "model_used": openai_response["model_used"],
+            "context_used": openai_response["context_used"],
+            "retrieved_docs": prepare_retrieved_docs_preview(retrieved_docs),
+            "retrieval_stats": calculate_retrieval_stats(retrieved_docs),
+            "usage_stats": openai_response.get("usage", {}),
+            "preloaded_model": True,
+            "timestamp": "auto-generated"
         }
         
+        logger.info(f"✅ OpenAI RAG response generated (preloaded). Cost: ${openai_response.get('usage', {}).get('estimated_cost', 0):.4f}")
+        
+        return fix_float_values(response_data)
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Policy ekleme hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Ekleme hatası: {str(e)}")
+        logger.error(f"OpenAI RAG chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"OpenAI chat error: {str(e)}")
+
+async def _chat_with_claude_logic(question: str, max_results: int, similarity_threshold: float, model: Optional[str]):
+    """Claude chat logic"""
+    if not claude_service:
+        raise HTTPException(
+            status_code=503, 
+            detail="Claude service not available. Service may have failed to load at startup."
+        )
     
-@app.get("/config/database")
-async def get_database_config():
-    """Database configuration görüntüle"""
-    return {
-        "host": settings.host,
-        "port": settings.port,
-        "database": settings.database,
-        "user": settings.user,
-        "pool_config": {
-            "min_size": settings.min_pool_size,
-            "max_size": settings.max_pool_size
+    try:
+        logger.info(f"🔍 Claude RAG Query: '{question}' with model: {model}")
+        
+        # Step 1: Retrieve relevant documents
+        retrieved_docs = await retrieve_relevant_docs(question, max_results, similarity_threshold)
+        
+        # Step 2: Generate response using PRELOADED Claude service
+        claude_response = claude_service.generate_rag_response(retrieved_docs, question, model)
+        
+        if not claude_response["success"]:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Claude generation failed: {claude_response.get('error', 'Unknown error')}"
+            )
+        
+        # Step 3: Prepare response
+        response_data = {
+            "success": True,
+            "ai_provider": "Claude (Preloaded)",
+            "question": question,
+            "answer": claude_response["answer"],
+            "model_used": claude_response["model_used"],
+            "context_used": claude_response["context_used"],
+            "retrieved_docs": prepare_retrieved_docs_preview(retrieved_docs),
+            "retrieval_stats": calculate_retrieval_stats(retrieved_docs),
+            "usage_stats": claude_response.get("usage", {}),
+            "preloaded_model": True,
+            "timestamp": "auto-generated"
         }
-    }
+        
+        logger.info(f"✅ Claude RAG response generated (preloaded). Cost: ${claude_response.get('usage', {}).get('estimated_cost', 0):.6f}")
+        
+        return fix_float_values(response_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Claude RAG chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Claude chat error: {str(e)}")
+
+# MULTIPLE ENDPOINTS - Hem GET hem POST desteği (Query params + JSON body)
+@app.post("/chat/openai")
+async def openai_chat_post(
+    chat_request: Optional[ChatRequest] = None,
+    question: Optional[str] = Query(None, description="User question", min_length=3),
+    max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
+    similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
+    model: Optional[str] = Query(None, description="Model to use (optional)")
+):
+    """RAG Chat with OpenAI (POST method - supports both JSON body and query parameters)"""
+    
+    # Priority: JSON body > Query parameters
+    if chat_request:
+        # JSON body provided
+        return await _chat_with_openai_logic(
+            chat_request.question,
+            chat_request.max_results,
+            chat_request.similarity_threshold,
+            chat_request.model
+        )
+    elif question:
+        # Query parameters provided
+        return await _chat_with_openai_logic(
+            question,
+            max_results or 3,
+            similarity_threshold or 0.3,
+            model
+        )
+    else:
+        raise HTTPException(
+            status_code=422, 
+            detail="Either provide JSON body with 'question' field or 'question' query parameter"
+        )
+
+@app.get("/chat/openai") 
+async def openai_chat_get(
+    question: str = Query(..., description="User question", min_length=3),
+    max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
+    similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
+    model: Optional[str] = Query(None, description="Model to use (optional)")
+):
+    """RAG Chat with OpenAI (GET method with query parameters)"""
+    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model)
+
+@app.post("/chat/claude")
+async def claude_chat_post(
+    chat_request: Optional[ChatRequest] = None,
+    question: Optional[str] = Query(None, description="User question", min_length=3),
+    max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
+    similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
+    model: Optional[str] = Query(None, description="Model to use (optional)")
+):
+    """RAG Chat with Claude (POST method - supports both JSON body and query parameters)"""
+    
+    # Priority: JSON body > Query parameters
+    if chat_request:
+        # JSON body provided
+        return await _chat_with_claude_logic(
+            chat_request.question,
+            chat_request.max_results,
+            chat_request.similarity_threshold,
+            chat_request.model
+        )
+    elif question:
+        # Query parameters provided
+        return await _chat_with_claude_logic(
+            question,
+            max_results or 3,
+            similarity_threshold or 0.3,
+            model
+        )
+    else:
+        raise HTTPException(
+            status_code=422, 
+            detail="Either provide JSON body with 'question' field or 'question' query parameter"
+        )
+
+@app.get("/chat/claude")
+async def claude_chat_get(
+    question: str = Query(..., description="User question", min_length=3),
+    max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
+    similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
+    model: Optional[str] = Query(None, description="Model to use (optional)")
+):
+    """RAG Chat with Claude (GET method with query parameters)"""
+    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model)
 
 # ===============================================
-# ===== YENİ RAG VECTOR ENDPOINTS =====
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+# VECTOR SEARCH ENDPOINTS
 # ===============================================
 
 @app.get("/vector/similarity-search")
@@ -906,246 +818,71 @@ async def vector_similarity_search(
         logger.error(f"Vector search error: {e}")
         raise HTTPException(status_code=500, detail=f"Vector search error: {str(e)}")
 
-<<<<<<< HEAD
-=======
-@app.post("/vector/embed-policies")
-async def embed_existing_policies():
-    """Mevcut policy'leri embed et (manual trigger)"""
-    
-    if not vector_ops:
-        raise HTTPException(status_code=503, detail="Vector operations not initialized")
-    
-    try:
-        embedded_count = await vector_ops.embed_existing_policies()
-        
-        return {
-            "success": True,
-            "message": f"Successfully embedded {embedded_count} policies",
-            "embedded_count": embedded_count
-        }
-        
-    except Exception as e:
-        logger.error(f"Embedding error: {e}")
-        raise HTTPException(status_code=500, detail=f"Embedding error: {str(e)}")
-
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 @app.get("/vector/stats")
 async def get_vector_stats():
     """Vector/embedding istatistikleri"""
     
-    if not vector_ops:
-        raise HTTPException(status_code=503, detail="Vector operations not initialized")
+    if not vector_ops or not embedding_service:
+        raise HTTPException(status_code=503, detail="Vector operations or embedding service not initialized")
     
     try:
         stats = await vector_ops.get_embedding_stats()
         
-        # Embedding service info
-        embedding_service = get_embedding_service()
-        
         return {
-            "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2",
+            "embedding_model": embedding_service._model_name,
             "embedding_dimension": embedding_service.embedding_dimension,
             "database_stats": stats,
-            "vector_search": "enabled"
+            "vector_search": "enabled",
+            "preloaded": True
         }
         
     except Exception as e:
         logger.error(f"Vector stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Vector stats error: {str(e)}")
 
-<<<<<<< HEAD
-# ===============================================
-# AI CHAT ENDPOINTS (SEPARATED)
-# ===============================================
-
-@app.post("/chat/openai")
-async def chat_with_openai(chat_request: ChatRequest):
-    """RAG Chat with OpenAI"""
-    
-    try:
-        logger.info(f"🔍 OpenAI RAG Query: '{chat_request.question}' with model: {chat_request.model}")
-        
-        # Step 1: Retrieve relevant documents
-        retrieved_docs = await retrieve_relevant_docs(
-            chat_request.question, 
-            chat_request.max_results, 
-            chat_request.similarity_threshold
-        )
-        
-        # Step 2: Generate response using OpenAI
-        openai_service = get_openai_service()
-        openai_response = openai_service.generate_rag_response(
-            retrieved_docs, 
-            chat_request.question, 
-            chat_request.model
-=======
-@app.post("/chat/openai")
-async def chat_with_openai_rag(
-    question: str = Query(..., description="User question", min_length=3, max_length=500),
-    max_results: int = Query(2, description="Max retrieved documents", le=5, ge=1),
-    similarity_threshold: float = Query(0.5, description="Similarity threshold", ge=0.3, le=0.9),
-    model: str = Query("gpt-3.5-turbo", description="OpenAI model to use")
-):
-    """RAG Chat with OpenAI - Production ready endpoint"""
-    
-    if not vector_ops:
-        raise HTTPException(status_code=503, detail="Vector operations not available")
-    
-    try:
-        # Step 1: Retrieve relevant documents using existing vector search
-        logger.info(f"🔍 OpenAI RAG Query: '{question}' with model: {model}")
-        
-        retrieved_docs = await vector_ops.similarity_search(
-            query=question,
-            limit=max_results,
-            similarity_threshold=similarity_threshold
-        )
-        
-        logger.info(f"📊 Retrieved {len(retrieved_docs)} documents")
-        
-        # Step 2: Generate response using OpenAI
-        openai_service = get_openai_service()
-        
-        # Handle both empty and populated context cases
-        openai_response = openai_service.generate_rag_response(
-            retrieved_docs, question, model
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-        )
-        
-        if not openai_response["success"]:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"OpenAI generation failed: {openai_response.get('error', 'Unknown error')}"
-            )
-        
-<<<<<<< HEAD
-        # Step 3: Prepare response
-        response_data = {
-            "success": True,
-            "ai_provider": "OpenAI",
-            "question": chat_request.question,
-            "answer": openai_response["answer"],
-            "model_used": openai_response["model_used"],
-            "context_used": openai_response["context_used"],
-            "retrieved_docs": prepare_retrieved_docs_preview(retrieved_docs),
-            "retrieval_stats": calculate_retrieval_stats(retrieved_docs),
-=======
-        # Step 3: Prepare detailed response
-        response_data = {
-            "success": True,
-            "question": question,
-            "answer": openai_response["answer"],
-            "model_used": openai_response["model_used"],
-            "context_used": openai_response["context_used"],
-            "retrieved_docs": [
-                {
-                    "source": doc["source"],
-                    "content_preview": doc["content"][:200] + "..." if len(doc["content"]) > 200 else doc["content"],
-                    "similarity_score": round(doc["similarity_score"], 3)
-                }
-                for doc in retrieved_docs
-            ],
-            "retrieval_stats": {
-                "total_retrieved": len(retrieved_docs),
-                "avg_similarity": round(
-                    sum(doc["similarity_score"] for doc in retrieved_docs) / len(retrieved_docs), 3
-                ) if retrieved_docs else 0,
-                "min_similarity": round(min(doc["similarity_score"] for doc in retrieved_docs), 3) if retrieved_docs else 0,
-                "max_similarity": round(max(doc["similarity_score"] for doc in retrieved_docs), 3) if retrieved_docs else 0,
-                "context_quality": "high" if len(retrieved_docs) >= 2 and retrieved_docs[0]["similarity_score"] > 0.5 else "medium" if retrieved_docs else "low"
-            },
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-            "usage_stats": openai_response.get("usage", {}),
-            "timestamp": "auto-generated"
-        }
-        
-<<<<<<< HEAD
-        logger.info(f"✅ OpenAI RAG response generated. Cost: ${openai_response.get('usage', {}).get('estimated_cost', 0):.4f}")
-        
-        return fix_float_values(response_data)
-=======
-        logger.info(f"✅ OpenAI RAG response generated successfully. Cost: ${openai_response.get('usage', {}).get('estimated_cost', 0):.4f}")
-        
-        def fix_float_values(obj):
-            """Fix NaN and Infinity values for JSON"""
-            if isinstance(obj, dict):
-                return {k: fix_float_values(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [fix_float_values(item) for item in obj]
-            elif isinstance(obj, float):
-                if math.isnan(obj) or math.isinf(obj):
-                    return 0.0
-                return obj
-            return obj
-
-        # Fix the response data
-        response_data = fix_float_values(response_data)
-
-        return response_data
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"OpenAI RAG chat error: {e}")
-<<<<<<< HEAD
-        raise HTTPException(status_code=500, detail=f"OpenAI chat error: {str(e)}")
-
-@app.post("/chat/claude")
-async def chat_with_claude(chat_request: ChatRequest):
-    """RAG Chat with Claude"""
-    
-    try:
-        logger.info(f"🔍 Claude RAG Query: '{chat_request.question}' with model: {chat_request.model}")
-        
-        # Step 1: Retrieve relevant documents
-        retrieved_docs = await retrieve_relevant_docs(
-            chat_request.question, 
-            chat_request.max_results, 
-            chat_request.similarity_threshold
-        )
-        
-        # Step 2: Generate response using Claude
-        claude_service = get_claude_service()
-        claude_response = claude_service.generate_rag_response(
-            retrieved_docs, 
-            chat_request.question, 
-            chat_request.model
-        )
-        
-        if not claude_response["success"]:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Claude generation failed: {claude_response.get('error', 'Unknown error')}"
-            )
-        
-        # Step 3: Prepare response
-        response_data = {
-            "success": True,
-            "ai_provider": "Claude",
-            "question": chat_request.question,
-            "answer": claude_response["answer"],
-            "model_used": claude_response["model_used"],
-            "context_used": claude_response["context_used"],
-            "retrieved_docs": prepare_retrieved_docs_preview(retrieved_docs),
-            "retrieval_stats": calculate_retrieval_stats(retrieved_docs),
-            "usage_stats": claude_response.get("usage", {}),
-            "timestamp": "auto-generated"
-        }
-        
-        logger.info(f"✅ Claude RAG response generated. Cost: ${claude_response.get('usage', {}).get('estimated_cost', 0):.6f}")
-        
-        return fix_float_values(response_data)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Claude RAG chat error: {e}")
-        raise HTTPException(status_code=500, detail=f"Claude chat error: {str(e)}")
-
 # ===============================================
 # ADMIN ENDPOINTS
 # ===============================================
+
+@app.get("/test/models")
+async def test_preloaded_models():
+    """Test preloaded AI models status"""
+    
+    models_status = {
+        "embedding_service": {
+            "loaded": embedding_service is not None,
+            "model_name": embedding_service._model_name if embedding_service else "Not loaded",
+            "dimension": embedding_service.embedding_dimension if embedding_service else None
+        },
+        "openai_service": {
+            "loaded": openai_service is not None,
+            "default_model": openai_service.default_model if openai_service else "Not loaded",
+            "test_connection": openai_service.test_connection() if openai_service else {"success": False, "message": "Service not loaded"}
+        },
+        "claude_service": {
+            "loaded": claude_service is not None,
+            "default_model": claude_service.default_model if claude_service else "Not loaded",
+            "test_connection": claude_service.test_connection() if claude_service else {"success": False, "message": "Service not loaded"}
+        },
+        "vector_operations": {
+            "loaded": vector_ops is not None
+        }
+    }
+    
+    all_ready = (
+        embedding_service is not None and 
+        openai_service is not None and 
+        claude_service is not None and 
+        vector_ops is not None
+    )
+    
+    return {
+        "all_models_ready": all_ready,
+        "models_status": models_status,
+        "startup_complete": True,
+        "preloaded_models": True,
+        "ready_for_requests": all_ready
+    }
 
 @app.post("/policies")
 async def add_policy(
@@ -1314,24 +1051,13 @@ async def get_database_config():
             "max_size": settings.max_pool_size
         }
     }
-=======
-        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
-
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-<<<<<<< HEAD
         "myapp:app",
         host="0.0.0.0", 
         port=8000,
         reload=True,
-=======
-        "myapp:app",  # Import string olarak geç
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,  # Development için auto-reload
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         log_level="info"
     )

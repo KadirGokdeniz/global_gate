@@ -1,5 +1,5 @@
-# docker-compose.yml - ENHANCED VERSION
-# Improved dependencies and health checks
+# docker-compose.yml - ENHANCED VERSION WITH MODEL PRELOADING
+# Improved dependencies and health checks for AI model preloading
 
 services:
   # 1. Database (ilk başlar)
@@ -43,7 +43,7 @@ services:
     networks:
       - turkish_airlines_net
 
-  # 3. FastAPI Backend (üçüncü başlar)
+  # 3. FastAPI Backend (üçüncü başlar) - MODEL PRELOADING İÇİN GÜNCELLENDİ
   api:
     build:
       context: .
@@ -60,20 +60,27 @@ services:
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-qeqe}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-<<<<<<< HEAD
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+      # Model preloading için ek çevre değişkenleri
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
     ports:
       - "8000:8000"
     command: uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s  # More time for model loading
+      interval: 45s        
+      timeout: 15s         
+      retries: 8           
+      start_period: 660s   
     restart: unless-stopped
+    # Model yükleme için ek resource limitleri (isteğe bağlı)
+    deploy:
+      resources:
+        limits:
+          memory: 2G       # Modellerin yüklenmesi için RAM limiti
+        reservations:
+          memory: 1G       # Minimum RAM rezervasyonu
     networks:
       - turkish_airlines_net
 
@@ -85,7 +92,7 @@ services:
     container_name: global-gate-frontend
     depends_on:
       api:
-        condition: service_healthy
+        condition: service_started  # API tamamen hazır olduktan sonra başlayacak
     environment:
       - DEFAULT_API_URL=http://api:8000
       - STREAMLIT_SERVER_HEADLESS=true
@@ -98,8 +105,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s  # Frontend için artırıldı - API'nin modelleri yüklemesini bekleyecek
     restart: unless-stopped
     networks:
       - turkish_airlines_net

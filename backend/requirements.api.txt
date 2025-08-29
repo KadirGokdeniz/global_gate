@@ -20,10 +20,8 @@ scikit-learn==1.4.0
 
 # OpenAI - Updated
 openai==1.8.0
-<<<<<<< HEAD
+
 anthropic>=0.7.0
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 
 # Utilities
 python-dotenv==1.0.0

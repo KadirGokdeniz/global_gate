@@ -137,35 +137,39 @@ class ClaudeService:
                 "usage": {}
             }
     
+    def get_available_models(self) -> List[str]:
+        """Get list of Claude models with CORRECT API names (ordered by capability)"""
+        return [
+            "claude-3-haiku-20240307",      # Claude Haiku 3 - Confirmed working
+            "claude-3-5-haiku-20241022",    # Claude Haiku 3.5 - Fastest  
+            "claude-3-7-sonnet-20250219",   # Claude Sonnet 3.7 - High performance
+            "claude-sonnet-4-20250514",     # Claude Sonnet 4 - High performance
+            "claude-opus-4-20250514",       # Claude Opus 4 - Previous flagship
+            "claude-opus-4-1-20250805"      # Claude Opus 4.1 - Most capable
+        ]
+
     def _estimate_cost(self, usage, model: str) -> float:
-        """Estimate cost based on token usage"""
+        """Estimate cost based on token usage with UPDATED pricing"""
         
-        # Pricing per 1M tokens (Claude pricing as of 2024)
+        # Updated Claude pricing (2025 models)
         pricing = {
-            "claude-3-5-sonnet-20241022": {"input": 3.00, "output": 15.00},
-            "claude-3-5-haiku-20241022": {"input": 0.80, "output": 4.00},
-            "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
-            "claude-3-sonnet-20240229": {"input": 3.00, "output": 15.00},
-            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25}
+            "claude-opus-4-1-20250805": {"input": 18.00, "output": 90.00},   # Most expensive
+            "claude-opus-4-20250514": {"input": 15.00, "output": 75.00},
+            "claude-sonnet-4-20250514": {"input": 4.00, "output": 20.00},
+            "claude-3-7-sonnet-20250219": {"input": 3.50, "output": 17.50},
+            "claude-3-5-haiku-20241022": {"input": 1.00, "output": 5.00},
+            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25}        # Cheapest
         }
         
+        # Use default pricing if model not found
         if model not in pricing:
-            model = "claude-3-5-sonnet-20241022"  # Default pricing
+            logger.warning(f"No pricing info for model {model}, using Haiku 3 pricing")
+            model = "claude-3-haiku-20240307"  # Cheapest as fallback
         
         input_cost = (usage.input_tokens / 1000000) * pricing[model]["input"]
         output_cost = (usage.output_tokens / 1000000) * pricing[model]["output"]
         
         return input_cost + output_cost
-
-    def get_available_models(self) -> List[str]:
-        """Get list of available Claude models"""
-        return [
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022", 
-            "claude-3-opus-20240229",
-            "claude-3-sonnet-20240229",
-            "claude-3-haiku-20240307"
-        ]
 
 _claude_service_instance = None
 

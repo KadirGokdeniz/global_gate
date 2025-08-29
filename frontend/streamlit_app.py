@@ -11,11 +11,7 @@ st.set_page_config(
     page_title="Multi-Airline Policy Assistant",
     page_icon="✈️",
     layout="wide",
-<<<<<<< HEAD
     initial_sidebar_state="expanded"
-=======
-    initial_sidebar_state="expanded"  # Make sidebar visible by default
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 )
 
 # Enhanced CSS for Multi-Airline Theme
@@ -55,38 +51,6 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     
-<<<<<<< HEAD
-    .chat-message-claude {
-        padding: 1.5rem;
-        margin: 1rem 0;
-        border-radius: 15px;
-        border-left: 5px solid #ff6b35;
-        background-color: #fff8f5;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .ai-provider-badge {
-        display: inline-block;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: bold;
-        margin: 0.2rem;
-        text-transform: uppercase;
-    }
-    
-    .badge-openai {
-        background: linear-gradient(45deg, #10a37f, #1a7f64);
-        color: white;
-    }
-    
-    .badge-claude {
-        background: linear-gradient(45deg, #ff6b35, #f7931e);
-        color: white;
-    }
-    
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     .airline-badge {
         display: inline-block;
         padding: 0.2rem 0.6rem;
@@ -129,18 +93,15 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
     }
     
-<<<<<<< HEAD
-    .ai-model-selector {
-        background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    .ai-provider-container {
+        background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
         padding: 1.5rem;
         border-radius: 15px;
         margin: 1rem 0;
-        border: 2px solid #9c27b0;
-        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.2);
+        border: 2px solid #4caf50;
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
     }
     
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     .policy-example {
         background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
         padding: 1rem;
@@ -175,18 +136,29 @@ st.markdown("""
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
+    
+    .claude-badge {
+        background: linear-gradient(45deg, #ff6b35, #ff8c42);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        margin: 0.2rem;
+    }
+    
+    .openai-badge {
+        background: linear-gradient(45deg, #00a67e, #00bf88);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        margin: 0.2rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-<<<<<<< HEAD
-# API Configuration
-def get_api_urls():
-    """Get multiple API URL options"""
-    urls = [
-        os.getenv('DEFAULT_API_URL', 'http://api:8000'),
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-=======
 # Enhanced API Configuration
 def get_api_urls():
     """Get multiple API URL options"""
@@ -194,12 +166,11 @@ def get_api_urls():
         os.getenv('DEFAULT_API_URL', 'http://api:8000'),  # Container network
         'http://localhost:8000',  # Local development
         'http://127.0.0.1:8000',  # Alternative local
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     ]
     return urls
 
-def test_api_connection(api_url, timeout=5):
-    """Test API connection with detailed error info"""
+def test_api_connection(api_url, timeout=3):
+    """Test API connection with reduced timeout for faster UI response"""
     try:
         response = requests.get(f"{api_url}/health", timeout=timeout)
         if response.status_code == 200:
@@ -208,7 +179,8 @@ def test_api_connection(api_url, timeout=5):
                 "success": True,
                 "status": "connected",
                 "data": data,
-                "url": api_url
+                "url": api_url,
+                "models_ready": data.get("models_preloaded", False)
             }
         else:
             return {
@@ -221,21 +193,21 @@ def test_api_connection(api_url, timeout=5):
         return {
             "success": False,
             "status": "connection_error",
-            "error": "Connection refused - API service might be down",
+            "error": "API service unavailable",
             "url": api_url
         }
     except requests.exceptions.Timeout:
         return {
             "success": False,
             "status": "timeout",
-            "error": f"Timeout after {timeout}s",
+            "error": f"Slow response (>{timeout}s)",
             "url": api_url
         }
     except Exception as e:
         return {
             "success": False,
             "status": "unknown_error",
-            "error": str(e),
+            "error": str(e)[:50],
             "url": api_url
         }
 
@@ -263,25 +235,18 @@ def init_session_state():
         st.session_state.api_connection = None
     if 'api_url' not in st.session_state:
         st.session_state.api_url = None
-<<<<<<< HEAD
-    if 'selected_ai_provider' not in st.session_state:
-        st.session_state.selected_ai_provider = 'OpenAI'
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     if 'selected_model' not in st.session_state:
         st.session_state.selected_model = 'gpt-3.5-turbo'
+    if 'selected_provider' not in st.session_state:
+        st.session_state.selected_provider = 'OpenAI'
     if 'selected_airline' not in st.session_state:
         st.session_state.selected_airline = 'All Airlines'
     if 'policy_focus' not in st.session_state:
         st.session_state.policy_focus = 'All Policies'
 
-# API Connection Status Widget
+# API Connection Status Widget - OPTIMIZED
 def display_api_status():
-<<<<<<< HEAD
-    """Display API connection status with AI services info"""
-=======
-    """Display API connection status"""
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    """Display API connection status with model preloading information"""
     if st.session_state.api_connection is None:
         st.session_state.api_connection = find_working_api()
     
@@ -289,26 +254,23 @@ def display_api_status():
     
     if connection["success"]:
         st.session_state.api_url = connection["url"]
-<<<<<<< HEAD
         
-        # Get AI services status from health check
-        health_data = connection.get("data", {})
-        ai_services = health_data.get("ai_services", {})
+        # Check if models are preloaded
+        models_ready = connection.get("models_ready", False)
         
-        openai_status = ai_services.get("openai", {}).get("status", "unknown")
-        claude_status = ai_services.get("claude", {}).get("status", "unknown")
+        if models_ready:
+            status_icon = "⚡"
+            status_text = "Connected (Models Preloaded)"
+            status_class = "status-connected"
+        else:
+            status_icon = "⏳"
+            status_text = "Connected (Models Loading...)"
+            status_class = "status-connected"
         
         st.markdown(f"""
-        <div class="api-status status-connected">
-            ✅ API Connected: {connection["url"]}<br>
-            🤖 OpenAI: {openai_status}<br>
-            🧠 Claude: {claude_status}
-=======
-        st.markdown(f"""
-        <div class="api-status status-connected">
-            ✅ API Connected: {connection["url"]}<br>
-            Status: {connection.get("data", {}).get("status", "healthy")}
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+        <div class="api-status {status_class}">
+            {status_icon} API: {connection["url"]}<br>
+            Status: {status_text}
         </div>
         """, unsafe_allow_html=True)
         return True
@@ -317,27 +279,19 @@ def display_api_status():
         <div class="api-status status-error">
             ❌ API Connection Failed<br>
             Error: {connection["error"]}<br>
-            Tested URLs: {', '.join(connection.get("tested_urls", []))}
+            URL: {connection.get("url", "unknown")}
         </div>
         """, unsafe_allow_html=True)
         return False
 
-<<<<<<< HEAD
-# Main header
-=======
 # Main header for Multi-Airline Policy Assistant
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 def display_header():
     st.markdown("""
     <div class="main-header">
         <h1>✈️ Multi-Airline Policy Assistant</h1>
         <h2>🌍 Global Aviation Policy Intelligence</h2>
         <p>Ask questions about airline policies, procedures, and regulations from multiple carriers worldwide</p>
-<<<<<<< HEAD
-        <small>🔍 Powered by OpenAI & Claude • 📚 Multi-source Knowledge Base • 🚀 Real-time Insights</small>
-=======
         <small>🔍 Powered by AI • 📚 Multi-source Knowledge Base • 🚀 Real-time Insights</small>
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
     </div>
     """, unsafe_allow_html=True)
 
@@ -359,18 +313,13 @@ def get_airline_badge(source):
     else:
         return '<span class="airline-badge badge-general">✈️ General Policy</span>'
 
-<<<<<<< HEAD
 def get_ai_provider_badge(provider):
     """Generate AI provider badge HTML"""
-    if provider.lower() == 'openai':
-        return '<span class="ai-provider-badge badge-openai">🤖 OpenAI</span>'
-    elif provider.lower() == 'claude':
-        return '<span class="ai-provider-badge badge-claude">🧠 Claude</span>'
+    if provider.lower() == "claude":
+        return '<span class="claude-badge">🤖 Claude</span>'
     else:
-        return f'<span class="ai-provider-badge badge-general">🤖 {provider}</span>'
+        return '<span class="openai-badge">🧠 OpenAI</span>'
 
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
 # Enhanced policy categories and examples
 def display_policy_categories():
     st.subheader("📋 Policy Categories")
@@ -399,8 +348,6 @@ def display_policy_categories():
             "Airline policies for flight delays and cancellations",
             "Passenger rights and compensation policies",
             "Seat selection and upgrade policies"
-<<<<<<< HEAD
-=======
         ],
         "🌍 International Travel": [
             "Visa and document requirements for international flights",
@@ -413,7 +360,6 @@ def display_policy_categories():
             "Wheelchair and mobility aid transport policies",
             "Service animal travel regulations",
             "Medical equipment transport guidelines"
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         ]
     }
     
@@ -427,49 +373,9 @@ def display_policy_categories():
                         st.session_state.current_question = example
                         st.rerun()
 
-<<<<<<< HEAD
-# Enhanced question handling with AI provider selection
-def handle_question(question, api_url, ai_provider="OpenAI", model=None, airline_filter="All Airlines", policy_focus="All Policies"):
-    """Enhanced question handling for multi-airline policy queries with AI provider selection"""
-=======
-# Popular example questions for multi-airline policies
-def display_examples():
-    st.subheader("🔥 Popular Questions")
-    
-    examples = [
-        "Compare baggage policies between Turkish Airlines and Pegasus Airlines",
-        "What are the pet travel requirements for international flights?",
-        "Which airline has better compensation for flight delays?",
-        "How to transport musical instruments safely on flights?",
-        "What are the COVID-19 travel requirements for different airlines?",
-        "Special assistance services comparison between airlines",
-        "Duty-free shopping policies and restrictions",
-        "Group booking policies and discounts",
-        "Frequent flyer program benefits comparison",
-        "Airline policies for unaccompanied minors",
-        "What items are prohibited in checked vs carry-on baggage?",
-        "How do airlines handle lost or damaged luggage?"
-    ]
-    
-    # Group examples by policy type
-    policy_types = {
-        "🧳 Baggage & Transport": examples[:4],
-        "✈️ Service & Compensation": examples[4:8],
-        "🎫 Booking & Programs": examples[8:12]
-    }
-    
-    for policy_type, type_examples in policy_types.items():
-        st.markdown(f"**{policy_type}**")
-        for example in type_examples:
-            if st.button(f"🔍 {example}", key=f"example_{example[:20]}", use_container_width=True):
-                st.session_state.current_question = example
-                st.rerun()
-        st.markdown("---")
-
-# Enhanced question handling with policy-focused context
-def handle_question(question, api_url, selected_model="gpt-3.5-turbo", airline_filter="All Airlines", policy_focus="All Policies"):
-    """Enhanced question handling for multi-airline policy queries"""
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+# Enhanced question handling with CLAUDE SUPPORT - PERFORMANCE OPTIMIZED
+def handle_question(question, api_url, selected_model="gpt-3.5-turbo", selected_provider="OpenAI", airline_filter="All Airlines", policy_focus="All Policies"):
+    """Enhanced question handling - NOW WITH CLAUDE SUPPORT"""
     
     if not api_url:
         return {
@@ -477,83 +383,37 @@ def handle_question(question, api_url, selected_model="gpt-3.5-turbo", airline_f
             "error": "No API connection available"
         }
     
-    # Enhanced question with airline and policy context
-    context_parts = []
-    
+    # OPTIMIZATION 1: Simplified context building
+    context_prefix = ""
     if "Pegasus" in airline_filter:
-        context_parts.append("Focus specifically on Pegasus Airlines policies and procedures.")
+        context_prefix = "Pegasus Airlines: "
     elif "Turkish" in airline_filter:
-        context_parts.append("Focus specifically on Turkish Airlines policies and procedures.")
-    else:
-        context_parts.append("Compare and analyze policies from multiple airlines when relevant.")
+        context_prefix = "Turkish Airlines: "
     
-    if policy_focus != "All Policies":
-        context_parts.append(f"Focus on {policy_focus.lower()} related policies.")
+    enhanced_question = context_prefix + question
     
-    # Build enhanced question
-    if context_parts:
-        enhanced_question = f"{' '.join(context_parts)} {question}"
-    else:
-        enhanced_question = question
+    # FIXED: Select correct API endpoint based on provider
+    if selected_provider == "Claude":
+        api_endpoint = f"{api_url}/chat/claude"
+        spinner_text = f"Claude analyzing policies from {airline_filter}..."
+    else:  # OpenAI (default)
+        api_endpoint = f"{api_url}/chat/openai"
+        spinner_text = f"OpenAI analyzing policies from {airline_filter}..."
     
-<<<<<<< HEAD
-    # Determine endpoint and default model based on AI provider
-    if ai_provider.lower() == 'claude':
-        endpoint = "/chat/claude"
-        default_model = "claude-3-5-sonnet-20241022"
-    else:
-        endpoint = "/chat/openai" 
-        default_model = "gpt-3.5-turbo"
-    
-    # Use provided model or default
-    selected_model = model or default_model
-    
-    with st.spinner(f"🤖 Analyzing policies with {ai_provider}..."):
-=======
-    with st.spinner(f"🤖 Analyzing policies from {airline_filter}..."):
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    with st.spinner(spinner_text):
         try:
-            # Debug info
-            with st.expander("🔍 Query Analysis", expanded=False):
-                st.json({
-                    "api_url": api_url,
-<<<<<<< HEAD
-                    "ai_provider": ai_provider,
-                    "endpoint": endpoint,
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-                    "original_question": question,
-                    "enhanced_question": enhanced_question,
-                    "model": selected_model,
-                    "airline_filter": airline_filter,
-                    "policy_focus": policy_focus
-                })
-            
-<<<<<<< HEAD
-            # Prepare POST request payload
-            payload = {
-                "question": enhanced_question,
-                "max_results": 5,
-                "similarity_threshold": 0.3,
-=======
             params = {
                 "question": enhanced_question,
-                "max_results": 5,  # More results for policy comparison
-                "similarity_threshold": 0.3,  # Lower threshold for broader policy coverage
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+                "max_results": 3,
+                "similarity_threshold": 0.4,
                 "model": selected_model
             }
             
-            response = requests.post(
-<<<<<<< HEAD
-                f"{api_url}{endpoint}",
-                json=payload,  # Use json parameter instead of params for POST
-                headers={"Content-Type": "application/json"},
-=======
-                f"{api_url}/chat/openai",
+            # Use GET method with correct endpoint
+            response = requests.get(
+                api_endpoint,
                 params=params,
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-                timeout=50
+                timeout=25
             )
             
             if response.status_code == 200:
@@ -561,59 +421,47 @@ def handle_question(question, api_url, selected_model="gpt-3.5-turbo", airline_f
                 if data.get("success"):
                     retrieved_docs = data.get("retrieved_docs", [])
                     
-                    # Apply client-side filtering based on airline preference
-                    if "Pegasus" in airline_filter:
-                        pegasus_docs = [doc for doc in retrieved_docs 
-                                      if any(keyword in doc.get("source", "").lower() 
-                                           for keyword in ['pegasus', 'general_rules', 'baggage_allowance', 'travelling_with_pets', 'extra_services'])]
+                    # Client-side filtering (same as before)
+                    if "Pegasus" in airline_filter and retrieved_docs:
+                        pegasus_docs = [doc for doc in retrieved_docs[:3]
+                                      if 'pegasus' in doc.get("source", "").lower() 
+                                         or any(kw in doc.get("source", "").lower() 
+                                               for kw in ['general_rules', 'baggage_allowance', 'travelling_with_pets'])]
                         if pegasus_docs:
                             retrieved_docs = pegasus_docs
-                        else:
-                            st.warning("⚠️ Limited Pegasus-specific data found. Showing general policy results.")
                     
-                    elif "Turkish" in airline_filter:
-                        turkish_docs = [doc for doc in retrieved_docs 
-                                      if any(keyword in doc.get("source", "").lower() 
-                                           for keyword in ['checked_baggage', 'carry_on_baggage', 'sports_equipment', 'musical_instruments', 'pets', 'excess_baggage', 'restrictions'])]
+                    elif "Turkish" in airline_filter and retrieved_docs:
+                        turkish_docs = [doc for doc in retrieved_docs[:3]
+                                      if any(kw in doc.get("source", "").lower() 
+                                           for kw in ['checked_baggage', 'carry_on_baggage', 'sports_equipment', 'pets'])]
                         if turkish_docs:
                             retrieved_docs = turkish_docs
-                        else:
-                            st.warning("⚠️ Limited Turkish Airlines-specific data found. Showing general policy results.")
                     
                     return {
                         "success": True,
-<<<<<<< HEAD
-                        "ai_provider": data.get("ai_provider", ai_provider),
                         "answer": data["answer"],
                         "sources": len(retrieved_docs),
                         "model": data.get("model_used", selected_model),
-=======
-                        "answer": data["answer"],
-                        "sources": len(retrieved_docs),
-                        "model": data.get("model_used", "gpt-3.5-turbo"),
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+                        "provider": selected_provider,
+                        "ai_provider_full": data.get("ai_provider", selected_provider),
                         "retrieval_stats": data.get("retrieval_stats", {}),
-                        "context_quality": data.get("retrieval_stats", {}).get("context_quality", "unknown"),
+                        "context_quality": data.get("retrieval_stats", {}).get("context_quality", "good"),
                         "retrieved_docs": retrieved_docs,
                         "filtered": airline_filter != "All Airlines",
-<<<<<<< HEAD
                         "policy_coverage": len(set(doc.get("source", "") for doc in retrieved_docs)),
-                        "usage_stats": data.get("usage_stats", {})
-=======
-                        "policy_coverage": len(set(doc.get("source", "") for doc in retrieved_docs))
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+                        "preloaded": data.get("preloaded_model", True)
                     }
                 else:
                     return {
                         "success": False,
-                        "error": data.get("error", "Unknown API error"),
+                        "error": data.get("error", "API processing error"),
                         "details": data
                     }
             else:
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
-                    "details": response.text[:200]
+                    "details": response.text[:200] if len(response.text) > 200 else response.text
                 }
                 
         except requests.exceptions.ConnectionError:
@@ -625,7 +473,7 @@ def handle_question(question, api_url, selected_model="gpt-3.5-turbo", airline_f
         except requests.exceptions.Timeout:
             return {
                 "success": False,
-                "error": "Request timed out. Complex policy analysis may take longer."
+                "error": f"Request timed out (25s). {selected_provider} may be processing..."
             }
         except Exception as e:
             return {
@@ -633,129 +481,90 @@ def handle_question(question, api_url, selected_model="gpt-3.5-turbo", airline_f
                 "error": f"Unexpected error: {str(e)}"
             }
 
-<<<<<<< HEAD
-# Enhanced chat history with AI provider info
-=======
-# Enhanced chat history with policy metadata
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+# Enhanced chat history with provider metadata - OPTIMIZED
 def display_chat_history():
     if not st.session_state.chat_history:
         st.markdown("""
         <div class="policy-stats">
             <h4>👋 Welcome to Multi-Airline Policy Assistant!</h4>
-            <p>Ask questions about:</p>
-            <ul>
-                <li>🧳 Baggage policies and fees</li>
-                <li>🐕 Pet travel requirements</li>
-                <li>🎵 Special item transport</li>
-                <li>✈️ Flight procedures</li>
-                <li>🌍 International travel rules</li>
-                <li>♿ Accessibility services</li>
-            </ul>
-<<<<<<< HEAD
-            <p><strong>Now supporting both OpenAI and Claude AI models!</strong></p>
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+            <p>Ask questions about airline policies - now supports both OpenAI and Claude!</p>
         </div>
         """, unsafe_allow_html=True)
         return
     
-    st.subheader("💬 Policy Analysis History")
+    st.subheader("💬 Recent Policy Analyses")
     
-    for i, chat in enumerate(reversed(st.session_state.chat_history[-3:])):
-        with st.expander(f"Q: {chat['question'][:80]}...", expanded=(i == 0)):
+    # Show last 2 conversations
+    for i, chat in enumerate(reversed(st.session_state.chat_history[-2:])):
+        # Get provider info for title
+        provider = chat.get('provider', 'AI')
+        provider_emoji = "🤖" if provider == "Claude" else "🧠"
+        
+        with st.expander(f"Q ({provider_emoji} {provider}): {chat['question'][:50]}...", expanded=(i == 0)):
             st.markdown(f"**Question:** {chat['question']}")
-<<<<<<< HEAD
-            
-            # AI Provider badge
-            ai_provider = chat.get('ai_provider', 'AI')
-            provider_badge = get_ai_provider_badge(ai_provider)
-            
-            # Choose message style based on AI provider
-            message_class = "chat-message-claude" if ai_provider.lower() == 'claude' else "chat-message"
-            
-            st.markdown(f"""
-            {provider_badge}
-            <div class="{message_class}">{chat["answer"]}</div>
-            """, unsafe_allow_html=True)
-=======
             st.markdown(f'<div class="chat-message">{chat["answer"]}</div>', unsafe_allow_html=True)
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
             
-            # Enhanced source display with policy metadata
+            # Source display
             if chat.get('retrieved_docs'):
-                st.markdown("**Policy Sources:**")
-                
-                # Group sources by airline
-                turkish_sources = []
-                pegasus_sources = []
-                other_sources = []
-                
-                for doc in chat['retrieved_docs'][:5]:
+                st.markdown("**Sources:**")
+                for doc in chat['retrieved_docs'][:3]:
                     source = doc.get('source', 'unknown')
-                    if any(keyword in source.lower() for keyword in ['checked_baggage', 'carry_on_baggage', 'sports_equipment', 'musical_instruments', 'pets', 'excess_baggage', 'restrictions']):
-                        turkish_sources.append(doc)
-                    elif any(keyword in source.lower() for keyword in ['general_rules', 'baggage_allowance', 'travelling_with_pets', 'extra_services']):
-                        pegasus_sources.append(doc)
-                    else:
-                        other_sources.append(doc)
-                
-                # Display grouped sources
-                source_groups = [
-                    ("🇹🇷 Turkish Airlines Sources", turkish_sources),
-                    ("🔥 Pegasus Airlines Sources", pegasus_sources),
-                    ("✈️ General Sources", other_sources)
-                ]
-                
-                for group_name, group_docs in source_groups:
-                    if group_docs:
-                        st.markdown(f"**{group_name}:**")
-                        for doc in group_docs:
-                            similarity = doc.get('similarity_score', 0)
-                            badge_html = get_airline_badge(doc.get('source', ''))
-                            
-                            st.markdown(
-                                f"{badge_html} "
-                                f"**{doc.get('source', 'Unknown')}** "
-                                f"(Match: {similarity:.1%})", 
-                                unsafe_allow_html=True
-                            )
+                    similarity = doc.get('similarity_score', 0)
+                    badge_html = get_airline_badge(source)
+                    
+                    st.markdown(
+                        f"{badge_html} **{source}** ({similarity:.1%})", 
+                        unsafe_allow_html=True
+                    )
             
-            # Enhanced metadata display
-<<<<<<< HEAD
-            col1, col2, col3, col4, col5 = st.columns(5)
-            with col1:
-                st.caption(f"🤖 {chat.get('ai_provider', 'AI')}")
-            with col2:
-                st.caption(f"📱 {chat.get('model', 'Model')}")
-            with col3:
-                st.caption(f"📚 {chat.get('sources', 0)} sources")
-            with col4:
-                coverage = chat.get('policy_coverage', 0)
-                st.caption(f"📋 {coverage} policy areas")
-            with col5:
-                st.caption(f"⏰ {chat['timestamp'].strftime('%H:%M')}")
-            
-            # Cost display if available
-            usage_stats = chat.get('usage_stats', {})
-            if usage_stats.get('estimated_cost'):
-                st.caption(f"💰 Cost: ${usage_stats['estimated_cost']:.6f}")
-
-# Enhanced sidebar with AI provider selection
-=======
+            # Enhanced metadata with provider
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.caption(f"🤖 {chat.get('model', 'AI')}")
+                provider_full = chat.get('ai_provider_full', chat.get('provider', 'AI'))
+                preloaded = "⚡" if chat.get('preloaded', False) else "⏳"
+                st.caption(f"{preloaded} {provider_full}")
             with col2:
                 st.caption(f"📚 {chat.get('sources', 0)} sources")
             with col3:
-                coverage = chat.get('policy_coverage', 0)
-                st.caption(f"📋 {coverage} policy areas")
+                model_short = chat.get('model', 'unknown')
+                if 'claude' in model_short.lower():
+                    model_short = model_short.replace('claude-3-5-sonnet', 'C3.5-S').replace('claude-3-sonnet', 'C3-S').replace('claude-3-haiku', 'C3-H')
+                elif 'gpt' in model_short.lower():
+                    model_short = model_short.replace('gpt-3.5-turbo', 'GPT3.5').replace('gpt-4o-mini', 'GPT4o-M').replace('gpt-4', 'GPT4')
+                st.caption(f"🔧 {model_short}")
             with col4:
-                st.caption(f"⏰ {chat['timestamp'].strftime('%H:%M')}")
+                st.caption(f"⏱️ {chat['timestamp'].strftime('%H:%M')}")
 
-# Enhanced sidebar with policy focus
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+# Add performance monitoring
+def display_performance_status():
+    """Display performance monitoring in sidebar"""
+    if st.session_state.chat_history:
+        recent_chats = st.session_state.chat_history[-5:]  # Last 5 chats
+        avg_sources = sum(chat.get('sources', 0) for chat in recent_chats) / len(recent_chats)
+        preloaded_count = sum(1 for chat in recent_chats if chat.get('preloaded', False))
+        
+        # Provider usage stats
+        openai_count = sum(1 for chat in recent_chats if chat.get('provider') == 'OpenAI')
+        claude_count = sum(1 for chat in recent_chats if chat.get('provider') == 'Claude')
+        
+        st.subheader("⚡ Performance")
+        st.metric("Avg Sources", f"{avg_sources:.1f}")
+        st.metric("Preloaded Responses", f"{preloaded_count}/{len(recent_chats)}")
+        
+        # Provider usage
+        if openai_count > 0:
+            st.text(f"🧠 OpenAI: {openai_count}")
+        if claude_count > 0:
+            st.text(f"🤖 Claude: {claude_count}")
+        
+        if preloaded_count == len(recent_chats):
+            st.success("🚀 All models preloaded!")
+        elif preloaded_count > 0:
+            st.warning(f"⚡ {preloaded_count}/{len(recent_chats)} preloaded")
+        else:
+            st.error("⏳ Models not preloaded")
+
+# Enhanced sidebar with CLAUDE SUPPORT
 def display_sidebar():
     with st.sidebar:
         st.header("⚙️ System Control")
@@ -770,51 +579,102 @@ def display_sidebar():
                 st.rerun()
         
         if api_connected:
+            # Performance monitoring
+            display_performance_status()
+            
             st.markdown("---")
-<<<<<<< HEAD
-            st.subheader("🤖 AI PROVIDER & MODEL")
+            st.subheader("🤖 AI PROVIDER")
             
             # AI Provider Selection
-            ai_provider = st.selectbox(
-                "AI Provider:",
-                ["OpenAI", "Claude"],
-                index=["OpenAI", "Claude"].index(st.session_state.get('selected_ai_provider', 'OpenAI')),
-                help="Choose between OpenAI GPT models or Claude models"
+            provider_option = st.selectbox(
+                "AI Model Provider:",
+                [
+                    "OpenAI",
+                    "Claude"
+                ],
+                index=0 if st.session_state.get('selected_provider', 'OpenAI') == 'OpenAI' else 1,
+                help="Choose between OpenAI GPT models and Claude models"
             )
-            st.session_state.selected_ai_provider = ai_provider
             
-            # Model Selection based on AI Provider
-            if ai_provider == "Claude":
+            # Dynamic model selection with CORRECT model names
+            if provider_option == "Claude":
                 available_models = [
-                    "claude-3-haiku-20240307",  # Çalışan model
-                    "claude-3-sonnet-20240229", # Bu da test edilebilir
-                    "claude-3-opus-20240229"    # Bu da test edilebilir
+                    "claude-3-haiku-20240307",      # Confirmed working
+                    "claude-3-5-haiku-20241022",    # Fastest new model
+                    "claude-3-7-sonnet-20250219",   # High performance with extended thinking
+                    "claude-sonnet-4-20250514",     # High performance model
+                    "claude-opus-4-20250514",       # Previous flagship  
+                    "claude-opus-4-1-20250805"      # Most capable
                 ]
-                default_model = "claude-3-haiku-20240307"  # Çalışan modeli default yap
-            else:
+                
+                # Model descriptions for better UX
+                model_descriptions = {
+                    "claude-3-haiku-20240307": "Claude Haiku 3 (Confirmed Working)",
+                    "claude-3-5-haiku-20241022": "Claude Haiku 3.5 (Fastest)",
+                    "claude-3-7-sonnet-20250219": "Claude Sonnet 3.7 (Extended Thinking)",
+                    "claude-sonnet-4-20250514": "Claude Sonnet 4 (High Performance)",
+                    "claude-opus-4-20250514": "Claude Opus 4 (Previous Flagship)",
+                    "claude-opus-4-1-20250805": "Claude Opus 4.1 (Most Capable)"
+                }
+                
+                default_model = "claude-3-haiku-20240307"  # Use confirmed working model
+                model_help = """Model Tiers:
+• Haiku: Fastest & most cost-effective
+• Sonnet: Balanced performance & intelligence  
+• Opus: Highest intelligence & capability
+• 4.x series: Latest with extended thinking"""
+                
+            else:  # OpenAI
                 available_models = [
-                    "gpt-3.5-turbo",
+                    "gpt-3.5-turbo", 
                     "gpt-4o-mini", 
                     "gpt-4"
                 ]
+                model_descriptions = {
+                    "gpt-3.5-turbo": "GPT-3.5 Turbo (Fastest)",
+                    "gpt-4o-mini": "GPT-4o Mini (Balanced)",
+                    "gpt-4": "GPT-4 (Most Comprehensive)"
+                }
                 default_model = "gpt-3.5-turbo"
+                model_help = "gpt-3.5-turbo: Fastest\ngpt-4o-mini: Balanced\ngpt-4: Most comprehensive"
             
-            # Get current model or use default
-            current_model = st.session_state.get('selected_model', default_model)
-            if current_model not in available_models:
-                current_model = default_model
-            
-            model = st.selectbox(
+            # Model selection with descriptions
+            selected_model_key = st.selectbox(
                 "Model:",
                 available_models,
-                index=available_models.index(current_model),
-                help=f"Available {ai_provider} models"
+                format_func=lambda x: model_descriptions.get(x, x),
+                index=0 if st.session_state.get('selected_model', default_model) not in available_models 
+                      else available_models.index(st.session_state.get('selected_model', default_model)),
+                help=model_help
             )
-            st.session_state.selected_model = model
+            
+            # Store actual model API name
+            selected_model = selected_model_key
+            
+            # Store selections
+            st.session_state.selected_model = selected_model
+            st.session_state.selected_provider = provider_option
+            
+            # Display current AI selection with better formatting
+            if provider_option == "Claude":
+                model_display = model_descriptions.get(selected_model, selected_model)
+                st.success(f"🤖 **CLAUDE**: {model_display}")
+                
+                # Show status for different models
+                if selected_model == "claude-3-haiku-20240307":
+                    st.info("✅ Confirmed working model")
+                elif selected_model == "claude-3-5-haiku-20241022":
+                    st.info("⚡ Fastest new model - test recommended")
+                elif "sonnet" in selected_model:
+                    st.warning("🔬 High-performance model - verify API access")
+                elif "opus" in selected_model:
+                    st.warning("👑 Premium model - requires higher tier access")
+                    
+            else:
+                model_display = model_descriptions.get(selected_model, selected_model)  
+                st.success(f"🧠 **OPENAI**: {model_display}")
             
             st.markdown("---")
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
             st.subheader("✈️ AIRLINE FILTER")
             
             airline_option = st.selectbox(
@@ -847,7 +707,7 @@ def display_sidebar():
                     "Baggage & Cargo",
                     "Pet Travel",
                     "Special Items",
-                    "Flight Operations",
+                    "Flight Operations", 
                     "International Travel",
                     "Accessibility Services"
                 ],
@@ -865,27 +725,11 @@ def display_sidebar():
             if policy_focus != "All Policies":
                 st.info(f"🎯 **{policy_focus.upper()} FOCUS**")
             
-<<<<<<< HEAD
         else:
-            ai_provider = "OpenAI"
-=======
-            st.markdown("---")
-            st.subheader("🤖 AI Configuration")
-            
-            model = st.selectbox(
-                "Model:",
-                ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4"],
-                index=["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4"].index(
-                    st.session_state.get('selected_model', 'gpt-3.5-turbo')
-                ),
-                help="gpt-3.5-turbo: Fast & efficient\ngpt-4o-mini: Balanced\ngpt-4: Most comprehensive"
-            )
-            st.session_state.selected_model = model
-            
-        else:
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-            model = "gpt-3.5-turbo"
-            st.warning("Connect to API to access filters")
+            # Defaults when API not connected
+            selected_model = "gpt-3.5-turbo"
+            provider_option = "OpenAI"
+            st.warning("Connect to API to access all features")
         
         # Quick Actions
         st.subheader("⚡ Quick Actions")
@@ -894,66 +738,15 @@ def display_sidebar():
             st.success("History cleared!")
             st.rerun()
         
-        # Enhanced Stats
-        if st.session_state.chat_history:
-            st.subheader("📊 Session Analytics")
-            st.metric("Policy Queries", len(st.session_state.chat_history))
-            
-<<<<<<< HEAD
-            # AI Provider usage stats
-            openai_count = sum(1 for chat in st.session_state.chat_history if chat.get('ai_provider', '').lower() == 'openai')
-            claude_count = sum(1 for chat in st.session_state.chat_history if chat.get('ai_provider', '').lower() == 'claude')
-            
-            if openai_count > 0:
-                st.text(f"🤖 OpenAI Queries: {openai_count}")
-            if claude_count > 0:
-                st.text(f"🧠 Claude Queries: {claude_count}")
-            
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-            # Policy coverage analysis
-            all_sources = []
-            for chat in st.session_state.chat_history:
-                for doc in chat.get('retrieved_docs', []):
-                    all_sources.append(doc.get('source', ''))
-            
-            unique_sources = len(set(all_sources))
-            st.metric("Policy Sources Used", unique_sources)
-            
-<<<<<<< HEAD
-            # Total estimated costs
-            total_cost = sum(
-                chat.get('usage_stats', {}).get('estimated_cost', 0)
-                for chat in st.session_state.chat_history
-            )
-            if total_cost > 0:
-                st.text(f"💰 Total Cost: ${total_cost:.4f}")
-        
-        return ai_provider, model, st.session_state.selected_airline, st.session_state.policy_focus
-=======
-            # Airline usage distribution
-            turkish_usage = sum(1 for s in all_sources if any(kw in s.lower() for kw in ['checked_baggage', 'carry_on', 'sports', 'musical', 'excess', 'restrictions']))
-            pegasus_usage = sum(1 for s in all_sources if any(kw in s.lower() for kw in ['general_rules', 'baggage_allowance', 'travelling_with_pets', 'extra_services']))
-            
-            if turkish_usage > 0:
-                st.text(f"🇹🇷 Turkish Airlines: {turkish_usage}")
-            if pegasus_usage > 0:
-                st.text(f"🔥 Pegasus Airlines: {pegasus_usage}")
-        
-        return model, st.session_state.selected_airline, st.session_state.policy_focus
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+        return selected_model, provider_option, st.session_state.selected_airline, st.session_state.policy_focus
 
 # Main application
 def main():
     init_session_state()
     display_header()
     
-    # Get settings from sidebar
-<<<<<<< HEAD
-    ai_provider, model, airline_filter, policy_focus = display_sidebar()
-=======
-    model, airline_filter, policy_focus = display_sidebar()
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+    # Get settings from sidebar - NOW INCLUDING PROVIDER
+    model, provider, airline_filter, policy_focus = display_sidebar()
     
     # Check API connection
     api_connected = display_api_status()
@@ -978,38 +771,33 @@ def main():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-<<<<<<< HEAD
-        # AI Model Selection in Main Area
-        st.markdown("""
-        <div class="ai-model-selector">
-            <h3>🤖 AI Model Selection</h3>
+        # AI Provider Display
+        provider_icon = "🤖" if provider == "Claude" else "🧠"
+        model_display = model
+        
+        # Simplify model display names
+        if provider == "Claude":
+            if "claude-3-5-sonnet" in model:
+                model_display = "Claude 3.5 Sonnet"
+            elif "claude-3-sonnet" in model:
+                model_display = "Claude 3 Sonnet"
+            elif "claude-3-haiku" in model:
+                model_display = "Claude 3 Haiku"
+        else:
+            if model == "gpt-3.5-turbo":
+                model_display = "GPT-3.5 Turbo"
+            elif model == "gpt-4o-mini":
+                model_display = "GPT-4o Mini"
+            elif model == "gpt-4":
+                model_display = "GPT-4"
+        
+        st.markdown(f"""
+        <div class="ai-provider-container">
+            <h3>{provider_icon} {provider}: {model_display}</h3>
         </div>
         """, unsafe_allow_html=True)
         
-        model_col1, model_col2 = st.columns(2)
-        
-        with model_col1:
-            if st.button(f"🤖 OpenAI ({st.session_state.get('selected_model', 'gpt-3.5-turbo') if st.session_state.get('selected_ai_provider') == 'OpenAI' else 'gpt-3.5-turbo'})", 
-                        use_container_width=True,
-                        type="primary" if st.session_state.get('selected_ai_provider', '') == 'OpenAI' else "secondary"):
-                st.session_state.selected_ai_provider = "OpenAI"
-                st.session_state.selected_model = "gpt-3.5-turbo"
-                st.rerun()
-                
-        with model_col2:
-            current_claude_model = st.session_state.get('selected_model', 'claude-3-5-sonnet-20241022') if st.session_state.get('selected_ai_provider') == 'Claude' else 'claude-3-5-sonnet-20241022'
-            claude_model_display = current_claude_model.split('-')[0] + "-" + current_claude_model.split('-')[1] + "-" + current_claude_model.split('-')[2]  # claude-3-5-sonnet
-            
-            if st.button(f"🧠 Claude ({claude_model_display})", 
-                        use_container_width=True,
-                        type="primary" if st.session_state.get('selected_ai_provider', '') == 'Claude' else "secondary"):
-                st.session_state.selected_ai_provider = "Claude"
-                st.session_state.selected_model = "claude-3-5-sonnet-20241022"
-                st.rerun()
-        
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-        # Airline Filter in Main Area
+        # Airline Filter buttons
         st.markdown("""
         <div class="airline-filter-container">
             <h3>✈️ Quick Airline Selection</h3>
@@ -1040,33 +828,20 @@ def main():
         # Show active filters
         current_filter = st.session_state.get('selected_airline', 'All Airlines')
         current_policy = st.session_state.get('policy_focus', 'All Policies')
-<<<<<<< HEAD
-        current_ai = st.session_state.get('selected_ai_provider', 'OpenAI')
-        current_model = st.session_state.get('selected_model', 'gpt-3.5-turbo')
-        
-        filter_info_parts = []
-        filter_info_parts.append(f"🤖 **{current_ai}** ({current_model})")
-        filter_info_parts.append(f"✈️ **{current_filter}**")
-        if current_policy != "All Policies":
-            filter_info_parts.append(f"📋 **{current_policy}**")
-        
-        st.success(" | ".join(filter_info_parts))
-=======
         
         if current_filter != "All Airlines" or current_policy != "All Policies":
             filter_text = f"🎯 **Active Filters:** {current_filter}"
             if current_policy != "All Policies":
                 filter_text += f" | {current_policy}"
             st.success(filter_text)
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
         
         st.subheader("💬 Ask About Airline Policies")
         
         # Question input
         question = st.text_area(
-            "What would you like to know about airline policies?",
+            f"What would you like to know about airline policies? (Powered by {provider})",
             value=st.session_state.get('current_question', ''),
-            placeholder="Example: Compare baggage policies between Turkish Airlines and Pegasus Airlines",
+            placeholder=f"Example: Compare baggage policies between Turkish Airlines and Pegasus Airlines (will be analyzed by {provider})",
             height=100,
             key="question_input"
         )
@@ -1074,9 +849,9 @@ def main():
         # Action buttons
         col_btn1, col_btn2 = st.columns([1, 1])
         with col_btn1:
-            ask_clicked = st.button("🚀 Analyze Policies", type="primary", use_container_width=True)
+            ask_clicked = st.button(f"🚀 Analyze with {provider}", type="primary", use_container_width=True)
         with col_btn2:
-            if st.button("🎲 Random Policy Question", use_container_width=True):
+            if st.button("🎲 Random Question", use_container_width=True):
                 examples = [
                     "Compare excess baggage fees between Turkish Airlines and Pegasus",
                     "What are the pet travel requirements for international flights?",
@@ -1090,46 +865,37 @@ def main():
                 st.session_state.current_question = random.choice(examples)
                 st.rerun()
         
-        # Handle question
+        # Handle question - NOW WITH PROVIDER SUPPORT
         if ask_clicked and question.strip():
             result = handle_question(
                 question, 
                 st.session_state.api_url,
-<<<<<<< HEAD
-                st.session_state.selected_ai_provider,
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
-                st.session_state.selected_model,
+                model,  # selected model
+                provider,  # selected provider
                 st.session_state.selected_airline,
                 st.session_state.policy_focus
             )
             
             if result["success"]:
-                # Add to history
+                # Add to history with provider info
                 st.session_state.chat_history.append({
                     "question": question,
                     "answer": result["answer"],
                     "timestamp": datetime.now(),
-<<<<<<< HEAD
-                    "ai_provider": result.get("ai_provider", st.session_state.selected_ai_provider),
-=======
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
                     "model": result["model"],
+                    "provider": provider,
+                    "ai_provider_full": result.get("ai_provider_full", provider),
                     "sources": result["sources"],
                     "context_quality": result.get("context_quality", "unknown"),
                     "retrieved_docs": result.get("retrieved_docs", []),
                     "filtered": result.get("filtered", False),
                     "airline_filter": st.session_state.selected_airline,
                     "policy_focus": st.session_state.policy_focus,
-<<<<<<< HEAD
                     "policy_coverage": result.get("policy_coverage", 0),
-                    "usage_stats": result.get("usage_stats", {})
-=======
-                    "policy_coverage": result.get("policy_coverage", 0)
->>>>>>> f80d541f93096bbc8994bb0fea40830180aa3ca3
+                    "preloaded": result.get("preloaded", True)
                 })
                 
-                st.success("✅ Policy analysis complete!")
+                st.success(f"✅ Policy analysis complete with {provider}!")
                 st.rerun()
             else:
                 st.error(f"❌ {result['error']}")
@@ -1138,7 +904,7 @@ def main():
         display_chat_history()
     
     with col2:
-        # Policy categories and examples
+        # Policy categories
         display_policy_categories()
 
 if __name__ == "__main__":
