@@ -132,9 +132,9 @@ class VectorOperations:
         return ' '.join(words[:10])  # Max 10 kelime
     
     CATEGORIES = {
-    'baggage': ['baggage', 'luggage', 'suitcase', 'weight'],
-    'pets': ['pet', 'dog', 'cat', 'animal'],
-    'sports': ['sports', 'equipment', 'golf', 'ski']
+        'baggage': ['baggage', 'luggage', 'suitcase', 'weight'],
+        'pets': ['pet', 'dog', 'cat', 'animal'],
+        'sports': ['sports', 'equipment', 'golf', 'ski']
         }
 
     def category_pre_filter(query: str) -> str:

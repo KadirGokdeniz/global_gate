@@ -1,0 +1,404 @@
+[
+  {
+    "question_id": "PGS_PKG_001",
+    "airline": "pegasus",
+    "question": "On which flights will the new flight packages and baggage rules be in effect on Pegasus Airlines?",
+    "category": "package_scope",
+    "expected_keywords": ["International flights", "North Cyprus", "domestic flights", "no change"],
+    "expected_answer": "They will be in effect on International flights and North Cyprus. There is no change in our domestic (Türkiye) flights packages, the current rules will continue to apply to our domestic flights."
+  },
+  {
+    "question_id": "PGS_PKG_002", 
+    "airline": "pegasus",
+    "question": "What is an underseat bag and what are its size and weight limits on Pegasus Airlines?",
+    "category": "underseat_bag_definition",
+    "expected_keywords": ["40x30x15 cm", "3kg", "under the seat", "handbag", "laptop case"],
+    "expected_answer": "It means a bag that will fit under the seat in front of the guests! With the Light Package option, guests are allowed a single piece of underseat bag, whether it's a handbag, laptop case or a small backpack, as long as it's doesn't exceed the maximum size of 40x30x15 cm and weighs up to 3kg."
+  },
+  {
+    "question_id": "PGS_PKG_003",
+    "airline": "pegasus",
+    "question": "Are cabin baggage options completely removed from all Pegasus Airlines packages?",
+    "category": "cabin_baggage_availability",
+    "expected_keywords": ["not removing", "Saver", "Saver Plus", "Comfort Flex", "Light Package"],
+    "expected_answer": "No, we are not! With the Saver, Saver Plus and Comfort Flex options, guests are allowed to bring 1 underseat bag, 1 piece of cabin baggage and 1 piece of check-in baggage on our international and North Cyprus flights. Only the Light Package option, our lowest fare category, has no cabin baggage or check-in baggage included in the booking."
+  },
+  {
+    "question_id": "PGS_PKG_004",
+    "airline": "pegasus", 
+    "question": "Will the new baggage rules apply to flights already booked before the changes on Pegasus Airlines?",
+    "category": "existing_bookings",
+    "expected_keywords": ["booked before 14 February", "rules valid on date", "won't apply"],
+    "expected_answer": "No, they won't. For tickets booked before 14 February, guests can travel according to the rules valid on the date the ticket was booked."
+  },
+  {
+    "question_id": "PGS_PKG_005",
+    "airline": "pegasus",
+    "question": "What baggage allowances are included in the Light Package on Pegasus Airlines international flights?",
+    "category": "light_package_allowance",
+    "expected_keywords": ["lowest fare category", "without cabin baggage", "without check-in baggage", "underseat bag only"],
+    "expected_answer": "The new Light Package option, our lowest fare category, is available as of 14 February and offers travel without cabin baggage or check-in baggage. Guests who book the Light Package are allowed to bring one underseat bag that fits under the seat, with a maximum size of 40x30x15 cm and weighing up to 3kg."
+  },
+  {
+    "question_id": "PGS_PKG_006",
+    "airline": "pegasus", 
+    "question": "Can passengers add extra baggage allowance to the Light Package on Pegasus Airlines?",
+    "category": "light_package_extras",
+    "expected_keywords": ["cabin baggage", "check-in baggage", "starting from 12 kg", "flypgs.com"],
+    "expected_answer": "Yes, you can! Our guests who have booked the Light Package can additionally book cabin baggage if there is a cabin baggage limit on the flight, or check-in baggage starting from 12 kg. Our best prices are offered on flypgs.com or the Pegasus Mobile app."
+  },
+  {
+    "question_id": "PGS_PKG_007",
+    "airline": "pegasus",
+    "question": "What baggage allowances do Saver, Saver Plus and Comfort Flex packages include on Pegasus Airlines?",
+    "category": "premium_packages_allowance",
+    "expected_keywords": ["1 underseat bag", "1 piece cabin baggage", "1 piece check-in baggage", "3 packages"],
+    "expected_answer": "Guests are allowed to bring 1 underseat bag, 1 piece of cabin baggage and 1 piece of check-in baggage when they opt for any of these 3 packages."
+  },
+  {
+    "question_id": "PGS_PKG_008",
+    "airline": "pegasus", 
+    "question": "Can liquids and electronics be carried in the underseat bag with the Light Package?",
+    "category": "underseat_bag_contents",
+    "expected_keywords": ["liquids", "electronics", "underseat bags", "size and weight limits"],
+    "expected_answer": "Guests can pack these items in their underseat bags as long as the size and weight limits permitted in the Light Package are not exceeded."
+  },
+  {
+    "question_id": "PGS_PKG_009",
+    "airline": "pegasus",
+    "question": "What happens if a passenger brings cabin baggage that exceeds their package allowance at the boarding gate?",
+    "category": "excess_baggage_boarding",
+    "expected_keywords": ["extra charges", "boarding", "checked in under the plane", "not allowed into cabin"],
+    "expected_answer": "If you bring additional items or items over the size and/or weight limit onto the aircraft, extra charges will apply when boarding for each additional piece. Also, the additional piece or pieces that are over the size and/ or weight limit or not included in the package will not be allowed into the cabin, but they will be checked in under the plane."
+  },
+  {
+    "question_id": "PGS_PKG_010",
+    "airline": "pegasus", 
+    "question": "Why did Pegasus Airlines change the structure of their flight packages?",
+    "category": "package_change_reason",
+    "expected_keywords": ["minimize congestion", "boarding", "overhead bins", "better flight experience"],
+    "expected_answer": "With the new flight packages, we aim to minimize congestion during boarding, ensure timely completion of the boarding processes, prevent overcrowding in overhead bins, and provide a better flight experience for our guests."
+  },
+  {
+    "question_id": "PGS_PKG_011",
+    "airline": "pegasus",
+    "question": "What is Pegasus Airlines' recommendation for passengers traveling with baggage?",
+    "category": "baggage_booking_recommendation",
+    "expected_keywords": ["book baggage allowance", "before your flight", "digital channels", "advantageous prices"],
+    "expected_answer": "If you are travelling with baggage, we recommend that you book baggage allowance according to your needs before your flight as our digital channels offer the most advantageous prices."
+  },
+  {
+    "question_id": "PGS_PKG_012",
+    "airline": "pegasus", 
+    "question": "What are the main goals of Pegasus Airlines' package updates for international and North Cyprus flights?",
+    "category": "package_update_goals",
+    "expected_keywords": ["travel needs", "flying habits", "eliminate congestion", "boarding & disembarking", "best option"],
+    "expected_answer": "We have updated our flight packages and the baggage rules for our 4 packages on our International and North Cyprus flights in accordance with the travel needs and flying habits of our valued guests! With this change, we aim to improve the guest experience by eliminating congestion during boarding & disembarking and offering you the best option based on your baggage preferences."
+  },
+  {
+    "question_id": "PGS_GEN_001",
+    "airline": "pegasus",
+    "question": "How is Cabin Baggage defined in Pegasus Airlines General Rules and what are the size and weight limits?",
+    "category": "general_rules_definitions",
+    "expected_keywords": ["55x40x20 cm", "8 kilograms", "one bag", "cabin during flight"],
+    "expected_answer": "It refers to a maximum of one (1) bag with a maximum size and weight of 55x40x20 cm and 8 kilograms, which passengers can carry in the cabin during flight. For Domestic Scheduled Flights, one Cabin Baggage allowance is included in all Packages offered for sale. For International and North Cyprus Scheduled Flights, Cabin Baggage allowance is available in Saver, Saver Plus and Comfort Flex Packages."
+  },
+  {
+    "question_id": "PGS_GEN_002",
+    "airline": "pegasus",
+    "question": "What are the weight and dimension limits for items carried on an Extra Seat purchased on Pegasus Airlines?",
+    "category": "extra_seat_limits",
+    "expected_keywords": ["75 kilograms", "120x40x20cm", "75x50x45cm", "musical instruments"],
+    "expected_answer": "The weight of the item to be carried on the Extra Seat cannot exceed 75 kilograms and should not prevent other Passengers from easily viewing cabin warning lights in front of them. Items such as musical instruments with dimensions not exceeding 120x40x20cm can be carried between two seats and items with dimensions up to 75x50x45cm can be placed on the seat."
+  },
+  {
+    "question_id": "PGS_GEN_003",
+    "airline": "pegasus",
+    "question": "What credit card verification may Pegasus Airlines request before the flight?",
+    "category": "credit_card_verification",
+    "expected_keywords": ["credit card", "cardholder", "valid identification", "Airport Ticket Sales Office", "Check-in counters"],
+    "expected_answer": "Pegasus may always request that the credit card used for the Ticket purchase is displayed by the cardholder together with valid identification (passport, national identification, driver's license or family record book – livret de famille) prior to the flight at the Airport Ticket Sales Office of the Check-in counters."
+  },
+  [
+  {
+    "question_id": "PGS_GEN_004",
+    "airline": "pegasus",
+    "question": "What are the reissue transaction charges for domestic flights on Pegasus Airlines when made 2 hours or more before departure?",
+    "category": "domestic_reissue_charges",
+    "expected_keywords": ["TRY 600", "TRY 950", "G/P/U/T/Z/V/X/S/N", "K/H/M/L/B/Y", "2 hours and more"],
+    "expected_answer": "TRY 600 transaction charge will apply for G/P/U/T/Z/V/X/S/N Fare Classes and TRY 950 transaction charge will apply for K/H/M/L/B/Y Fare Classes."
+  },
+  {
+    "question_id": "PGS_GEN_005",
+    "airline": "pegasus",
+    "question": "What are the recommended airport arrival times for domestic and international flights on Pegasus Airlines?",
+    "category": "airport_arrival_times",
+    "expected_keywords": ["two hours", "three hours", "domestic flights", "international flights", "departure airport"],
+    "expected_answer": "For this reason and in order not to miss your flight we strongly advise you to be at the departure airport at least two hours before your domestic flights and at least three hours before your international flights."
+  },
+  {
+    "question_id": "PGS_GEN_006",
+    "airline": "pegasus",
+    "question": "What identification documents are required for domestic flights on Pegasus Airlines?",
+    "category": "domestic_identification_requirements",
+    "expected_keywords": ["official identification", "photo", "Turkish ID number", "national identity document", "driver's license", "passport"],
+    "expected_answer": "For all domestic Scheduled Flights, an official identification document with photo and your Turkish ID number (e.g. national identity document, driver's license, passport or other documents acceptable as passports, family record book – livret de famille, identification issued by official bodies, birth certificates to be presented alongside parent identification up to one month following the date of birth) must be presented. For all Passengers of age 15 and above the identification must carry a photograph."
+  },
+  {
+    "question_id": "PGS_GEN_007",
+    "airline": "pegasus",
+    "question": "When are passengers required to remove earphones during Pegasus Airlines flights?",
+    "category": "earphone_restrictions",
+    "expected_keywords": ["remove earphones", "pre-Flight security briefing", "take-off and landing", "shut down"],
+    "expected_answer": "All Passengers are required to remove earphones during the pre-Flight security briefing, during take-off and landing even if the connected electronic device is shut down."
+  },
+  {
+    "question_id": "PGS_GEN_008",
+    "airline": "pegasus",
+    "question": "What are the size limits for musical instruments to be carried in the cabin on Pegasus Airlines?",
+    "category": "musical_instruments_cabin_limits",
+    "expected_keywords": ["55 cm x 40 cm x 20 cm", "cabin baggage dimension limits", "Special Service fee", "Check-in desk"],
+    "expected_answer": "Musical instruments not exceeding Cabin Baggage dimension limits of 55 cm x 40 cm x 20 cm can be carried inside the passenger cabin provided that the applicable Special Service fee is paid at the Check-in desk."
+  },
+  {
+    "question_id": "PGS_GEN_009",
+    "airline": "pegasus",
+    "question": "How far in advance must wheelchair assistance be requested on Pegasus Airlines flights?",
+    "category": "wheelchair_assistance_timing",
+    "expected_keywords": ["48 hours", "Schedule Flight departure time", "0850 250 67 02", "+90 850 250 67 77"],
+    "expected_answer": "To allow us to provide on-time and appropriate assistance to those who require wheelchairs due to health reasons, the request for wheelchair assistance must be communicated to Pegasus during the booking of the Ticket and in any event until 48 hours before the Schedule Flight departure time through our free of charge line at 0850 250 67 02 for calls from Turkey and our free of charge line at +90 850 67 77 for calls from other countries."
+  },
+  {
+    "question_id": "PGS_GEN_010",
+    "airline": "pegasus",
+    "question": "What are the restrictions for passengers with plaster casts on Pegasus Airlines flights?",
+    "category": "plaster_cast_restrictions",
+    "expected_keywords": ["24 hours", "48 hours", "plaster use", "two hours or less", "more than two hours"],
+    "expected_answer": "Passengers with limbs or parts of their body encastered in plaster who will travel for two hours or less within the first 24 hours of plaster use and Passengers with limbs of parts of their body encastered in plaster who will travel for more than two hours within the first 48 hours of plaster use."
+  },
+  {
+    "question_id": "PGS_GEN_011",
+    "airline": "pegasus",
+    "question": "What are the weight categories for AVIH pets carried in cargo on Pegasus Airlines flights?",
+    "category": "avih_pet_weight_categories",
+    "expected_keywords": ["eight kilograms", "AVIS", "8-15 kilograms", "AVIB", "above 15 kilograms"],
+    "expected_answer": "If the weight of the pet and the transportation cage exceeds eight kilograms (AVIH), the pet can only be carried in the ventilated cargo compartment of the aircraft. These pets (AVIH) are divided in two categories: a) AVIS (AVIH Small): comprises AVIH with a weight between eight and 15 kilograms. b) AVIB (AVIH Big): comprises AVIH with a weight above 15 kilograms."
+  },
+  {
+    "question_id": "PGS_GEN_012",
+    "airline": "pegasus",
+    "question": "What items is Pegasus Airlines not liable for in case of loss or damage?",
+    "category": "liability_exclusions",
+    "expected_keywords": ["fragile", "perishable items", "money", "jewelry", "precious metals", "passports", "identification"],
+    "expected_answer": "The carrier will not be liable for any loss to fragile or perishable items, money, jewelry, precious metals, silver items, commercial or other valuable papers, passports and other identification or their samples."
+  },
+  {
+    "question_id": "PGS_GEN_013",
+    "airline": "pegasus",
+    "question": "What is the minimum number of BolPoints required to purchase tickets and ancillary services on Pegasus Airlines?",
+    "category": "bolpoints_minimum_usage",
+    "expected_keywords": ["2000 BolPoints", "500 BolPoints", "Tickets", "Ancillary Products and Services"],
+    "expected_answer": "Members who want to use BolPoints for purchasing Tickets, must have at least 2000 BolPoints and Members who want to use BolPoints for purchasing Ancillary Products and Services must have at least 500 BolPoints in their accounts. Members having 2000 BolPoints in their accounts can purchase Tickets and Members having 500 BolPoints in their accounts can purchase Ancillary Products and Services by using BolPoints and pay the remaining Ticket and/or Ancillary Product and Services price by monetary payment."
+  },
+  {
+    "question_id": "PGS_GEN_014",
+    "airline": "pegasus",
+    "question": "What is Pegasus Airlines' commitment for responding to passenger rights requests?",
+    "category": "passenger_rights_response_time",
+    "expected_keywords": ["ten days", "first request date", "additional information", "time period"],
+    "expected_answer": "Pegasus is committed to respond to requests within ten days following the first request date, unless additional information is necessary to process the request and in which case the time period will start as of the completion of the requested information."
+  },
+  {
+    "question_id": "PGS_GEN_015",
+    "airline": "pegasus",
+    "question": "What are the time limits for making baggage complaints on Pegasus Airlines flights?",
+    "category": "baggage_complaint_time_limits",
+    "expected_keywords": ["seven days", "21 days", "checked baggage", "delay", "damage"],
+    "expected_answer": "If the baggage is damaged, delayed, lost or destroyed, the passenger must write and complain to the air carrier as soon as possible. In the case of damage to checked baggage, the passenger must write and complain within seven days, and in the case of delay within 21 days, in both cases from the date on which the baggage was placed at the passenger's disposal."
+  },
+  {
+    "question_id": "PGS_GEN_016",
+    "airline": "pegasus",
+    "question": "Does Pegasus Airlines have the right to change website content and General Rules without prior notice?",
+    "category": "website_content_changes",
+    "expected_keywords": ["without prior notice", "immediate effect", "change", "website content", "General Rules"],
+    "expected_answer": "Pegasus reserves its right to change any and all information and/or content on the Website, including the Pegasus General Rules and Pegasus Privacy Rules, without prior notice and with immediate effect upon publication."
+  },
+  {
+    "question_id": "PGS_GEN_017",
+    "airline": "pegasus",
+    "question": "What types of scheduled flight services does Pegasus Airlines offer?",
+    "category": "scheduled_flight_services",
+    "expected_keywords": ["domestic routes", "international routes", "Turkey", "transiting through Turkey"],
+    "expected_answer": "Pegasus offers Scheduled Flight services on domestic routes within Turkey and on international routes from/to or transiting through Turkey. Scheduled Flight services are offered subject to the terms and conditions set out in the Pegasus General Rules."
+  },
+  {
+    "question_id": "PGS_GEN_018",
+    "airline": "pegasus",
+    "question": "What are the maximum booking limits per transaction on the Pegasus Airlines website?",
+    "category": "booking_transaction_limits",
+    "expected_keywords": ["nine passengers", "eight different Scheduled flights", "one transaction", "maximum"],
+    "expected_answer": "When you are booking Tickets on the Pegasus Website you can carry out one transaction for a maximum of nine passengers and eight different Scheduled flights."
+  },
+  {
+    "question_id": "PGS_GEN_019",
+    "airline": "pegasus",
+    "question": "What is the validity period for Pegasus Airlines tickets?",
+    "category": "ticket_validity_period",
+    "expected_keywords": ["one year", "first Flight", "date", "validity period"],
+    "expected_answer": "Tickets are valid for a period of one year from the date of the first Flight covered in the Ticket. The same rule applies to Tickets subject to changes."
+  },
+  {
+    "question_id": "PGS_GEN_020",
+    "airline": "pegasus",
+    "question": "What are the five components that make up the Transportation Fare on Pegasus Airlines?",
+    "category": "transportation_fare_components",
+    "expected_keywords": ["Base Fare", "Fuel Surcharge", "Airport Taxes", "Check-in Fee", "Service Fee"],
+    "expected_answer": "The Transportation Fare is composed of (a) Base Fare, (b) Fuel Surcharge, (c) Airport Taxes, (d) Check-in Fee and (e) Service Fee. Each of the said price components constitute an inseparable part of the all-inclusive price paid for the Passenger for transportation services."
+  },
+  {
+  "question_id": "PGS_GEN_021",
+  "airline": "pegasus", 
+  "question": "What are the typical processing timeframes for refunds to credit cards on Pegasus Airlines?",
+  "category": "refund_processing_timeframes",
+  "expected_keywords": ["2-3 days", "Turkish bank", "3-7 days", "international bank", "close of business", "manual processing", "next business day", "same date transaction"],
+  "expected_answer": "Refund processing timeframes vary depending on the credit card bank: For credit cards issued by Turkish banks, refunds are reflected approximately 2-3 days after the close of business when the refund transaction is processed. For credit cards issued by banks in other jurisdictions, refunds take approximately 3-7 days. If the refund is requested on the same date as the original transaction, banks do not accept automatic refunds, so Pegasus processes these manually on the following business day (excluding weekends and official holidays)."
+  },
+  {
+  "question_id": "PGS_GEN_022",
+  "airline": "pegasus", 
+  "question": "Which passengers are not allowed to sit in emergency exit rows on Pegasus Airlines flights?",
+  "category": "emergency_exit_seating_restrictions",
+  "expected_keywords": ["below 18", "traveling with infants", "reduced mobility", "health condition", "emergency situation", "flight safety", "flight security", "responsibilities"],
+  "expected_answer": "Passengers who are not allowed to sit in emergency exit rows include: passengers below the age of 18, passengers traveling with infants, and passengers whose mobility or health condition makes them unsuitable to assume necessary responsibilities in an emergency situation. These restrictions are in place for flight safety and security reasons. Additionally, Pegasus staff may request passengers to change seats even after check-in due to aircraft type changes or safety/security considerations."
+  },
+  {
+  "question_id": "PGS_GEN_023",
+  "airline": "pegasus", 
+  "question": "What is online check-in on Pegasus Airlines and when do passengers still need to visit airport check-in desks?",
+  "category": "online_checkin_service",
+  "expected_keywords": ["online check-in", "website", "mobile application", "mobile barcode", "checked baggage", "special service requests", "reduced mobility", "pets", "airport desk", "Express Baggage Service", "Sabiha Gokcen"],
+  "expected_answer": "Online check-in is a convenience service that allows passengers to complete check-in through the Pegasus Website or Mobile Applications before arriving at the airport, with Mobile Barcode available at supported airports. However, passengers still need to visit Pegasus check-in desks at the airport if they have: checked baggage or items not eligible for cabin transportation, or special service requests (such as persons with reduced mobility, special health conditions, or traveling with pets). At Sabiha Gokcen Airport, baggage can be delivered to Express Baggage Service desks. Online check-in is not available for flights departing from certain airports."
+  },
+  {
+  "question_id": "PGS_GEN_024",
+  "airline": "pegasus", 
+  "question": "What is Pegasus Airlines' policy regarding smoking on flights?",
+  "category": "smoking_policy",
+  "expected_keywords": ["cigarettes", "electronic cigarettes", "smoke producing items", "not permitted", "SHGM", "administrative fines", "reported", "breach"],
+  "expected_answer": "The use of cigarettes, electronic cigarettes and any other smoke producing items and goods are not permitted on Pegasus flights. Any actions that breach this smoking prohibition will be reported by Pegasus to the SHGM (Turkish aviation authority) and may be subject to administrative fines in accordance with the law."
+  },
+  {
+  "question_id": "PGS_GEN_025",
+  "airline": "pegasus", 
+  "question": "What documents are required to report baggage irregularities to Pegasus Airlines and what is the time limit for damage claims?",
+  "category": "baggage_irregularity_reporting",
+  "expected_keywords": ["PNR number", "ticket", "boarding pass", "baggage identification tag", "personal identification", "Property Irregularity Report", "PIR", "seven days", "written report", "arrivals hall", "Baggage Office"],
+  "expected_answer": "To report baggage irregularities (lost, delayed, or damaged baggage), passengers must apply to the Baggage Office at the destination airport before exiting the arrivals hall with the following documents: (a) PNR number, ticket and boarding pass, (b) baggage identification tag, and (c) personal identification. A Property Irregularity Report (PIR) will be prepared. For damaged baggage where damage cannot be identified immediately, passengers must report the damage to the carrier in writing within seven days following arrival. Claims filed after this period will not be accepted."
+  },
+  {
+  "question_id": "PGS_GEN_026",
+  "airline": "pegasus", 
+  "question": "What are the check-in baggage allowances for different ticket packages on Pegasus Airlines?",
+  "category": "baggage_allowance_by_package",
+  "expected_keywords": ["Light Package", "Saver Package", "Saver Plus Package", "Comfort Flex Package", "domestic flights", "international flights", "North Cyprus", "15 kg", "20 kg", "0 kg", "infant passengers", "10 kg"],
+  "expected_answer": "Check-in baggage allowances vary by ticket package and flight type: For domestic flights - Light Package is not offered, Saver Package includes 15kg, Saver Plus and Comfort Flex packages include 20kg each. For international flights (including North Cyprus) - Light Package includes 0kg, while Saver Package, Saver Plus Package, and Comfort Flex Package all include 20kg. For infant passengers under age 2, the check-in baggage allowance is 10kg for all packages and flights. Light Package holders can separately purchase extra baggage allowance."
+  },
+  {
+  "question_id": "PGS_GEN_027",
+  "airline": "pegasus", 
+  "question": "What are the age requirements and advance booking requirements for unaccompanied minor service on Pegasus Airlines?",
+  "category": "unaccompanied_minor_service",
+  "expected_keywords": ["6 to 12 years", "24 hours before", "Pegasus Call Center", "flight attendants", "flight safety", "Special Service", "extra charges", "connecting flights", "authorization document", "90 minutes", "120 minutes"],
+  "expected_answer": "Unaccompanied minor service applies to children aged 6 to 12 years old who travel without an accompanying adult. This service must be requested at the time of ticket booking, and tickets can only be purchased through the Pegasus Call Center. Service requests must be made at least 24 hours before scheduled flight departure - no requests are processed after this deadline. The service is not available for connecting flights with other airlines. Children using this service must arrive for check-in at least 90 minutes before domestic flights and 120 minutes before international flights to complete necessary formalities."
+  },
+  {
+  "question_id": "PGS_GEN_028",
+  "airline": "pegasus", 
+  "question": "Under what circumstances can passengers be denied boarding or offloaded from Pegasus Airlines flights?",
+  "category": "denied_boarding_circumstances",
+  "expected_keywords": ["flight safety", "flight security", "identity verification", "travel documents", "intoxication", "passenger behavior", "commanding officer", "unauthorized ticket", "fraudulent credit card", "passport", "visa", "alcohol", "medication"],
+  "expected_answer": "Passengers may be denied boarding or offloaded from Pegasus flights under several circumstances: (a) inability to prove identity matching the ticket, (b) tickets obtained illegally or through unauthorized channels, (c) lack of proper travel documents (passport, visa, permits), (d) passenger's physical/mental condition requiring care that cannot be provided or posing risks to others, (e) intoxication from alcohol or medication creating safety risks, (f) disregarding carrier rules or staff instructions related to flight safety and security, (g) any actions threatening other passengers, staff, property, or flight safety, and (h) other circumstances justified by flight safety and security needs. The flight commander has authority to take necessary measures including emergency landings and offloading passengers who violate laws or endanger security."
+  },
+  {
+  "question_id": "PGS_GEN_029",
+  "airline": "pegasus", 
+  "question": "What are the requirements for transporting INAD (inadmissible) passengers and deported passengers on Pegasus Airlines?",
+  "category": "inad_deported_passenger_transport",
+  "expected_keywords": ["INAD", "inadmissible passengers", "deported passengers", "accompanying persons", "24 hours before", "authorized body", "documentation", "flight safety", "flight security", "administrative fines", "return transportation", "border control"],
+  "expected_answer": "INAD and deported passengers can be transported on Pegasus flights subject to special rules: Deported passengers must travel with accompanying persons, while INAD passengers may travel with or without escorts based on administrative requests and safety considerations. The authorized body must submit all required information and documentation at least 24 hours before scheduled departure, including passenger details, flight information, reason for INAD/deportation, and accompanying person information. All necessary approvals and consents must be obtained. Pegasus may refuse carriage if it poses threats to flight safety or security. If passengers are denied entry and must be returned, transportation costs will be collected from the passenger, and Pegasus may deduct losses from unused ticket payments."
+  },
+  {
+  "question_id": "PGS_GEN_030",
+  "airline": "pegasus", 
+  "question": "Which animals are allowed on Pegasus Airlines flights and what are the age and weight requirements?",
+  "category": "pet_transport_requirements",
+  "expected_keywords": ["cats", "dogs", "birds", "domestic flights", "international flights", "12 weeks", "three months", "8 kilograms", "PETC", "AVIH", "prohibited breeds", "Kangal", "health certificate", "vaccination card", "pet passport"],
+  "expected_answer": "Pegasus allows cats, dogs, and birds on domestic scheduled flights, but only cats and dogs on international scheduled flights. Pets must be older than 12 weeks (three months) - pregnant pets and nursing mothers with infants are not allowed. For cabin transport (PETC), pets cannot exceed 8 kilograms including cage weight with maximum cage dimensions of 32cm x 32cm x 50cm. Heavier pets travel as cargo (AVIH) only on domestic and North Cyprus flights. Several dog breeds are prohibited including Pit Bull, Rottweiler, Doberman, and others. Kangal dogs are only accepted until 6 months old. Passengers must carry health certificates, vaccination cards, and pet passports (for EU destinations)."
+  },
+  {
+  "question_id": "PGS_GEN_031",
+  "airline": "pegasus", 
+  "question": "Which international conventions and laws govern Pegasus Airlines' liability for passenger safety and baggage handling?",
+  "category": "carrier_liability_framework",
+  "expected_keywords": ["Turkish Civil Aviation Law", "2920", "Warsaw Convention", "La Haye Protocol", "Montreal Convention", "carrier liability", "death", "personal injury", "baggage loss", "damage", "delay", "international carriage"],
+  "expected_answer": "Pegasus Airlines' carrier liability is governed by Turkish Civil Aviation Law No. 2920 and applicable international conventions. These include the Warsaw Convention (signed October 12, 1929) and the La Haye Protocol (September 28, 1955) that amended it, or the Montreal Convention (opened for signature May 28, 1999). These legal frameworks regulate and in many cases limit the carrier's liability in events involving passenger death or personal injury, as well as loss, damage, or delayed transportation of checked baggage and cargo."
+  },
+  {
+  "question_id": "PGS_GEN_032",
+  "airline": "pegasus", 
+  "question": "What are Pegasus Airlines' liability limits for baggage damage and passenger delays under international conventions?",
+  "category": "liability_limits_baggage_delays",
+  "expected_keywords": ["Warsaw Convention", "Montreal Convention", "SDR", "Special Drawing Rights", "17 SDR per kilogram", "1519 SDR", "6303 SDR", "332 SDR", "liability limits", "actual damages", "proof of loss", "fragile items", "valuable items"],
+  "expected_answer": "Liability limits vary by applicable convention: Under the Warsaw Convention - baggage destruction/loss/damage is limited to 17 SDR per kilogram, or 1519 SDR per passenger unless special declaration is made; passenger delays are limited to 332 SDR. Under the Montreal Convention - passenger delays are limited to 6303 SDR; baggage limits remain at 1519 SDR. The carrier has no liability for fragile or perishable items, money, jewelry, precious metals, passports, and other valuable items. These are maximum liability limits and passengers must prove actual damages. The burden of proof for actual loss remains with the claimant."
+  },
+  {
+  "question_id": "PGS_GEN_033",
+  "airline": "pegasus", 
+  "question": "What are the age requirements for Pegasus BolBol membership and how do linked memberships work for minors?",
+  "category": "bolbol_membership_age_requirements",
+  "expected_keywords": ["18 years", "real persons", "linked memberships", "2 years and above", "under 18", "Child and Teen Accounts", "BolPoints", "main member", "automatically removed", "turn 18", "new membership account"],
+  "expected_answer": "Real persons aged 18 and over may apply for full Pegasus BolBol membership. Members can establish linked memberships for real persons aged 2 and above but under 18 through the Child and Teen Accounts section. All transactions for linked memberships are carried out by the main member, and BolPoints earned by linked members are stored in the main member's account. When linked members turn 18, they are automatically removed from the linked membership by the system, their accounts are closed, and their BolPoints are transferred to the main member. These individuals must then set up their own new BolBol membership accounts to continue earning and using BolPoints independently."
+  },
+  {
+  "question_id": "PGS_GEN_034",
+  "airline": "pegasus", 
+  "question": "What rights does Pegasus Airlines have to modify or terminate the BolBol loyalty program?",
+  "category": "bolbol_program_modification_rights",
+  "expected_keywords": ["sole authority", "change", "update", "without prior notice", "withdraw from program", "alter", "partnerships", "Business Partners", "reasonable notice", "promotions", "advantages", "same conditions"],
+  "expected_answer": "Pegasus has sole authority over the BolBol program and reserves the right to make any type of change or update to the BolBol General Rules without prior notice to members. Pegasus can completely or partially alter or withdraw from the BolBol program and/or its partnerships with business partners at any time, provided they give reasonable notice to members. Pegasus does not undertake to ensure that promotions and advantages presented under the BolBol program remain in force under the same conditions. The company also reserves the right to sell, transfer, or otherwise assign the rights and obligations of the BolBol program to partnerships, affiliated companies, or third parties."
+  },
+  {
+  "question_id": "PGS_GEN_035",
+  "airline": "pegasus", 
+  "question": "What are the consequences for passengers who violate flight safety rules on Pegasus Airlines?",
+  "category": "flight_safety_rule_violations",
+  "expected_keywords": ["SHGM", "administrative fines", "flight safety rules", "refusing to be seated", "seat belts", "overhead bins", "arguing", "crew instructions", "warning signs", "appropriate warning", "reported", "legal rights"],
+  "expected_answer": "Passengers who violate flight safety rules despite appropriate warnings face serious consequences. Violations include refusing to be seated, not securing seat belts, not closing overhead bins, arguing with other passengers or crew, preventing crew from performing duties, using slander or abuse against crew or passengers, failing to comply with crew instructions, and not following warning signs inside the aircraft. Such actions will be reported by Pegasus to the SHGM (Turkish aviation authority) and may result in administrative fines in accordance with the law. Pegasus reserves all legal rights against such behavior under both applicable law and the Pegasus General Rules."
+  },
+  {
+  "question_id": "PGS_GEN_036",
+  "airline": "pegasus", 
+  "question": "For what main purposes does Pegasus Airlines process passenger personal data and what are the legal grounds?",
+  "category": "personal_data_processing_purposes",
+  "expected_keywords": ["travel requirements", "flight management", "complaint management", "artificial intelligence", "marketing activities", "financial operations", "legal compliance", "contract performance", "explicit consent", "legitimate interest", "legal obligations"],
+  "expected_answer": "Pegasus processes personal data for several main purposes based on different legal grounds: (a) Travel requirements and flight management - based on contract performance necessity, including ticketing, flight operations, boarding, and BolBol membership management; (b) Complaint and request management - for customer satisfaction and resolving issues; (c) AI-supported technologies - for services like FlyBot and improving business processes; (d) Official authority requests - to comply with legal obligations and respond to lawful requests from aviation authorities and courts; (e) Marketing activities and customer satisfaction - based on explicit consent for personalized offers and communications; (f) Location-based advertising - with consent for improved search results; (g) Financial operations - for payments, refunds, and fraud prevention; (h) Legal compliance - to meet travel documentation, security, and regulatory requirements."
+  },
+  {
+  "question_id": "PGS_GEN_037",
+  "airline": "pegasus", 
+  "question": "How can passengers manage their electronic marketing communication preferences with Pegasus Airlines?",
+  "category": "marketing_communication_preferences",
+  "expected_keywords": ["electronic marketing communication", "consent", "contact permissions", "ticketing", "BolBol membership", "opt-out", "unsubscribe", "İYS", "Communication Management System", "iys.org.tr", "withdraw consent", "business partners"],
+  "expected_answer": "Passengers can manage electronic marketing communication preferences in several ways: Commercial electronic marketing communication is performed based on contact permissions provided during ticketing, BolBol membership registration, or other applicable mediums. You can choose not to receive such communications by following the opt-out options provided in the relevant marketing communications themselves. Additionally, you can manage all electronic marketing communication consents on a single platform through the İYS (Communication Management System) accessible at https://iys.org.tr/. Through İYS, you can consent to or withdraw existing consents for communication from traders, including Pegasus. Marketing communications cover promotions of Pegasus products/services, business partner offers, new services, special flight offers, and other travel-related information."
+  },
+  {
+  "question_id": "PGS_GEN_038",
+  "airline": "pegasus", 
+  "question": "What are passengers' rights regarding their personal data with Pegasus Airlines and how can they exercise these rights?",
+  "category": "data_subject_rights",
+  "expected_keywords": ["personal data rights", "data processing", "third parties", "cross-border transfers", "correct data", "destruction", "anonymization", "Data Protection Officer", "written request", "signed", "Contact Us", "automatic systems", "object"],
+  "expected_answer": "Passengers have several rights regarding their personal data: (a) understand if personal data is processed, (b) request information on data processing, (c) understand the purpose of processing, (d) know third parties to whom data is transferred in Turkey and abroad and inquire about cross-border transfer safeguards, (e) correct incomplete or incorrect personal data, (f) request destruction or anonymization of personal data when processing purposes are exhausted, (g) have third parties notified of corrections and deletions, and (h) object to results of automated decision-making systems. These requests can be submitted in writing and signed to the Data Protection Officer at Pegasus headquarters (AEROPARK, Yenişehir Mahallesi, Osmanlı Bulvarı No: 11/A Kurtköy 34912 Pendik Istanbul, Türkiye) or via the Application Form in the 'Contact Us' section of the Pegasus Website."
+  }
+]
+ 

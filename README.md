@@ -1,8 +1,6 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-![Airline Policy Assistant Interface 1](assets/streamlit_interface1.png)
-![Airline Policy Assistant Interface 2](assets/streamlit_interface2.png)
-![Airline Policy Assistant Interface 3](assets/streamlit_interface3.png)
+![Airline Policy Assistant Interface](streamlit_interface1.png)
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
 
@@ -16,28 +14,27 @@
 
 | Technology | Purpose | Why Chosen |
 |------------|---------|------------|
-| **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
-| **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
-| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding for searching |
 | **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
+| **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
+| **OpenAI Embeddings** | Natural Language Processing | State-of-the-art semantic understanding and search |
+| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
-| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
-| **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
 
 ## System Architecture
 
-The system follows a moduler architecture with orchestrated startup sequence:
+The system follows a microservices architecture with orchestrated startup sequence:
 
-```mermaid
-graph TD
-    A[PostgreSQL Database] --> B[Data Scraper]
-    B --> C[FastAPI Backend] 
-    C --> D[Streamlit Frontend]
-    
-    A -.->|Health Check| B
-    B -.->|Completion| C
-    C -.->|Health Check| D
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  1. PostgreSQL  │───▶│  2. Data        │───▶│  3. FastAPI     │───▶│  4. Streamlit   │
+│     Database    │    │     Scraper     │    │     Backend     │    │     Frontend    │
+│                 │    │                 │    │                 │    │                 │
+│ • Stores data   │    │ • Scrapes       │    │ • Serves API    │    │ • User          │
+│ • Vector search │    │   policies      │    │ • ML processing │    │   interface     │
+│ • Health checks │    │ • Exits on      │    │ • Health checks │    │ • Natural       │
+│                 │    │   completion    │    │                 │    │   language UI   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 **Startup Sequence (Docker Compose)**:
@@ -66,7 +63,6 @@ User Query → Embedding Generation → Vector Search → Context Retrieval → 
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
-- Claude API Key
 
 ### Quick Start
 ```bash
@@ -119,7 +115,7 @@ curl -X POST "http://localhost:8000/chat/openai" \
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -m 'Add feature'`
+3. Commit changes: `git commit -am 'Add feature'`
 4. Push to branch: `git push origin feature-name`
 5. Submit a Pull Request
 

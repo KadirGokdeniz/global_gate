@@ -1,0 +1,403 @@
+[
+  {
+    "question_id": "THY_CHK_001",
+    "airline": "turkish_airlines",
+    "question": "What is the maximum size limit for checked baggage on Turkish Airlines flights with piece concept?",
+    "category": "baggage_dimensions",
+    "expected_keywords": ["158 cm", "piece concept"],
+    "expected_answer": "On flights that apply the piece and kg concept, each baggage permitted within the free baggage must be no more than 158 cm."
+  },
+  {
+    "question_id": "THY_CHK_002", 
+    "airline": "turkish_airlines",
+    "question": "What is the maximum weight per bag for economy class on Turkish Airlines piece concept routes?",
+    "category": "baggage_weight",
+    "expected_keywords": ["23kg", "economy class", "piece concept"],
+    "expected_answer": "On routes with piece concept, the maximum weight per bag for economy class is 23kg (charges apply if the bag is overweight)."
+  },
+  {
+    "question_id": "THY_CHK_003",
+    "airline": "turkish_airlines", 
+    "question": "What is the absolute maximum weight for a single piece of baggage on Turkish Airlines regardless of class?",
+    "category": "baggage_weight",
+    "expected_keywords": ["32 KG", "single piece", "maximum"],
+    "expected_answer": "Regardless of the weight and piece concept, a single piece of baggage cannot exceed 32 KG. Baggage that exceeds 32 KG must be divided and carried in two or more pieces."
+  },
+  {
+    "question_id": "THY_CHK_004",
+    "airline": "turkish_airlines",
+    "question": "How much free baggage allowance do infant passengers get on Turkish Airlines Ecofly routes with piece concept?",
+    "category": "infant_baggage", 
+    "expected_keywords": ["One (1) piece", "23 kg", "infant", "Ecofly"],
+    "expected_answer": "One (1) piece (23 kg) of free baggage allowance is offered on Ecofly package lines that do include free baggage allowance under the piece baggage application."
+  },
+  {
+    "question_id": "THY_CHK_005",
+    "airline": "turkish_airlines",
+    "question": "Which baggage concept applies to Turkish Airlines domestic flights - piece or kilogram?",
+    "category": "domestic_policy",
+    "expected_keywords": ["domestic flights", "kilogram concept", "piece concept"],
+    "expected_answer": "The piece concept of baggage shall not be applied to domestic flights. For domestic flights, the kilogram concept will continue to be in effect."
+  },
+  {
+    "question_id": "THY_CHK_006",
+    "airline": "turkish_airlines", 
+    "question": "What additional baggage allowance do Star Alliance Gold Card holders get on Turkish Airlines?",
+    "category": "star_alliance_benefits",
+    "expected_keywords": ["+1 extra baggage", "+20kg", "Star Alliance Gold"],
+    "expected_answer": "Star Alliance Gold Card holders have the right to carry +1 extra baggage in the Piece System and +20kg in the Weight System in addition to their checked baggage rights on their tickets."
+  },
+  {
+    "question_id": "THY_CHK_007",
+    "airline": "turkish_airlines",
+    "question": "Can passengers with different PNR numbers combine their baggage allowances on Turkish Airlines international flights?",
+    "category": "pnr_policy",
+    "expected_keywords": ["different reservation", "PNR", "cannot combine", "international flights"],
+    "expected_answer": "Passengers traveling with different reservation (PNR) numbers on international flights cannot combine their checked baggage allowances with the passenger they are traveling with."
+  },
+  {
+    "question_id": "THY_CBN_001",
+    "airline": "turkish_airlines",
+    "question": "What are the maximum dimensions and weight limits for cabin baggage in Economy class on Turkish Airlines?",
+    "category": "cabin_dimensions_economy",
+    "expected_keywords": ["23x40x55 cm", "8 kg", "Economy class", "one piece"],
+    "expected_answer": "For your Economy class travels, you may take one piece of cabin baggage with a maximum dimensions of 23x40x55 cm and a maximum weight of 8 kg."
+  },
+  {
+    "question_id": "THY_CBN_002",
+    "airline": "turkish_airlines", 
+    "question": "How many pieces of cabin baggage can Business class passengers carry on Turkish Airlines and what are the limits?",
+    "category": "cabin_allowance_business",
+    "expected_keywords": ["two pieces", "23x40x55 cm", "8 kg", "16 kg total", "Business class"],
+    "expected_answer": "For your Business class travels, you may carry two pieces of cabin baggages, each measuring 23x40x55 cm and weighing 8 kg, not exceeding 16 kg in total."
+  },
+  {
+    "question_id": "THY_CBN_003",
+    "airline": "turkish_airlines",
+    "question": "What are the size and weight restrictions for personal items on Turkish Airlines flights?",
+    "category": "personal_item_limits", 
+    "expected_keywords": ["40x30x15 cm", "4 kg", "personal item", "maximum weight"],
+    "expected_answer": "You may also take one piece of personal item measuring 40x30x15 cm and weighing a maximum of 4 kg."
+  },
+  {
+    "question_id": "THY_CBN_004",
+    "airline": "turkish_airlines",
+    "question": "What cabin baggage allowance do infant passengers have on Turkish Airlines flights?",
+    "category": "infant_cabin_baggage",
+    "expected_keywords": ["infant passengers", "8 kg", "domestic and international", "regardless of class"],
+    "expected_answer": "Infant passengers are entitled to one piece of cabin baggage weighing up to 8 kg on domestic and international flights regardless of Economy or Business class."
+  },
+  {
+    "question_id": "THY_CBN_005",
+    "airline": "turkish_airlines",
+    "question": "What are the liquid restrictions for cabin baggage on Turkish Airlines flights?",
+    "category": "liquid_restrictions",
+    "expected_keywords": ["100 ml", "1-liter zip-lock", "transparent bag", "original containers"],
+    "expected_answer": "Non-prohibited liquids such as perfume, deodorant, contact lens solutions should be carried in sizes less than 100 ml in original containers. In addition, all liquid containers in the form of 100 ml should be kept in a 1-liter zip-lock transparent bag."
+  },
+  {
+    "question_id": "THY_CBN_006", 
+    "airline": "turkish_airlines",
+    "question": "How many cabin baggage pieces can Business class passengers carry on flights departing from the USA?",
+    "category": "usa_departure_rules",
+    "expected_keywords": ["flights from the USA", "one piece", "one personal item", "TSA requirements", "Business class"],
+    "expected_answer": "For this reason, our passengers traveling in Business class on routes departing from the USA are entitled to 2 pieces of cabin baggages; one piece of cabin baggage and one personal item is carried in the cabin and the other cabin baggage is carried under the aircraft as checked baggage free of charge."
+  },
+  {
+    "question_id": "THY_CBN_007",
+    "airline": "turkish_airlines", 
+    "question": "What are the size and weight limits for cabin seat baggage (CBBG) on Turkish Airlines?",
+    "category": "cabin_seat_baggage",
+    "expected_keywords": ["CBBG", "40cmx50cmx67cm", "75 kg", "extra seat"],
+    "expected_answer": "Cabin seat baggage (CBBG), which is carried on the extra seat purchased by the passenger, must be of the appropriate size (40cmx50cmx67cm). The baggage's maximum weight must not exceed 75 kg."
+  },
+  {
+    "question_id": "THY_SPE_001",
+    "airline": "turkish_airlines",
+    "question": "Where are sports equipment carried on Turkish Airlines flights - in cabin or as checked baggage?",
+    "category": "sports_equipment_general",
+    "expected_keywords": ["checked baggage", "aircraft hold", "sports equipment"],
+    "expected_answer": "Sports equipment are only accepted as checked baggage and carried in aircraft hold."
+  },
+  {
+    "question_id": "THY_SPE_002", 
+    "airline": "turkish_airlines",
+    "question": "What is the weight limit for one set of sports equipment on Turkish Airlines?",
+    "category": "sports_equipment_weight",
+    "expected_keywords": ["23 kilograms", "1 set", "weight limit", "second set"],
+    "expected_answer": "1 set of sports equipment is limited to 23 kilograms. If the 23 kg limit is exceeded, it will be considered as a second set of equipment and the sports equipment fee will be charged."
+  },
+  {
+    "question_id": "THY_SPE_003",
+    "airline": "turkish_airlines",
+    "question": "What is the fee for transporting sports equipment on Turkish Airlines domestic flights?",
+    "category": "domestic_sports_fees",
+    "expected_keywords": ["500 TRY", "domestic flights", "1 piece", "sports equipment"],
+    "expected_answer": "Carrying sports equipment is subject to a charge on domestic flights: The fee to transport 1 piece of sports equipment is 500 TRY."
+  },
+  {
+    "question_id": "THY_SPE_004",
+    "airline": "turkish_airlines", 
+    "question": "Can racket sports equipment be carried in the cabin on Turkish Airlines flights?",
+    "category": "racket_sports_cabin",
+    "expected_keywords": ["tennis, squash, badminton", "cabin baggage", "118 cm", "special bags", "maximum one pair"],
+    "expected_answer": "Equipment for racket sports such as tennis, squash, and badminton (maximum one pair) [total dimensions should not exceed 118 cm (width+length+height)] can be brought onboard in their special bags and is considered as one piece of cabin baggage."
+  },
+  {
+    "question_id": "THY_SPE_005",
+    "airline": "turkish_airlines",
+    "question": "What additional fee is charged for sports equipment when making stopovers at international stations?",
+    "category": "international_stopover_fees", 
+    "expected_keywords": ["30 EUR", "stopovers", "international stations", "extra charge"],
+    "expected_answer": "Passengers making stopovers at international stations will be charged an extra 30 EUR for all sports equipments."
+  },
+  {
+    "question_id": "THY_SPE_006",
+    "airline": "turkish_airlines",
+    "question": "How should sports equipment be packaged for Turkish Airlines flights?",
+    "category": "packaging_requirements",
+    "expected_keywords": ["special case", "prevent damage", "packed separately", "no personal effects"],
+    "expected_answer": "Please note that this equipment should be carried in its special case packaged in a way to prevent damage and should not be loaded to the baggage belt during check-in. Sports equipment must be packed separately from passenger baggage and must not contain any personal effects."
+  },
+  {
+    "question_id": "THY_SPE_007",
+    "airline": "turkish_airlines", 
+    "question": "What is the sports equipment fee for flights to Turkish Republic of Northern Cyprus?",
+    "category": "northern_cyprus_fees",
+    "expected_keywords": ["700 TRY", "Turkish Republic of Northern Cyprus", "sports equipment fee"],
+    "expected_answer": "On flights to the Turkish Republic of Northern Cyprus, the fee is 700 TRY."
+  },
+  {
+    "question_id": "THY_MUS_001",
+    "airline": "turkish_airlines",
+    "question": "What are the size and weight limits for carrying musical instruments as cabin baggage on Turkish Airlines?",
+    "category": "cabin_musical_instruments",
+    "expected_keywords": ["118 cm", "8 kg", "width+length+height", "cabin baggage allowance"],
+    "expected_answer": "Cabin baggage allowance (maximum weight 8 kg) can be used for music equipment whose total dimensions do not exceed 118 cm (width+length+height) with the carrying case."
+  },
+  {
+    "question_id": "THY_MUS_002", 
+    "airline": "turkish_airlines",
+    "question": "What are the maximum weight and dimensions for cellos transported as paid cabin baggage (CBBG)?",
+    "category": "cello_cbbg_limits",
+    "expected_keywords": ["75 kg", "140X42X25 cm", "paid cabin baggage", "CBBG"],
+    "expected_answer": "The instrument must weigh no more than 75 kg, with maximum dimensions of 140X42X25 cm."
+  },
+  {
+    "question_id": "THY_MUS_003",
+    "airline": "turkish_airlines",
+    "question": "How far in advance must cellos be booked for cabin transport on Turkish Airlines?",
+    "category": "cello_booking_requirements",
+    "expected_keywords": ["48 hours", "sales offices", "extra seats", "cannot be booked online"],
+    "expected_answer": "Cello must be booked at our sales offices up to 48 hours before the flight; cabin baggage (CBBG) tickets must be issued, and extra seats must be purchased (Instruments cannot be booked via online channels)."
+  },
+  {
+    "question_id": "THY_MUS_004",
+    "airline": "turkish_airlines", 
+    "question": "What is the minimum cost for transporting musical instruments as CBBG in Economy Class?",
+    "category": "cbbg_pricing_economy",
+    "expected_keywords": ["USD 200", "one direction", "Economy Class", "USD 400", "return"],
+    "expected_answer": "The amount of cabin baggage is equal to the tax-free net fare on the purchased ticket, with a minimum amount of USD 200 in one direction in an Economy Class cabin, and USD 400 for return cabin baggage."
+  },
+  {
+    "question_id": "THY_MUS_005",
+    "airline": "turkish_airlines",
+    "question": "What is the cost for transporting musical instruments as CBBG in Business Class?",
+    "category": "cbbg_pricing_business", 
+    "expected_keywords": ["USD 500", "Business Class", "USD 1000", "one way", "return"],
+    "expected_answer": "For Business Class cabins, the cost is USD 500 one way and USD 1000 for return cabin baggage."
+  },
+  {
+    "question_id": "THY_MUS_006",
+    "airline": "turkish_airlines",
+    "question": "How are large musical instruments like contrabass transported on Turkish Airlines?",
+    "category": "large_instruments_checked",
+    "expected_keywords": ["contrabass", "aircraft hold", "checked baggage", "durable hard case"],
+    "expected_answer": "We transport your large instruments like contrabass in the aircraft hold as checked baggage. In order to transport such music instruments in the aircraft hold, you are required to deliver them in a durable hard case."
+  },
+  {
+    "question_id": "THY_MUS_007",
+    "airline": "turkish_airlines", 
+    "question": "What are the special fees for musical instrument CBBG on flights departing from Canada in Economy Class?",
+    "category": "canada_departure_fees",
+    "expected_keywords": ["275 CAD", "690 CAD", "Canada", "one direction", "round trip"],
+    "expected_answer": "For flights departing from Canada in Economy Class: 275 CAD one direction, 690 CAD round trip."
+  },
+  {
+    "question_id": "THY_PET_001",
+    "airline": "turkish_airlines",
+    "question": "What types of pets are allowed to travel on Turkish Airlines flights?",
+    "category": "allowed_pet_types",
+    "expected_keywords": ["cats", "dogs", "small songbirds", "parakeets", "canaries"],
+    "expected_answer": "Cats, dogs and small songbirds (parakeets, canaries) are the only types of pets permitted in the aircraft hold."
+  },
+  {
+    "question_id": "THY_PET_002", 
+    "airline": "turkish_airlines",
+    "question": "What is the maximum weight limit for pets traveling in the cabin on Turkish Airlines?",
+    "category": "cabin_pet_weight",
+    "expected_keywords": ["8 kg", "cabin", "including carrier", "total weight"],
+    "expected_answer": "Pets traveling in the aircraft cabin cannot exceed a total of 8 kg, including their carrier."
+  },
+  {
+    "question_id": "THY_PET_003",
+    "airline": "turkish_airlines",
+    "question": "What are the maximum carrier dimensions for pets traveling in the cabin?",
+    "category": "cabin_carrier_dimensions",
+    "expected_keywords": ["23 cm height", "30 cm width", "40 cm length", "carrier dimensions"],
+    "expected_answer": "The carrier dimensions must be no more than 23 cm in height, 30 cm in width and 40 cm in length."
+  },
+  {
+    "question_id": "THY_PET_004",
+    "airline": "turkish_airlines", 
+    "question": "What are the maximum carrier/cage dimensions for pets traveling in the aircraft hold?",
+    "category": "hold_carrier_dimensions",
+    "expected_keywords": ["75 cm height", "75 cm width", "125 cm length", "aircraft hold"],
+    "expected_answer": "For pets traveling in the aircraft hold, carriers/cages cannot exceed 75 cm in height, 75 cm in width and 125 cm in length."
+  },
+  {
+    "question_id": "THY_PET_005",
+    "airline": "turkish_airlines",
+    "question": "What is the maximum weight limit for pets and carrier traveling in the aircraft hold?",
+    "category": "hold_pet_weight", 
+    "expected_keywords": ["50 kg", "carrier and pet together", "aircraft hold", "total weight"],
+    "expected_answer": "The total weight of the carrier and the pet together cannot exceed 50 kg."
+  },
+  {
+    "question_id": "THY_PET_006",
+    "airline": "turkish_airlines",
+    "question": "In which parts of the aircraft can pets be transported on Turkish Airlines?",
+    "category": "pet_transport_locations",
+    "expected_keywords": ["aircraft cabin", "aircraft cargo hold", "transported"],
+    "expected_answer": "These animals can also be transported in the aircraft cargo hold."
+  },
+  {
+    "question_id": "THY_PET_007",
+    "airline": "turkish_airlines", 
+    "question": "How can passengers calculate the pet carriage fee for Turkish Airlines flights?",
+    "category": "pet_fee_calculation",
+    "expected_keywords": ["calculate the fee", "before traveling", "pet carriage fee"],
+    "expected_answer": "Before traveling with your pet, you can calculate the fee here."
+  },
+  {
+    "question_id": "THY_EXT_001",
+    "airline": "turkish_airlines",
+    "question": "What is the extra baggage fee for Turkish Peace Force soldiers traveling to Turkish Republic of Northern Cyprus?",
+    "category": "northern_cyprus_military",
+    "expected_keywords": ["TRY 20", "1 KG", "Turkish Peace Force", "Turkish Republic of Northern Cyprus"],
+    "expected_answer": "The baggage fee on our Turkish Republic of Northern Cyprus flights is TRY 20 for every 1 KG for soldiers of the Turkish Peace Force serving in the Turkish Republic of Northern Cyprus."
+  },
+  {
+    "question_id": "THY_EXT_002", 
+    "airline": "turkish_airlines",
+    "question": "What is the extra baggage fee for students traveling to Turkish Republic of Northern Cyprus on student discount fare?",
+    "category": "northern_cyprus_student",
+    "expected_keywords": ["20 TRY per 1 kg", "student discount fare", "Turkish Republic of Northern Cyprus"],
+    "expected_answer": "For passengers travelling to the Turkish Republic of Northern Cyprus on the student discount fare, the extra baggage fee is determined as 20 TRY per 1 kg."
+  },
+  {
+    "question_id": "THY_EXT_003",
+    "airline": "turkish_airlines",
+    "question": "What determines the baggage rules on international flights operated jointly with another airline?",
+    "category": "joint_flights_msc",
+    "expected_keywords": ["Most Significant Carrier", "MSC", "IATA regulations", "longest segment"],
+    "expected_answer": "Baggage rules for international flights operated jointly with another airline are determined per regulations set by the IATA (International Air Transport Association). In line with IATA regulations, the rule of the Most Significant Carrier (MSC) applies. In general, the MSC is the airline flying the longest segment, but there may be exceptions."
+  },
+  {
+    "question_id": "THY_EXT_004",
+    "airline": "turkish_airlines", 
+    "question": "What is the definition of stopover flights and how do they affect baggage fees?",
+    "category": "stopover_flights",
+    "expected_keywords": ["24 hours or more", "connected flights", "additional charges", "stopover"],
+    "expected_answer": "Stopover; flights consisting of connected flights, with a waiting time of 24 hours or more between two connecting flights. For flights with stopovers, charges may be incurred in addition to the extra baggage fee."
+  },
+  {
+    "question_id": "THY_EXT_005",
+    "airline": "turkish_airlines",
+    "question": "What is the extra baggage fee for bags weighing between 23-32 kg on piece concept routes?",
+    "category": "piece_concept_overweight", 
+    "expected_keywords": ["80 USD", "23-32 kg", "piece concept routes", "per piece"],
+    "expected_answer": "On these routes, 80 USD will be charged per piece (apart from exceptional circumstances) for extra baggage weighing between 23-32 kg."
+  },
+  {
+    "question_id": "THY_EXT_006",
+    "airline": "turkish_airlines",
+    "question": "What is the absolute maximum weight limit for a single piece of baggage on Turkish Airlines?",
+    "category": "maximum_weight_limit",
+    "expected_keywords": ["32 KG", "single piece", "divided", "two or more pieces"],
+    "expected_answer": "Regardless of the weight and piece concept, a single piece of baggage cannot exceed 32 KG. Baggage that exceeds 32 KG must be divided and carried in two or more pieces."
+  },
+  {
+    "question_id": "THY_EXT_007",
+    "airline": "turkish_airlines", 
+    "question": "How many checked bags can passengers carry on flights arriving in Cameroon?",
+    "category": "cameroon_special_rule",
+    "expected_keywords": ["seven checked bags", "Cameroon Civil Aviation Authority", "flights arriving in Cameroon"],
+    "expected_answer": "As per the directive of the Cameroon Civil Aviation Authority, passengers may carry up to seven checked bags on flights arriving in Cameroon."
+  },
+  {
+    "question_id": "THY_RES_001",
+    "airline": "turkish_airlines",
+    "question": "What is the maximum amount of perfume or cologne allowed in cabin baggage on Turkish Airlines?",
+    "category": "liquid_restrictions_cabin",
+    "expected_keywords": ["100 ml", "perfumes", "colognes", "cabin", "maximum"],
+    "expected_answer": "A maximum of 100 ml is permitted in the cabin."
+  },
+  {
+    "question_id": "THY_RES_002", 
+    "airline": "turkish_airlines",
+    "question": "Can toy guns and gun-shaped lighters be carried in cabin baggage on Turkish Airlines flights?",
+    "category": "toy_weapons_restriction",
+    "expected_keywords": ["toy guns", "gun-shaped lighters", "checked baggage", "security units"],
+    "expected_answer": "Toy guns, gun-shaped lighters can be carried as checked baggage. If approved by the security units, it is loaded onto the aircraft by ground staff."
+  },
+  {
+    "question_id": "THY_RES_003",
+    "airline": "turkish_airlines",
+    "question": "What are the limits for spare lithium batteries carried in cabin baggage?",
+    "category": "lithium_battery_limits",
+    "expected_keywords": ["20 spare batteries", "2 g", "100 Wh", "lithium metal", "lithium ion"],
+    "expected_answer": "For lithium metal batteries, the lithium metal content must not exceed 2 g and for lithium ion batteries, the Watt-hour rating must not exceed 100 Wh. Each person is limited to a maximum of 20 spare batteries."
+  },
+  {
+    "question_id": "THY_RES_004",
+    "airline": "turkish_airlines", 
+    "question": "How much dry ice can a passenger carry on Turkish Airlines flights?",
+    "category": "dry_ice_limit",
+    "expected_keywords": ["2.5 kg", "dry ice", "per passenger", "maximum"],
+    "expected_answer": "A maximum of 2.5 kg per passenger may be carried."
+  },
+  {
+    "question_id": "THY_RES_005",
+    "airline": "turkish_airlines",
+    "question": "Are hoverboards and Segways allowed on Turkish Airlines flights?",
+    "category": "personal_vehicles_prohibition", 
+    "expected_keywords": ["Hoverboards", "Segways", "not permitted", "lithium-ion battery"],
+    "expected_answer": "Hoverboards, Segways, Airwheels, Solowheels, Balance Wheels, electric/rechargeable bicycles, and similar lithium-ion battery-powered portable personal vehicles, as well as lithium battery-powered rideable baggage, are not permitted on the aircraft."
+  },
+  {
+    "question_id": "THY_RES_006",
+    "airline": "turkish_airlines",
+    "question": "What is the maximum amount of water that can be carried in checked baggage?",
+    "category": "water_checked_baggage_limit",
+    "expected_keywords": ["five (5) liters", "one (1) liter", "vacuum-sealed", "checked baggage"],
+    "expected_answer": "Water, which does not contain additives and is in a single package in checked baggage, can be transported in vacuum-sealed, leak-proof packages of one (1) liter each, up to a total of five (5) liters."
+  },
+  {
+    "question_id": "THY_RES_007",
+    "airline": "turkish_airlines", 
+    "question": "How should smart baggage with lithium batteries be transported in the cabin?",
+    "category": "smart_baggage_cabin",
+    "expected_keywords": ["lithium battery", "detached", "cabin baggage", "cannot be reinserted"],
+    "expected_answer": "The lithium battery has to be detached from the smart baggage, carried as cabin baggage and cannot be reinserted until the destination is reached."
+  },
+  {
+    "question_id": "THY_RES_008",
+    "airline": "turkish_airlines",
+    "question": "What is the maximum number of pointed objects that can be carried as checked baggage?",
+    "category": "pointed_objects_limit",
+    "expected_keywords": ["2 per passenger", "pointed objects", "pocket knives", "checked baggage"],
+    "expected_answer": "A maximum of 2 per passenger may be carried."
+  }
+]
+  
