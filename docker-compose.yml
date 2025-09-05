@@ -1,8 +1,5 @@
-# docker-compose.yml - ENHANCED VERSION
-# Improved dependencies and health checks
-
+# docker-compose.yml - FIXED VERSION
 services:
-  # 1. Database (ilk başlar)
   db:
     image: pgvector/pgvector:pg15
     container_name: global-gate-db
@@ -17,14 +14,14 @@ services:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_DATABASE:-global_gate}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 40s
     networks:
       - turkish_airlines_net
+    restart: unless-stopped
 
-  # 2. Data Scraper (ikinci çalışır, işini bitirir, kapanır)
   scraper:
     build:
       context: .
@@ -34,16 +31,16 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DB_HOST=db
-      - DB_DATABASE=${DB_DATABASE:-global_gate}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-qeqe}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-global_gate}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-qeqe}
     command: python scraper_only.py
-    restart: "no"  # Bir kez çalışır, kapanır
+    restart: "no"
     networks:
       - turkish_airlines_net
 
-  # 3. FastAPI Backend (üçüncü başlar)
   api:
     build:
       context: .
@@ -55,11 +52,17 @@ services:
       scraper:
         condition: service_completed_successfully
     environment:
-      - DB_HOST=db
-      - DB_DATABASE=${DB_DATABASE:-global_gate}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-qeqe}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-global_gate}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-qeqe}
+      DB_MIN_POOL_SIZE: 5
+      DB_MAX_POOL_SIZE: 20
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app
     ports:
       - "8000:8000"
     command: uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
@@ -68,41 +71,108 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s  # More time for model loading
+      start_period: 660s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     networks:
       - turkish_airlines_net
 
-  # 4. Streamlit Frontend (en son başlar)
   frontend:
     build:
       context: .
       dockerfile: docker/Dockerfile.streamlit
     container_name: global-gate-frontend
     depends_on:
-      api:
-        condition: service_healthy
+      - api
     environment:
-      - DEFAULT_API_URL=http://api:8000
-      - STREAMLIT_SERVER_HEADLESS=true
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      DEFAULT_API_URL: http://api:8000
+      STREAMLIT_SERVER_HEADLESS: true
+      STREAMLIT_SERVER_PORT: 8501
+      STREAMLIT_SERVER_ADDRESS: 0.0.0.0
     ports:
       - "8501:8501"
     command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     restart: unless-stopped
     networks:
       - turkish_airlines_net
 
+  # Node Exporter - System Metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: global-gate-node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
+    networks:
+      - turkish_airlines_net
+    restart: unless-stopped
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: global-gate-prometheus
+    depends_on:
+      - api
+      - node-exporter
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      - turkish_airlines_net
+    restart: unless-stopped
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: global-gate-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - turkish_airlines_net
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   turkish_airlines_net:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16

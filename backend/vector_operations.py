@@ -21,7 +21,7 @@ class VectorOperations:
             # Get policies without embeddings
             unembedded = await conn.fetch("""
                 SELECT id, content 
-                FROM baggage_policies 
+                FROM policy
                 WHERE embedding IS NULL
                 ORDER BY id
             """)
@@ -44,7 +44,7 @@ class VectorOperations:
                 # Update database
                 for j, (row, embedding) in enumerate(zip(batch, embeddings)):
                     await conn.execute("""
-                        UPDATE baggage_policies 
+                        UPDATE policy 
                         SET embedding = $1::vector
                         WHERE id = $2
                     """, "[" + ",".join(map(str, embedding.tolist())) + "]", row['id'])
@@ -72,7 +72,7 @@ class VectorOperations:
             SELECT 
                 id, source, content, quality_score, created_at,
                 1 - (embedding <=> $1::vector) as similarity_score
-            FROM baggage_policies 
+            FROM policy
             WHERE embedding IS NOT NULL
         """
         params = ["[" + ",".join(map(str, query_embedding.tolist())) + "]"]
@@ -115,7 +115,7 @@ class VectorOperations:
                     ROUND(
                         (COUNT(embedding)::float / COUNT(*) * 100)::numeric, 2
                     ) as embedding_coverage_percent
-                FROM baggage_policies
+                FROM policy
             """)
             
             return dict(stats)

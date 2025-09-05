@@ -1,6 +1,7 @@
 """
-airline_configs.py - Centralized airline configurations
-Bu dosya tüm airline'ların scraping konfigürasyonlarını içerir
+airline_configs.py - Hybrid Configuration
+THY: Page-specific selectors
+Pegasus: Parsing strategies (sophisticated logic korunuyor)
 """
 
 # Base configuration template
@@ -13,65 +14,216 @@ BASE_CONFIG = {
     'retry_attempts': 3
 }
 
-# Turkish Airlines Configuration
+# Turkish Airlines Configuration - PAGE-SPECIFIC SELECTORS
 TURKISH_AIRLINES_CONFIG = {
     **BASE_CONFIG,
     'airline_id': 'turkish_airlines',
     'airline_name': 'Turkish Airlines',
     'base_url': 'https://www.turkishairlines.com',
     'pages': {
+        # Main pages with page-specific selectors
         'checked_baggage': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/checked-baggage/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': ['#page_wrapper .container .row li']
         },
         'carry_on_baggage': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/carry-on-baggage/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': [
+                '#page_wrapper div[style*="text-align: justify; font-size: 14pt;"]',
+                '#page_wrapper .col-xs-height.col-middle',
+                '#page_wrapper .container .row li'
+            ]
         },
         'sports_equipment': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': ['#page_wrapper .container .row li']
         },
         'musical_instruments': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/musical-instruments/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': [
+                '#page_wrapper .container .row .col-md-9 p',
+                '#page_wrapper .container .row li'
+            ]
         },
         'pets': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': ['#tcm508-364188 .row p']
         },
         'excess_baggage': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/excess-baggage/',
-            'parsing_strategy': 'thy_standard'
+            'selectors': [
+                '#page_wrapper .container .row li',
+                '#tcm508-275552 .container .row .col-md-12 .row .col-md-6 div'
+            ]
         },
         'restrictions': {
             'url': 'https://www.turkishairlines.com/en-int/any-questions/restrictions/',
-            'parsing_strategy': 'thy_standard'
-        }
-    },
-    'parsing_strategies': {
-        'thy_standard': {
-            'selectors': {
-                'content_containers': [
-                    '#page_wrapper .container .row li',
-                    '#page_wrapper .container h2, #page_wrapper .container h3, #page_wrapper .container p',
-                    '#page_wrapper table'
-                ],
-                'main_content': '#page_wrapper .container',
-                'tables': '#page_wrapper table'
-            },
-            'filters': {
-                'min_text_length': 10,
-                'exclude_keywords': [
-                    'home', 'menu', 'search', 'login', 'contact', 
-                    'about', 'services', 'help', 'support', 'more information'
-                ]
-            }
+            'selectors': ['#page_wrapper table']
+        },
+        
+        # Sports equipment detailed pages
+        'sports_bicycle': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/bicycle/',
+            'selectors': [
+                '#page_wrapper .container .row li',
+                '#tcm508-361154 .middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height p'
+            ]
+        },
+        'sports_mountaineering': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/mountaineering/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_golf': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/golf/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li',
+                '#tcm508-365094 .middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height'
+            ]
+        },
+        'sports_canoeing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/canoeing/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_skiing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/skiing-snowboard/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_archery': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/archery/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_parachuting': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/parachuting-paragliding/',
+            'selectors': ['#page_wrapper .container .row li']
+        },
+        'sports_rafting': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/rafting-inflatable-boat/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_surfing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/surfing/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li',
+                '.middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height'
+            ]
+        },
+        'sports_windsurfing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/windsurfing/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li',
+                '.middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height'
+            ]
+        },
+        'sports_water_skiing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/water-skiing/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_diving': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/diving/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li',
+                '.middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height'
+            ]
+        },
+        'sports_hockey': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/hockey-lacrosse/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_bowling': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/bowling/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_tenting': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/tenting/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_fishing': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/fishing/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        'sports_hunting': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/sports-equipment/hunting/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
+        },
+        
+        # Pets detailed pages  
+        'pets_cargo': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/transport-in-the-cargo-compartment/',
+            'selectors': [
+                '#page_wrapper .container .row li',
+                '.middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height'
+            ]
+        },
+        'pets_country_rules': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/country-based-situations/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li',
+                '.middle-wrapper .container .row .col-12 .card-body .dflex .col-xs-height',
+                '#tcm508-364158 .container .row div .TypographyPresentation'
+            ]
+        },
+        'pets_terms': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/all-terms-and-conditions/',
+            'selectors': ['#page_wrapper .container .row li']
+        },
+        'pets_onboard': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/pets-allowed-on-board/',
+            'selectors': ['#page_wrapper .container .row li']
+        },
+        'pets_service_animals': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/service-animals/',
+            'selectors': ['#page_wrapper .container .row li']
+        },
+        'pets_cabin': {
+            'url': 'https://www.turkishairlines.com/en-int/any-questions/traveling-with-pets/transport-in-the-cabin/',
+            'selectors': [
+                '#page_wrapper .container .row p',
+                '#page_wrapper .container .row li'
+            ]
         }
     }
+    # THY'de parsing_strategies yok - sadece page-specific selectors
 }
 
-# Pegasus Airlines Configuration - COMPLETE & FIXED
+# Pegasus Airlines Configuration - PARSING STRATEGIES (SOPHISTICATED LOGIC KORUNUYOR)
 PEGASUS_CONFIG = {
     **BASE_CONFIG,
     'airline_id': 'pegasus',
@@ -88,7 +240,7 @@ PEGASUS_CONFIG = {
         },
         'extra_services_pricing': {
             'url': 'https://www.flypgs.com/en/useful-info/other-info/extra-services-price-table',
-            'parsing_strategy': 'pegasus_price_table'
+            'parsing_strategy': 'pegasus_cms_content'
         },
         'travelling_with_pets': {
             'url': 'https://www.flypgs.com/en/travelling-with-pets',
@@ -228,31 +380,6 @@ PEGASUS_CONFIG = {
                 'content_indicators': ['pet', 'animal', 'dog', 'cat', 'travel', 'cabin', 'cargo'],
                 'extract_strong_as_headers': True  # Strong elements treated as section headers
             }
-        },
-        
-        'pegasus_universal': {
-            'selectors': {
-                # Try both versions
-                'faq_items': '.n-faq-acc__item, .faq-acc__item',
-                'faq_headers': '.n-faq-acc__header, .faq-acc__header',
-                'faq_content': '.n-faq-acc__content, .faq-acc__content',
-                
-                'content_containers': [
-                    '.main-wrapper p',
-                    '.main-wrapper li',
-                    '.main-wrapper h2, .main-wrapper h3',
-                    '.main-wrapper table'
-                ],
-                'main_content': '.main-wrapper, .container',
-                'tables': '.main-wrapper table'
-            },
-            'filters': {
-                'min_text_length': 15,
-                'exclude_keywords': [
-                    'anasayfa', 'menü', 'arama', 'giriş', 'iletişim', 
-                    'hakkında', 'hizmetler', 'yardım', 'destek'
-                ]
-            }
         }
     }
 }
@@ -283,18 +410,26 @@ def validate_airline_config(airline_id: str):
     if not config:
         return False, f"Airline {airline_id} not found"
     
-    required_fields = ['airline_id', 'airline_name', 'base_url', 'pages', 'parsing_strategies']
+    required_fields = ['airline_id', 'airline_name', 'base_url', 'pages']
     for field in required_fields:
         if field not in config:
             return False, f"Missing required field: {field}"
     
-    # Check if all pages have valid strategies
+    # Check pages have either selectors or parsing_strategy
     for page_name, page_config in config['pages'].items():
-        strategy_name = page_config.get('parsing_strategy')
-        if strategy_name not in config['parsing_strategies']:
-            return False, f"Page '{page_name}' references undefined strategy '{strategy_name}'"
+        has_selectors = 'selectors' in page_config
+        has_strategy = 'parsing_strategy' in page_config
+        
+        if not has_selectors and not has_strategy:
+            return False, f"Page '{page_name}' has neither selectors nor parsing_strategy"
+        
+        # If has parsing_strategy, check if it exists
+        if has_strategy:
+            strategy_name = page_config['parsing_strategy']
+            if 'parsing_strategies' not in config or strategy_name not in config['parsing_strategies']:
+                return False, f"Page '{page_name}' references undefined strategy '{strategy_name}'"
     
-    return True, "Valid configuration"
+    return True, "Valid hybrid configuration"
 
 def get_airline_summary():
     """Get summary of all configured airlines"""
@@ -302,19 +437,31 @@ def get_airline_summary():
     
     for airline_id in get_all_airlines():
         config = get_airline_config(airline_id)
+        
+        # Count page types
+        page_specific_count = 0
+        strategy_count = 0
+        
+        for page_config in config['pages'].values():
+            if 'selectors' in page_config:
+                page_specific_count += 1
+            elif 'parsing_strategy' in page_config:
+                strategy_count += 1
+        
         summary[airline_id] = {
             'name': config['airline_name'],
             'base_url': config['base_url'],
             'total_pages': len(config['pages']),
-            'pages': list(config['pages'].keys()),
-            'strategies': list(config['parsing_strategies'].keys())
+            'page_specific_selectors': page_specific_count,
+            'parsing_strategies': strategy_count,
+            'strategy_names': list(config.get('parsing_strategies', {}).keys())
         }
     
     return summary
 
 # Usage example and testing
 if __name__ == "__main__":
-    print("🔍 AIRLINE CONFIGURATIONS TEST")
+    print("🔍 HYBRID AIRLINE CONFIGURATIONS TEST")
     print("=" * 50)
     
     # Test all configurations
@@ -326,14 +473,20 @@ if __name__ == "__main__":
         if valid:
             config = get_airline_config(airline_id)
             print(f"   📄 Pages: {list(config['pages'].keys())}")
-            print(f"   🎯 Strategies: {list(config['parsing_strategies'].keys())}")
+            if 'parsing_strategies' in config:
+                print(f"   🎯 Strategies: {list(config['parsing_strategies'].keys())}")
+            else:
+                print(f"   🎯 Uses: Page-specific selectors only")
         print()
     
     # Summary
     summary = get_airline_summary()
-    print(f"📊 SUMMARY:")
+    print(f"📊 HYBRID SUMMARY:")
     print(f"   Total Airlines: {len(summary)}")
     for airline_id, info in summary.items():
-        print(f"   - {info['name']}: {info['total_pages']} pages")
+        print(f"   - {info['name']}:")
+        print(f"     • Total pages: {info['total_pages']}")
+        print(f"     • Page-specific: {info['page_specific_selectors']}")
+        print(f"     • Strategy-based: {info['parsing_strategies']}")
     
-    print("\n🎉 Configuration test completed!")
+    print("\n🎉 Hybrid configuration test completed!")

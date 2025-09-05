@@ -19,9 +19,9 @@ class ClaudeService:
         else:
             try:
                 self.client = anthropic.Anthropic(api_key=api_key)
-                logger.info("✅ Claude service initialized successfully")
+                logger.info("âœ… Claude service initialized successfully")
             except Exception as e:
-                logger.error(f"❌ Claude initialization failed: {e}")
+                logger.error(f"âŒ Claude initialization failed: {e}")
                 self.client = None
         
         # Configuration
@@ -88,7 +88,7 @@ class ClaudeService:
             
             # Create system prompt
             system_prompt = """You are a helpful airlines customer service assistant. 
-                               Answer questions about baggage policies clearly and accurately based on the provided context.
+                               Answer questions about policies clearly and accurately based on the provided context.
                                If no relevant context is provided, politely indicate that you don't have specific policy information."""
             
             # Create user prompt with context
@@ -127,7 +127,7 @@ class ClaudeService:
             }
             
         except Exception as e:
-            logger.error(f"❌ Claude RAG generation error: {e}")
+            logger.error(f"âŒ Claude RAG generation error: {e}")
             return {
                 "success": False,
                 "error": str(e),

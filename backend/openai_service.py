@@ -8,7 +8,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class OpenAIService:
-    """OpenAI service for RAG responses"""
+    """OpenAI service for RAG responses - FIXED VERSION"""
     
     def __init__(self):
         """Initialize OpenAI client"""
@@ -19,15 +19,15 @@ class OpenAIService:
         else:
             try:
                 self.client = openai.OpenAI(api_key=api_key)
-                logger.info("✅ OpenAI service initialized successfully")
+                logger.info("âœ… OpenAI service initialized successfully")
             except Exception as e:
-                logger.error(f"❌ OpenAI initialization failed: {e}")
+                logger.error(f"âŒ OpenAI initialization failed: {e}")
                 self.client = None
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
         self.max_tokens = 400
-        self.temperature = 0.2
+        self.temperature = 0.7
 
     def test_connection(self) -> Dict:
         """Test OpenAI API connection"""
@@ -77,9 +77,9 @@ class OpenAIService:
                 context_parts = []
                 for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
                     context_parts.append(f"""
-                    Document {i} (Source: {doc.get('source', 'Unknown')}):
-                    {doc.get('content', '')[:500]}...
-                    """)
+                                            Document {i} (Source: {doc.get('source', 'Unknown')}):
+                                            {doc.get('content', '')[:500]}...
+                                            """)
                 context = "\n".join(context_parts)
                 context_used = True
             else:
@@ -88,15 +88,17 @@ class OpenAIService:
             
             # Create system prompt
             system_prompt = """You are a helpful airlines customer service assistant. 
-                               Answer questions about baggage policies clearly and accurately based on the provided context.
-                               If no relevant context is provided, politely indicate that you don't have specific policy information."""
+                                Answer questions about policies clearly and accurately based on the provided context.
+                                If no relevant context is provided, politely indicate that you don't have specific policy information."""
             
             # Create user prompt
             user_prompt = f"""Context from airlines policies:
-                              {context}
-                              Customer Question: {question}
-                              Please provide a helpful and accurate answer based on the context above."""
-            
+                            {context}
+
+                            Customer Question: {question}
+
+                            Please provide a helpful and accurate answer based on the context above."""
+                                        
             # Generate response
             response = self.client.chat.completions.create(
                 model=model_to_use,
@@ -125,7 +127,7 @@ class OpenAIService:
             }
             
         except Exception as e:
-            logger.error(f"❌ OpenAI RAG generation error: {e}")
+            logger.error(f"âŒ OpenAI RAG generation error: {e}")
             return {
                 "success": False,
                 "error": str(e),
@@ -138,12 +140,12 @@ class OpenAIService:
     def _estimate_cost(self, usage, model: str) -> float:
         """Estimate cost based on token usage"""
         
-        # Pricing per 1K tokens
+        # Pricing per 1K tokens (as of 2024)
         pricing = {
-            "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},
+            "gpt-3.5-turbo": {"input": 0.001, "output": 0.002},
             "gpt-4": {"input": 0.03, "output": 0.06},
-            "gpt-4-turbo": {"input": 0.01, "output": 0.03}, 
-            "gpt-4o-mini": {"input": 0.00015, "output": 0.0003} 
+            "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+            "gpt-4o-mini": {"input": 0.00015, "output": 0.0006}
         }
         
         if model not in pricing:

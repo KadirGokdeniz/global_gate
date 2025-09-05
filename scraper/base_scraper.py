@@ -1,6 +1,7 @@
 """
-base_scraper.py - Generic scraper for all airlines
-Mevcut web_scraper.py logic'ini airline-agnostic hale getirir
+base_scraper.py - Hybrid scraper for all airlines
+THY: Page-specific selectors
+Pegasus: Parsing strategies (sophisticated logic)
 """
 
 from bs4 import BeautifulSoup
@@ -18,7 +19,7 @@ from airline_configs import get_airline_config, get_all_airlines
 
 logger = logging.getLogger(__name__)
 
-# PostgreSQL Configuration (mevcut ile aynı)
+# PostgreSQL Configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'db'),
     'database': os.getenv('DB_DATABASE', 'global_gate'),
@@ -27,7 +28,7 @@ DB_CONFIG = {
 }
 
 class MultiAirlineScraper:
-    """Generic scraper for multiple airlines"""
+    """Hybrid scraper: THY page-specific selectors, Pegasus parsing strategies"""
     
     def __init__(self):
         self.connection = None
@@ -46,7 +47,7 @@ class MultiAirlineScraper:
             return None
     
     def setup_database(self):
-        """Database ve tabloları oluştur - Updated for multi-airline"""
+        """Database ve tabloları oluştur"""
         conn = self.get_db_connection()
         if not conn:
             logger.error("❌ Database bağlantısı kurulamadı")
@@ -55,12 +56,10 @@ class MultiAirlineScraper:
         try:
             cursor = conn.cursor()
             
-            # init.sql'deki schema zaten mevcut olmalı
-            # Sadece kontrol edelim
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
-                WHERE table_name = 'baggage_policies'
+                WHERE table_name = 'policy'
             """)
             
             columns = [row[0] for row in cursor.fetchall()]
@@ -79,7 +78,13 @@ class MultiAirlineScraper:
             return False
     
     def scrape_page(self, airline_id: str, page_name: str, page_config: dict) -> List[Dict]:
-        """Generic page scraping - airline config'e göre"""
+        """Hybrid page scraping - page-specific selectors OR parsing strategy"""
+        
+        print(f"DEBUG: Page config keys: {page_config.keys()}")
+        if 'selectors' in page_config:
+            print(f"DEBUG: Using page-specific selectors: {len(page_config['selectors'])}")
+        elif 'parsing_strategy' in page_config:
+            print(f"DEBUG: Using parsing strategy: {page_config['parsing_strategy']}")
         
         config = get_airline_config(airline_id)
         if not config:
@@ -87,9 +92,6 @@ class MultiAirlineScraper:
             return []
         
         url = page_config['url']
-        strategy_name = page_config['parsing_strategy']
-        strategy = config['parsing_strategies'][strategy_name]
-        
         logger.info(f"📡 {airline_id} - {page_name} scraping: {url}")
         
         try:
@@ -105,12 +107,34 @@ class MultiAirlineScraper:
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
-            scraped_data = []
             
-            # Apply parsing strategy
-            scraped_data = self._apply_parsing_strategy(
-                soup, airline_id, page_name, url, strategy
-            )
+            # HYBRID APPROACH: Route to appropriate parsing method
+            if 'selectors' in page_config:
+                # THY approach - page-specific selectors
+                custom_strategy = {
+                    'selectors': {
+                        'content_containers': page_config['selectors']
+                    },
+                    'filters': page_config.get('filters', {
+                        'min_text_length': 15,
+                        'exclude_keywords': ['menu', 'home', 'target here', 'search', 'login', 'contact']
+                    })
+                }
+                scraped_data = self._apply_page_specific_parsing(
+                    soup, airline_id, page_name, url, custom_strategy
+                )
+            
+            elif 'parsing_strategy' in page_config:
+                # Pegasus approach - sophisticated parsing strategies
+                strategy_name = page_config['parsing_strategy']
+                strategy = config['parsing_strategies'][strategy_name]
+                scraped_data = self._apply_strategy_parsing(
+                    soup, airline_id, page_name, url, strategy
+                )
+            
+            else:
+                logger.error(f"❌ {page_name}: Ne selectors ne de parsing_strategy var!")
+                return []
             
             logger.info(f"  ✅ {len(scraped_data)} item çekildi")
             return scraped_data
@@ -122,87 +146,40 @@ class MultiAirlineScraper:
             logger.error(f"  ❌ Parsing error: {e}")
             return []
     
-    def _apply_parsing_strategy(self, soup: BeautifulSoup, airline_id: str, 
-                              page_name: str, url: str, strategy: dict) -> List[Dict]:
-        """Apply specific parsing strategy with fallbacks"""
+    def _apply_page_specific_parsing(self, soup: BeautifulSoup, airline_id: str, 
+                          page_name: str, url: str, strategy: dict) -> List[Dict]:
+        """Simple page-specific selector parsing (THY style)"""
         
         selectors = strategy['selectors']
         filters = strategy['filters']
         scraped_data = []
         
-        # PEGASUS SPECIAL: CMS Content parsing (pets page style)
-        if 'paragraphs' in selectors and 'strong_elements' in selectors:
-            logger.info(f"  └── CMS Content parsing strategy (Pegasus - {page_name})")
-            cms_data = self._parse_cms_content(
-                soup, airline_id, page_name, url, selectors, filters
-            )
-            if cms_data:
-                scraped_data.extend(cms_data)
-                return scraped_data
+        logger.info(f"DEBUG: Page-specific parsing with {len(selectors.get('content_containers', []))} selectors")
         
-        # PEGASUS SPECIAL: Price table parsing
-        if 'service_titles' in selectors and 'table_rows' in selectors:
-            logger.info(f"  └── Price table parsing strategy (Pegasus)")
-            price_table_data = self._parse_price_table_content(
-                soup, airline_id, page_name, url, selectors, filters
-            )
-            if price_table_data:
-                scraped_data.extend(price_table_data)
-                return scraped_data
-        
-        # PEGASUS SPECIAL: Accordion-based parsing with multiple style support
-        if 'faq_items' in selectors:
-            logger.info(f"  └── Accordion parsing strategy (Pegasus - {page_name})")
-            accordion_data = self._parse_accordion_content(
-                soup, airline_id, page_name, url, selectors, filters
-            )
-            if accordion_data:
-                scraped_data.extend(accordion_data)
-                return scraped_data
-            else:
-                logger.warning(f"  ⚠️ Accordion parsing failed, trying fallback...")
-        
-        # Strategy 1: List-based content (THY style)
+        # Process ALL content_containers selectors
         list_selectors = selectors.get('content_containers', [])
         if isinstance(list_selectors, list) and list_selectors:
-            list_selector = list_selectors[0]  # İlk selector'ı dene
-            elements = soup.select(list_selector)
             
-            if elements:
-                logger.info(f"  └── Liste yapısı: {len(elements)} element bulundu")
-                for element in elements:
-                    text = element.get_text(strip=True)
-                    if self._is_valid_content(text, filters):
-                        scraped_data.append({
-                            'airline': airline_id,
-                            'source': page_name,
-                            'content': text,
-                            'url': url,
-                            'type': 'list_item'
-                        })
+            for selector_idx, list_selector in enumerate(list_selectors):
+                elements = soup.select(list_selector)
+                
+                if elements:
+                    logger.info(f"  └── Selector {selector_idx} ({list_selector}): {len(elements)} element bulundu")
+                    for element in elements:
+                        text = element.get_text(strip=True)
+                        if self._is_valid_content(text, filters):
+                            scraped_data.append({
+                                'airline': airline_id,
+                                'source': page_name,
+                                'content': text,
+                                'url': url,
+                                'type': f'page_specific_{selector_idx}'
+                            })
+                else:
+                    logger.info(f"  └── Selector {selector_idx} ({list_selector}): 0 element bulundu")
         
-        # Strategy 2: Header-paragraph content (fallback)
-        if not scraped_data and len(list_selectors) > 1:
-            header_selector = list_selectors[1]
-            elements = soup.select(header_selector)
-            
-            if elements:
-                logger.info(f"  └── Header-paragraph yapısı: {len(elements)} element bulundu")
-                for element in elements:
-                    text = element.get_text(strip=True)
-                    if self._is_valid_content(text, filters):
-                        scraped_data.append({
-                            'airline': airline_id,
-                            'source': page_name,
-                            'content': text,
-                            'url': url,
-                            'type': f'header_{element.name}' if hasattr(element, 'name') else 'content'
-                        })
-        
-        # Strategy 3: Table-based content
-        table_selector = selectors.get('tables', 'table')
-        tables = soup.select(table_selector)
-        
+        # Table extraction
+        tables = soup.select('table')
         if tables:
             logger.info(f"  └── Tablo yapısı: {len(tables)} table bulundu")
             for table_idx, table in enumerate(tables):
@@ -211,6 +188,69 @@ class MultiAirlineScraper:
                 )
                 scraped_data.extend(table_data)
         
+        logger.info(f"  └── PAGE-SPECIFIC TOTAL: {len(scraped_data)} item")
+        return scraped_data
+    
+    def _apply_strategy_parsing(self, soup: BeautifulSoup, airline_id: str, 
+                          page_name: str, url: str, strategy: dict) -> List[Dict]:
+        """Sophisticated parsing strategy (Pegasus style)"""
+        
+        selectors = strategy['selectors']
+        filters = strategy['filters']
+        scraped_data = []
+        
+        logger.info(f"DEBUG: Strategy parsing for sophisticated extraction")
+        
+        # PEGASUS SPECIAL: CMS Content parsing (pets page style)
+        if 'paragraphs' in selectors and 'strong_elements' in selectors:
+            logger.info(f"  └── CMS Content parsing strategy")
+            cms_data = self._parse_cms_content(
+                soup, airline_id, page_name, url, selectors, filters
+            )
+            if cms_data:
+                scraped_data.extend(cms_data)
+        
+        # PEGASUS SPECIAL: Price table parsing
+        if 'service_titles' in selectors and 'table_rows' in selectors:
+            logger.info(f"  └── Price table parsing strategy")
+            price_table_data = self._parse_price_table_content(
+                soup, airline_id, page_name, url, selectors, filters
+            )
+            if price_table_data:
+                scraped_data.extend(price_table_data)
+        
+        # PEGASUS SPECIAL: Accordion-based parsing
+        if 'faq_items' in selectors:
+            logger.info(f"  └── Accordion parsing strategy")
+            accordion_data = self._parse_accordion_content(
+                soup, airline_id, page_name, url, selectors, filters
+            )
+            if accordion_data:
+                scraped_data.extend(accordion_data)
+        
+        # Fallback: Basic content extraction
+        if not scraped_data:
+            logger.info(f"  └── Fallback: Basic content extraction")
+            list_selectors = selectors.get('content_containers', [])
+            if isinstance(list_selectors, list) and list_selectors:
+                
+                for selector_idx, list_selector in enumerate(list_selectors):
+                    elements = soup.select(list_selector)
+                    
+                    if elements:
+                        logger.info(f"    └── Fallback selector {selector_idx}: {len(elements)} element")
+                        for element in elements:
+                            text = element.get_text(strip=True)
+                            if self._is_valid_content(text, filters):
+                                scraped_data.append({
+                                    'airline': airline_id,
+                                    'source': page_name,
+                                    'content': text,
+                                    'url': url,
+                                    'type': f'fallback_{selector_idx}'
+                                })
+        
+        logger.info(f"  └── STRATEGY TOTAL: {len(scraped_data)} item")
         return scraped_data
     
     def _parse_cms_content(self, soup: BeautifulSoup, airline_id: str, 
@@ -611,7 +651,6 @@ class MultiAirlineScraper:
                 'faq_headers': '.faq-acc__header',
                 'faq_content': '.faq-acc__content'
             })
-        # Add more patterns as needed
         
         return new_selectors
     
@@ -715,7 +754,7 @@ class MultiAirlineScraper:
     
     def _extract_table_data(self, table, airline_id: str, page_name: str, 
                            url: str, table_idx: int) -> List[Dict]:
-        """Extract table data with context - mevcut logic ile aynı"""
+        """Extract table data with context"""
         
         table_data = []
         rows = table.find_all('tr')
@@ -760,7 +799,7 @@ class MultiAirlineScraper:
         return table_data
     
     def calculate_quality_score(self, item: dict) -> float:
-        """Enhanced quality score calculation - Q&A, Price Table and CMS Content aware"""
+        """Enhanced quality score calculation"""
         content = item['content']
         item_type = item.get('type', 'unknown')
         score = len(content) * 0.01  # Base length bonus
@@ -792,12 +831,6 @@ class MultiAirlineScraper:
         if item_type == 'cms_header':
             score += 0.6  # Good value for topic headers
         
-        if item_type in ['cms_paragraph', 'cms_section_content']:
-            score += 0.5  # Standard content value
-        
-        if item_type == 'cms_list_item':
-            score += 0.4  # List items
-        
         # Structured content bonuses
         if '|' in content: score += 0.5      # Structured content
         if ':' in content: score += 0.3      # Key-value pairs
@@ -809,22 +842,6 @@ class MultiAirlineScraper:
         # Language quality indicators
         if re.search(r'\b(allowed|prohibited|maximum|minimum|limit|fee|cost|price|service|section)\b', content.lower()): 
             score += 0.4  # Policy-relevant keywords
-        
-        # Price/service specific indicators
-        if re.search(r'\b(domestic|international|kktc|flight|extra|additional)\b', content.lower()):
-            score += 0.4  # Service type keywords
-        
-        # Pet-specific content indicators
-        if re.search(r'\b(pet|animal|dog|cat|cabin|cargo|travel|transport)\b', content.lower()):
-            score += 0.5  # Pet travel content
-        
-        # Accordion-specific bonuses
-        if '•' in content: score += 0.3  # List formatting
-        if '##' in content: score += 0.2  # Sub-headers
-        
-        # Baggage/travel content indicators
-        if re.search(r'\b(baggage|luggage|carry-on|checked|excess|sports|instrument|seat|meal)\b', content.lower()):
-            score += 0.5  # Travel-related content
         
         # Quality penalties
         if len(content) < 15: score *= 0.5  # Very short content penalty
@@ -846,7 +863,7 @@ class MultiAirlineScraper:
     def remove_duplicates(self, data_list: List[Dict]) -> List[Dict]:
         """Enhanced duplicate removal - airline aware"""
         
-        logger.info(f"\n🧠 MULTI-AIRLINE DUPLICATE REMOVAL")
+        logger.info(f"\n🧹 MULTI-AIRLINE DUPLICATE REMOVAL")
         logger.info("=" * 50)
         
         if not data_list:
@@ -863,7 +880,7 @@ class MultiAirlineScraper:
             item['quality_score'] = self.calculate_quality_score(item)
             item['content_hash'] = content_hash
             
-            # Key: airline + content_hash (aynı content farklı airline'da olabilir)
+            # Key: airline + content_hash
             key = f"{item['airline']}:{content_hash}"
             
             if key not in hash_groups:
@@ -896,7 +913,7 @@ class MultiAirlineScraper:
         return unique_data
     
     def save_policies_to_database(self, policies: List[Dict]) -> int:
-        """Save policies to database - updated for airline field"""
+        """Save policies to database"""
         
         conn = self.get_db_connection()
         if not conn:
@@ -906,9 +923,8 @@ class MultiAirlineScraper:
             cursor = conn.cursor()
             saved_count = 0
             
-            # Updated SQL with CORRECT constraint name
             insert_sql = """
-                INSERT INTO baggage_policies 
+                INSERT INTO policy 
                 (airline, source, content, content_hash, quality_score, extraction_type, url, metadata)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (airline, source, content_hash) 
@@ -921,7 +937,7 @@ class MultiAirlineScraper:
             for policy in policies:
                 try:
                     cursor.execute(insert_sql, (
-                        policy['airline'],  # NEW field
+                        policy['airline'],
                         policy['source'],
                         policy['content'],
                         policy['content_hash'],
@@ -937,9 +953,8 @@ class MultiAirlineScraper:
                         
                 except Exception as e:
                     logger.error(f"  ⚠️ Policy kaydetme hatası: {e}")
-                    # Rollback current transaction and start fresh
                     conn.rollback()
-                    break  # Stop on first error to prevent cascade failures
+                    break
             
             conn.commit()
             cursor.close()
@@ -1008,7 +1023,7 @@ class MultiAirlineScraper:
         airlines = get_all_airlines()
         results = {}
         
-        logger.info(f"\n🌍 TÜM HAVAYOLLARI SCRAPING BAŞLANIYOR")
+        logger.info(f"\n🌍 HYBRID AIRLINE SCRAPING BAŞLANIYOR")
         logger.info(f"📋 Airline sayısı: {len(airlines)}")
         logger.info("=" * 70)
         
@@ -1030,7 +1045,7 @@ class MultiAirlineScraper:
         total_scraped = sum(results.values())
         successful_airlines = len([k for k, v in results.items() if v > 0])
         
-        logger.info(f"\n🎯 GENEL SCRAPING RAPORU:")
+        logger.info(f"\n🎯 HYBRID SCRAPING RAPORU:")
         logger.info(f"  📊 Toplam policy: {total_scraped}")
         logger.info(f"  ✅ Başarılı airline: {successful_airlines}/{len(airlines)}")
         logger.info(f"  📋 Detay: {results}")
@@ -1054,7 +1069,7 @@ class MultiAirlineScraper:
                     COUNT(DISTINCT airline) as total_airlines,
                     COUNT(DISTINCT source) as total_sources,
                     AVG(quality_score) as avg_quality_score
-                FROM baggage_policies
+                FROM policy
             """)
             
             stats = dict(cursor.fetchone())
@@ -1066,7 +1081,7 @@ class MultiAirlineScraper:
                     COUNT(*) as count, 
                     AVG(quality_score) as avg_quality,
                     COUNT(DISTINCT source) as sources_count
-                FROM baggage_policies 
+                FROM policy 
                 GROUP BY airline 
                 ORDER BY count DESC
             """)
@@ -1097,7 +1112,7 @@ class MultiAirlineScraper:
         
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM baggage_policies WHERE airline = %s", (airline_id,))
+            cursor.execute("DELETE FROM policy WHERE airline = %s", (airline_id,))
             deleted_count = cursor.rowcount
             conn.commit()
             cursor.close()
@@ -1118,7 +1133,7 @@ class MultiAirlineScraper:
         
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM baggage_policies")
+            cursor.execute("DELETE FROM policy")
             deleted_count = cursor.rowcount
             conn.commit()
             cursor.close()

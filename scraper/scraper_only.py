@@ -87,7 +87,7 @@ async def wait_for_database(max_retries=30, delay=2):
             result = await conn.fetch("""
                 SELECT column_name 
                 FROM information_schema.columns 
-                WHERE table_name = 'baggage_policies' AND column_name = 'airline'
+                WHERE table_name = 'policy' AND column_name = 'airline'
             """)
             
             await conn.close()

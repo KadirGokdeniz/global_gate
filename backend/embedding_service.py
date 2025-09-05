@@ -1,4 +1,6 @@
-# STEP 1: Optimized Embedding Service
+# STEP 1: Fixed Embedding Service - TRUE PRELOADING
+# Değişiklik: Model startup'ta yüklenir, lazy loading kaldırıldı
+
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Optional
@@ -13,14 +15,14 @@ import os
 logger = logging.getLogger(__name__)
 
 class ImprovedLRUCache:
-    """Optimized LRU Cache"""
+    """Geliştirilmiş LRU Cache - mevcut cache'den daha verimli"""
     
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
         self.cache = OrderedDict()
         self.hits = 0
         self.misses = 0
-        self._lock = threading.RLock()  # ReentrantLock for thread safety
+        self._lock = threading.RLock()
         
         # Performance tracking
         self.total_requests = 0
@@ -44,7 +46,7 @@ class ImprovedLRUCache:
                     self.total_requests
                 )
                 
-                return self.cache[key].copy()  # Return copy to prevent modification
+                return self.cache[key].copy()
             
             self.misses += 1
             return None
@@ -52,13 +54,10 @@ class ImprovedLRUCache:
     def put(self, key: str, value: np.ndarray):
         with self._lock:
             if key in self.cache:
-                # Update existing
                 self.cache[key] = value.copy()
                 self.cache.move_to_end(key)
             else:
-                # Add new, remove oldest if necessary
                 if len(self.cache) >= self.max_size:
-                    # Remove 10% of oldest items for better performance
                     cleanup_count = max(1, self.max_size // 10)
                     for _ in range(cleanup_count):
                         if self.cache:
@@ -81,17 +80,17 @@ class ImprovedLRUCache:
         }
 
 class OptimizedEmbeddingService:
-    """Embedding service - step by step optimization"""
+    """İyileştirilmiş embedding service - TRUE PRELOADING FIXED"""
     
-    def __init__(self, cache_size: int = 2000):
+    def __init__(self, cache_size: int = 2000, preload: bool = True):
         # Model konfigürasyonu
         self.model = None
-        self._model_name = 'paraphrase-multilingual-MiniLM-L12-v2'
-        self._embedding_dim = 384
+        self._model_name = 'paraphrase-multilingual-MiniLM-L12-v2'  # public property
+        self.embedding_dimension = 384  # public property
         self._model_loaded = False
         self._load_lock = threading.Lock()
         
-        # İyileştirilmiş cache
+        # Cache
         self.cache = ImprovedLRUCache(cache_size)
         
         # Preprocessing optimization
@@ -101,102 +100,105 @@ class OptimizedEmbeddingService:
             'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about'
         }
         
-        logger.info(f"🧠 Optimized Embedding Service initialized with cache size: {cache_size}")
+        # FIXED: TRUE PRELOADING - Load model immediately if requested
+        if preload:
+            self._preload_model_now()
+        
+        logger.info(f"Embedding Service initialized (preload: {preload})")
     
-    def _load_model_once(self):
-        """Load model once and keep it in the memory"""
+    def _preload_model_now(self):
+        """IMMEDIATE model loading - no lazy loading"""
+        logger.info(f"🔥 PRELOADING MODEL: {self._model_name}")
+        start_time = time.time()
         
-        if self._model_loaded:
-            return self.model
-        
-        with self._load_lock:
-            # Double-check locking pattern
-            if self._model_loaded:
-                return self.model
+        try:
+            # Ensure model cache directory exists
+            model_cache_dir = '/app/model_cache'
+            os.makedirs(model_cache_dir, exist_ok=True)
             
-            logger.info(f"🔄 Loading model: {self._model_name} (one-time operation)")
-            start_time = time.time()
+            # Load model immediately
+            self.model = SentenceTransformer(
+                self._model_name,
+                device='cpu',
+                cache_folder=model_cache_dir
+            )
             
-            try:
-                self.model = SentenceTransformer(
-                    self._model_name,
-                    device='cpu',  # CPU for stability
-                    cache_folder='/app/model_cache'
-                )
-                
-                # Model warm-up
-                warmup_text = "Turkish Airlines baggage policy"
-                _ = self.model.encode(warmup_text, convert_to_numpy=True)
-                
-                self._model_loaded = True
-                load_time = time.time() - start_time
-                
-                logger.info(f"✅ Model loaded successfully in {load_time:.2f}s")
-                
-            except Exception as e:
-                logger.error(f"❌ Model loading failed: {e}")
-                raise
-        
+            # Model warm-up with real embedding
+            warmup_texts = [
+                "Turkish Airlines baggage policy",
+                "Pegasus Airlines pet travel",
+                "International flight requirements"
+            ]
+            
+            logger.info("⚡ Warming up model...")
+            for text in warmup_texts:
+                _ = self.model.encode(text, convert_to_numpy=True, show_progress_bar=False)
+            
+            self._model_loaded = True
+            load_time = time.time() - start_time
+            
+            logger.info(f"✅ Model preloaded successfully in {load_time:.2f}s")
+            
+        except Exception as e:
+            logger.error(f"❌ Model preloading FAILED: {e}")
+            self._model_loaded = False
+            self.model = None
+            raise
+    
+    def _ensure_model_loaded(self):
+        """Ensure model is loaded (fallback if preloading failed)"""
+        if not self._model_loaded or self.model is None:
+            logger.warning("⚠️ Model not preloaded, loading now...")
+            self._preload_model_now()
         return self.model
     
     def _optimize_cache_key(self, text: str) -> str:
-        """Optimized cache key generation """
-        
-        # Basit normalization
+        """Optimized cache key generation"""
         normalized = text.lower().strip()
-        normalized = ' '.join(normalized.split())  # Multiple spaces -> single space
+        normalized = ' '.join(normalized.split())
         
-        # Cache key strategy
         if len(normalized) > 100:
-            # Long text: use hash
             return f"hash_{hashlib.md5(normalized.encode()).hexdigest()[:16]}"
         else:
-            # Short text: use direct (more cache hits)
             return f"text_{normalized[:100]}"
     
     def _preprocess_text_fast(self, text: str) -> str:
-        """Fast text preprocessing"""
-        
+        """Hızlı text preprocessing"""
         if not text:
             return ""
         
-        # Check cache first
         if text in self._preprocessing_cache:
             return self._preprocessing_cache[text]
         
-        # Simple preprocessing
         cleaned = text.strip()
         cleaned = ' '.join(cleaned.split())
         
-        # Truncate if too long (prevent memory issues)
         if len(cleaned) > 1000:
             cleaned = cleaned[:1000] + "..."
         
-        # Cache result (limit cache size)
         if len(self._preprocessing_cache) < 500:
             self._preprocessing_cache[text] = cleaned
         
         return cleaned
     
     def generate_embedding(self, text: str) -> np.ndarray:
-        """Main embedding generation - optimized version"""
+        """Generate embedding - uses PRELOADED model"""
         
         # Step 1: Preprocess
         cleaned_text = self._preprocess_text_fast(text)
         if not cleaned_text:
-            return np.zeros(self._embedding_dim)
+            return np.zeros(self.embedding_dimension)
         
         # Step 2: Check cache
         cache_key = self._optimize_cache_key(cleaned_text)
         cached_embedding = self.cache.get(cache_key)
         
         if cached_embedding is not None:
-            logger.debug(f"💨 Cache hit for: {text[:30]}...")
             return cached_embedding
         
-        # Step 3: Generate new embedding
+        # Step 3: Generate using PRELOADED model
         try:
-            model = self._load_model_once()
+            model = self._ensure_model_loaded()  # Should already be loaded
             
             embedding = model.encode(
                 cleaned_text,
@@ -208,23 +210,22 @@ class OptimizedEmbeddingService:
             # Step 4: Cache result
             self.cache.put(cache_key, embedding)
             
-            logger.debug(f"🔄 Generated new embedding for: {text[:30]}...")
             return embedding
             
         except Exception as e:
             logger.error(f"Embedding generation error: {e}")
-            return np.zeros(self._embedding_dim)
+            return np.zeros(self.embedding_dimension)
     
     def generate_embeddings_batch(self, texts: List[str], batch_size: int = 32) -> List[np.ndarray]:
-        """Optimized batch processing"""
+        """Batch processing with PRELOADED model"""
         
         if not texts:
             return []
         
-        logger.info(f"🔄 Processing batch of {len(texts)} texts")
+        logger.info(f"📄 Processing batch of {len(texts)} texts")
         start_time = time.time()
         
-        # Step 1: Preprocess all texts and check cache
+        # Step 1: Check cache for all texts
         results = []
         uncached_indices = []
         uncached_texts = []
@@ -232,7 +233,7 @@ class OptimizedEmbeddingService:
         for i, text in enumerate(texts):
             cleaned = self._preprocess_text_fast(text)
             if not cleaned:
-                results.append((i, np.zeros(self._embedding_dim)))
+                results.append((i, np.zeros(self.embedding_dimension)))
                 continue
             
             cache_key = self._optimize_cache_key(cleaned)
@@ -245,14 +246,13 @@ class OptimizedEmbeddingService:
                 uncached_texts.append(cleaned)
         
         cache_hit_rate = (len(results) / len(texts)) * 100
-        logger.info(f"📊 Cache hit rate: {cache_hit_rate:.1f}% ({len(results)}/{len(texts)})")
+        logger.info(f"📊 Cache hit rate: {cache_hit_rate:.1f}%")
         
-        # Step 2: Process uncached texts
+        # Step 2: Process uncached with PRELOADED model
         if uncached_texts:
             try:
-                model = self._load_model_once()
+                model = self._ensure_model_loaded()  # Should already be loaded
                 
-                # Generate embeddings in batches
                 new_embeddings = model.encode(
                     uncached_texts,
                     normalize_embeddings=True,
@@ -265,53 +265,43 @@ class OptimizedEmbeddingService:
                 for idx, embedding in zip(uncached_indices, new_embeddings):
                     results.append((idx, embedding))
                     
-                    # Cache new embedding
                     cleaned_text = uncached_texts[uncached_indices.index(idx)]
                     cache_key = self._optimize_cache_key(cleaned_text)
                     self.cache.put(cache_key, embedding)
                 
             except Exception as e:
                 logger.error(f"Batch processing error: {e}")
-                # Fallback: add zero embeddings
                 for idx in uncached_indices:
-                    results.append((idx, np.zeros(self._embedding_dim)))
+                    results.append((idx, np.zeros(self.embedding_dimension)))
         
-        # Step 3: Sort by original order and return
+        # Step 3: Sort and return
         results.sort(key=lambda x: x[0])
         final_embeddings = [embedding for _, embedding in results]
         
         processing_time = time.time() - start_time
-        logger.info(f"🚀 Batch processing completed: {len(texts)} texts in {processing_time:.2f}s")
+        logger.info(f"🚀 Batch completed: {len(texts)} texts in {processing_time:.2f}s")
         
         return final_embeddings
     
     def get_performance_stats(self) -> Dict:
-        """Performance istatistikleri"""
-        
+        """Performance stats"""
         cache_stats = self.cache.get_stats()
         
         return {
             "model_loaded": self._model_loaded,
             "model_name": self._model_name,
-            "embedding_dimension": self._embedding_dim,
+            "embedding_dimension": self.embedding_dimension,
             "cache_performance": cache_stats,
             "preprocessing_cache_size": len(self._preprocessing_cache),
             "total_cache_requests": cache_stats["total_requests"]
         }
     
-    def clear_cache(self):
-        """Cache'i temizle (debugging için)"""
-        self.cache = ImprovedLRUCache(self.cache.max_size)
-        self._preprocessing_cache.clear()
-        logger.info("🗑️ Cache cleared")
+    def is_ready(self) -> bool:
+        """Check if service is ready for use"""
+        return self._model_loaded and self.model is not None
 
-# Backward compatibility için global instance
+# FIXED: Global instance with TRUE PRELOADING
 @lru_cache()
-def get_optimized_embedding_service() -> OptimizedEmbeddingService:
-    """Optimized embedding service instance"""
-    return OptimizedEmbeddingService(cache_size=2000)
-
-# Eski interface için wrapper
-def get_embedding_service():
-    """Backward compatibility wrapper"""
-    return get_optimized_embedding_service()
+def get_embedding_service() -> OptimizedEmbeddingService:
+    """Get embedding service instance - PRELOADED"""
+    return OptimizedEmbeddingService(cache_size=2000, preload=True)

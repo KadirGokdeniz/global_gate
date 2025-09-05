@@ -228,8 +228,6 @@ def main_scraping_process(selected_airlines: list = None):
 
 # Entry point için backward compatibility
 if __name__ == "__main__":
-    # Eski davranış: sadece THY
-    # Yeni davranış: tüm airline'lar
     
     import sys
     
