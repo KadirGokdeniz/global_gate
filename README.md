@@ -44,37 +44,36 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 The system follows a moduler architecture with orchestrated startup sequence:
 
-```mermaid
 graph TD
-    A[PostgreSQL Database] --> B[Data Scraper]
-    B --> C[FastAPI Backend] 
-    C --> D[Streamlit Frontend]
+    A[User] --> B[Streamlit Frontend]
+    B --> C[FastAPI Backend]
+    C <--> D[PostgreSQL + pgvector]
     
-    A -.->|Health Check| B
-    B -.->|Completion| C
-    C -.->|Health Check| D
-```
+    E[Web Scraper] --> D
+    C <--> F[OpenAI/Claude APIs]
+    
+    G[Prometheus] --> H[Grafana]
+    C --> G
 
-**Startup Sequence (Docker Compose)**:
-1. **Database Service** - Initializes PostgreSQL with pgvector extension
-2. **Scraper Service** - Collects airline policy data, then terminates
-3. **API Service** - Loads ML models and serves endpoints
-4. **Frontend Service** - Provides user interface
+## 📊 Service Endpoints
+| Service | Port | URL | Purpose |
+|:--------|:----:|:----|:--------|
+| **Frontend** | 8501 | http://localhost:8501 |
+| **Backend API** | 8000 | http://localhost:8000 | 
+| **Grafana** | 3000 | http://localhost:3000 | 
+| **Prometheus** | 9090 | http://localhost:9090 | 
+| **PostgreSQL** | 5432 | localhost:5432 |
 
-**Data Flow**:
-```
-User Query → Embedding Generation → Vector Search → Context Retrieval → AI Response
-```
 
-## Key Advantages
+## ✨ Key Features
 
-- **Time Efficiency**: Reduces policy research time from 30+ minutes to seconds
-- **Accuracy**: Real-time data ensures up-to-date policy information
-- **Natural Interface**: Ask questions in plain language, get human-like responses
-- **Multi-Airline Support**: Unified access to policies from multiple airlines
-- **Bilingual Support**: Handles both English and Turkish queries
-- **Scalability**: Microservices architecture allows easy expansion
-- **Cost-Effective**: Automated data collection reduces manual maintenance
+- **🤖 RAG Pipeline**: Vector-based semantic search for precise information retrieval
+- **🕷️ Real-time Scraping**: Automated airline data collection
+- **🧠 Multi-LLM Support**: OpenAI GPT & Anthropic Claude integration
+- **🔍 Multilingual Search**: Advanced semantic understanding
+- **📊 Production Monitoring**: Prometheus & Grafana observability
+- **🐳 Docker-Native**: Fully containerized microservices
+- **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
 
 ## Installation & Setup
 
@@ -98,10 +97,6 @@ docker-compose up -d
 
 # 4. Load initial data (one-time setup)
 docker-compose run scraper python scraper_only.py
-
-# 5. Access the application
-# Web Interface: http://localhost:8501
-# API Documentation: http://localhost:8000/docs
 ```
 
 ### Health Check
@@ -109,25 +104,6 @@ docker-compose run scraper python scraper_only.py
 # Verify all services are running
 curl http://localhost:8000/health
 curl http://localhost:8501/_stcore/health
-```
-
-## Usage & API Reference
-
-### Web Interface
-Navigate to `http://localhost:8501` and ask questions like:
-- "What's the baggage allowance for international flights?"
-- "Can I bring my pet in the cabin?"
-- "Compare carry-on policies between airlines"
-
-### API Endpoints
-```bash
-# Semantic search
-curl "http://localhost:8000/search?q=pet+travel+policy"
-
-# AI-powered chat
-curl -X POST "http://localhost:8000/chat/openai" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What items are prohibited in carry-on?"}'
 ```
 
 ## Contributing
