@@ -1,40 +1,54 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-![Airline Policy Assistant Interface](streamlit_interface1.png)
-
-*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
-
 ## Problem Statement & Solution
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
 **Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses.
 
+### **A Quick Tour of the Application**
+
+This intelligent RAG (Retrieval-Augmented Generation) system streamlines the process of finding airline policy information. Here's a quick look at the user experience from start to finish.
+
+**1. The Main Interface:** Simply select an airline and type your question in natural language.
+
+**2. The Backend in Action:** The system instantly connects to the API and processes your request.
+
+**3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
+
+| The Main Interface | The Backend in Action | The Final Result |
+|:------------:|:--------------:|:------------:|
+| ![How It Works](assets/streamlit_interface1.png) | ![System Process](assets/streamlit_interface3.png) | ![Final Answer](assets/streamlit_interface2.png) |
+
+*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
+
 ## Technology Stack
 
 | Technology | Purpose | Why Chosen |
 |------------|---------|------------|
-| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
-| **OpenAI Embeddings** | Natural Language Processing | State-of-the-art semantic understanding and search |
-| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
+| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding for searching |
+| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
+| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
+| **Prometheus & Grafana**| Monitoring & Logging|Real-time performance tracking, industry-standard observability stack|
 
 ## System Architecture
 
-The system follows a microservices architecture with orchestrated startup sequence:
+The system follows a moduler architecture with orchestrated startup sequence:
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  1. PostgreSQL  │───▶│  2. Data        │───▶│  3. FastAPI     │───▶│  4. Streamlit   │
-│     Database    │    │     Scraper     │    │     Backend     │    │     Frontend    │
-│                 │    │                 │    │                 │    │                 │
-│ • Stores data   │    │ • Scrapes       │    │ • Serves API    │    │ • User          │
-│ • Vector search │    │   policies      │    │ • ML processing │    │   interface     │
-│ • Health checks │    │ • Exits on      │    │ • Health checks │    │ • Natural       │
-│                 │    │   completion    │    │                 │    │   language UI   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```mermaid
+graph TD
+    A[PostgreSQL Database] --> B[Data Scraper]
+    B --> C[FastAPI Backend] 
+    C --> D[Streamlit Frontend]
+    
+    A -.->|Health Check| B
+    B -.->|Completion| C
+    C -.->|Health Check| D
 ```
 
 **Startup Sequence (Docker Compose)**:
@@ -63,6 +77,7 @@ User Query → Embedding Generation → Vector Search → Context Retrieval → 
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
+- Claude API Key
 
 ### Quick Start
 ```bash
@@ -115,7 +130,7 @@ curl -X POST "http://localhost:8000/chat/openai" \
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
+3. Commit changes: `git commit -m 'Add feature'`
 4. Push to branch: `git push origin feature-name`
 5. Submit a Pull Request
 
