@@ -44,6 +44,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 The system follows a moduler architecture with orchestrated startup sequence:
 
+```mermaid
 graph TD
     A[User] --> B[Streamlit Frontend]
     B --> C[FastAPI Backend]
@@ -54,15 +55,16 @@ graph TD
     
     G[Prometheus] --> H[Grafana]
     C --> G
+```
 
 ## 📊 Service Endpoints
-| Service | Port | URL | Purpose |
-|:--------|:----:|:----|:--------|
+| Service | Port | URL |
+|:--------|:----:|:----|
 | **Frontend** | 8501 | http://localhost:8501 |
 | **Backend API** | 8000 | http://localhost:8000 | 
 | **Grafana** | 3000 | http://localhost:3000 | 
 | **Prometheus** | 9090 | http://localhost:9090 | 
-| **PostgreSQL** | 5432 | localhost:5432 |
+| **PostgreSQL** | 5432 | http://localhost:5432 |
 
 
 ## ✨ Key Features
