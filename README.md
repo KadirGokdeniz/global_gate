@@ -21,7 +21,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 | The Main Interface | The Backend in Action |
 |:------------------:|:---------------------:|
 | ![How It Works](assets/streamlit_interface1.png) | ![System Process](assets/streamlit_interface4.png) |
-| **The Final Result** | **Feedback** |
+| **The Final Result** | **Feedback System** |
 | ![Final Answer](assets/streamlit_interface2.png) | ![Feedback](assets/streamlit_interface3.png) |
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
