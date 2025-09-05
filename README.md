@@ -16,7 +16,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 **3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
 
-**4. Feedback:** Give your feedback. 
+**4. Feedback System:** Give your feedback. 
 
 | The Main Interface | The Backend in Action |
 |:------------------:|:---------------------:|
