@@ -1,6 +1,6 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-## Problem Statement & Solution
+## Problem & Solution
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
