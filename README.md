@@ -1,6 +1,6 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-## Problem Statement & Solution
+## Problem & Solution
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
@@ -16,12 +16,12 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 **3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
 
-**4. Feedback:** Give your feedback. 
+**4. Feedback System:** Give your feedback. 
 
 | The Main Interface | The Backend in Action |
 |:------------------:|:---------------------:|
 | ![How It Works](assets/streamlit_interface1.png) | ![System Process](assets/streamlit_interface4.png) |
-| **The Final Result** | **Feedback** |
+| **The Final Result** | **Feedback System** |
 | ![Final Answer](assets/streamlit_interface2.png) | ![Feedback](assets/streamlit_interface3.png) |
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
@@ -44,6 +44,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 The system follows a moduler architecture with orchestrated startup sequence:
 
+```mermaid
 graph TD
     A[User] --> B[Streamlit Frontend]
     B --> C[FastAPI Backend]
@@ -54,15 +55,16 @@ graph TD
     
     G[Prometheus] --> H[Grafana]
     C --> G
+```
 
 ## 📊 Service Endpoints
-| Service | Port | URL | Purpose |
-|:--------|:----:|:----|:--------|
+| Service | Port | URL |
+|:--------|:----:|:----|
 | **Frontend** | 8501 | http://localhost:8501 |
 | **Backend API** | 8000 | http://localhost:8000 | 
 | **Grafana** | 3000 | http://localhost:3000 | 
 | **Prometheus** | 9090 | http://localhost:9090 | 
-| **PostgreSQL** | 5432 | localhost:5432 |
+| **PostgreSQL** | 5432 | http://localhost:5432 |
 
 
 ## ✨ Key Features
@@ -74,6 +76,8 @@ graph TD
 - **📊 Production Monitoring**: Prometheus & Grafana observability
 - **🐳 Docker-Native**: Fully containerized microservices
 - **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
+- **🚀 Intelligent Caching**: Multi-layered LRU cache with performance tracking and batch optimization
+- **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
 
 ## Installation & Setup
 
