@@ -1,3 +1,4 @@
+from typing import Optional
 import streamlit as st
 import requests
 import time
@@ -249,6 +250,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+AIRLINE_MAPPING = {
+    "All Airlines": None,
+    "Turkish Airlines Only": "turkish_airlines",
+    "Pegasus Airlines Only": "pegasus"
+}
+
+def map_airline_selection(streamlit_selection: str) -> Optional[str]:
+    """Map Streamlit airline selection to API format"""
+    return AIRLINE_MAPPING.get(streamlit_selection)
+
 # API Configuration with caching
 @st.cache_data(ttl=30)
 def get_api_urls():
@@ -356,33 +367,30 @@ def display_question_input():
     
     return ask_clicked, question
 
-def handle_question_optimized(question, api_url, model, provider, airline_filter):
+def handle_question_optimized(question, api_url, model, provider, airline_selection):
     """Simplified question handling"""
     if not api_url:
         return {"success": False, "error": "No API connection"}
     
+    airline_preference = map_airline_selection(airline_selection)
+    
     endpoint = f"{api_url}/chat/claude" if provider == "Claude" else f"{api_url}/chat/openai"
     
-    context_prefix = ""
-    if "Turkish" in airline_filter:
-        context_prefix = "Turkish Airlines: "
-    elif "Pegasus" in airline_filter:
-        context_prefix = "Pegasus Airlines: "
-    
-    enhanced_question = context_prefix + question
     
     try:
         with st.spinner(f"🤔 {provider} is analyzing airline policies..."):
-            response = requests.get(
-                endpoint,
-                params={
-                    "question": enhanced_question,
-                    "max_results": 3,
-                    "similarity_threshold": 0.4,
-                    "model": model
-                },
-                timeout=30
-            )
+            params = {
+                "question": question,
+                "max_results": 3,
+                "similarity_threshold": 0.4,
+                "model": model
+            }
+            
+            # Add airline preference if specified
+            if airline_preference:
+                params["airline_preference"] = airline_preference
+            
+            response = requests.get(endpoint, params=params, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
@@ -395,6 +403,8 @@ def handle_question_optimized(question, api_url, model, provider, airline_filter
                     "model": data.get("model_used", model),
                     "provider": provider,
                     "stats": data.get("stats", {}),
+                    "preference_stats": data.get("preference_stats", {}),
+                    "airline_preference": data.get("airline_preference"),
                     "performance": data.get("performance", {})
                 }
             else:
@@ -599,7 +609,9 @@ def display_chat_history():
                 for doc in chat['sources'][:3]:
                     source = doc.get('source', 'Unknown')
                     similarity = doc.get('similarity_score', 0)
-                    st.markdown(f"- **{source}** ({similarity:.1%} match)")
+                    airline_info = doc.get('airline', 'Unknown')
+                    st.markdown(f"- **{source}** ({similarity:.1%} match) - {airline_info}")
+
 
 def display_api_status():
     """Display API connection status"""
@@ -790,7 +802,7 @@ def main():
         
         # Question input
         ask_clicked, question = display_question_input()
-        
+
         # Handle question
         if ask_clicked and question.strip():
             result = handle_question_optimized(
@@ -811,7 +823,9 @@ def main():
                     "provider": result["provider"],
                     "sources": result["sources"],
                     "airline_filter": st.session_state.selected_airline,
+                    "airline_preference": result.get("airline_preference"),
                     "stats": result.get("stats", {}),
+                    "preference_stats": result.get("preference_stats", {}),
                     "session_id": result.get("session_id"),
                     "performance": result.get("performance", {})
                 })

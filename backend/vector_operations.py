@@ -60,6 +60,7 @@ class VectorOperations:
         query: str, 
         limit: int = 5,
         similarity_threshold: float = 0.3,
+        airline_filter: Optional[str] = None,
         source_filter: Optional[str] = None
     ) -> List[Dict]:
         """Vector similarity search"""
@@ -70,16 +71,20 @@ class VectorOperations:
         # Build SQL query
         sql = """
             SELECT 
-                id, source, content, quality_score, created_at,
+                id, airline,source, content, quality_score, created_at,
                 1 - (embedding <=> $1::vector) as similarity_score
             FROM policy
             WHERE embedding IS NOT NULL
         """
         params = ["[" + ",".join(map(str, query_embedding.tolist())) + "]"]
+
+        if airline_filter:
+            sql += f" AND airline = ${len(params) + 1}"
+            params.append(airline_filter)
         
         # Add source filter
         if source_filter:
-            sql += " AND source = $2"
+            sql += f" AND source = ${len(params) + 1}"
             params.append(source_filter)
         
         # Add similarity threshold and ordering
@@ -101,8 +106,105 @@ class VectorOperations:
                     result_dict['created_at'] = result_dict['created_at'].isoformat()
                 formatted_results.append(result_dict)
             
-            logger.info(f"🔍 Vector search for '{query}': {len(formatted_results)} results")
+            logger.info(f"🔍 Vector search for '{query}': {len(formatted_results)} results (airline: {airline_filter or 'all'})")
             return formatted_results
+    
+    async def preference_aware_search(
+        self,
+        query: str,
+        airline_preference: Optional[str] = None,
+        limit: int = 5,
+        similarity_threshold: float = 0.3,
+        boost_factor: float = 1.2
+    ) -> List[Dict]:
+        """Simplified preference search with database-level scoring"""
+        
+        # Generate query embedding
+        query_embedding = self.embedding_service.generate_embedding(query)
+        
+        if airline_preference:
+            # Single query with conditional scoring in PostgreSQL
+            sql = f"""
+                SELECT 
+                    id, airline, source, content, quality_score, created_at,
+                    CASE WHEN airline = $2 
+                         THEN {boost_factor} * (1 - (embedding <=> $1::vector))
+                         ELSE (1 - (embedding <=> $1::vector))
+                    END as similarity_score,
+                    (1 - (embedding <=> $1::vector)) as original_similarity_score,
+                    (airline = $2) as preference_boost
+                FROM policy
+                WHERE embedding IS NOT NULL
+                AND (1 - (embedding <=> $1::vector)) >= $3
+                ORDER BY similarity_score DESC
+                LIMIT $4
+            """
+            
+            params = [
+                "[" + ",".join(map(str, query_embedding.tolist())) + "]",
+                airline_preference,
+                similarity_threshold,
+                limit
+            ]
+            
+        else:
+            # Regular search without preference
+            sql = """
+                SELECT 
+                    id, airline, source, content, quality_score, created_at,
+                    (1 - (embedding <=> $1::vector)) as similarity_score,
+                    (1 - (embedding <=> $1::vector)) as original_similarity_score,
+                    false as preference_boost
+                FROM policy
+                WHERE embedding IS NOT NULL
+                AND (1 - (embedding <=> $1::vector)) >= $2
+                ORDER BY similarity_score DESC
+                LIMIT $3
+            """
+            
+            params = [
+                "[" + ",".join(map(str, query_embedding.tolist())) + "]",
+                similarity_threshold,
+                limit
+            ]
+        
+        async with self.db_pool.acquire() as conn:
+            results = await conn.fetch(sql, *params)
+            
+            # Convert to dict and format
+            formatted_results = []
+            for row in results:
+                result_dict = dict(row)
+                if result_dict.get('created_at'):
+                    result_dict['created_at'] = result_dict['created_at'].isoformat()
+                formatted_results.append(result_dict)
+            
+            if airline_preference:
+                boosted_count = len([r for r in formatted_results if r.get('preference_boost')])
+                logger.info(f"Database-level preference search: {len(formatted_results)} results, {boosted_count} boosted")
+            else:
+                logger.info(f"Regular search: {len(formatted_results)} results")
+            
+            return formatted_results
+        
+    async def get_airline_stats(self) -> Dict:
+        """Get airline distribution statistics"""
+        async with self.db_pool.acquire() as conn:
+            stats = await conn.fetch("""
+                SELECT 
+                    airline,
+                    COUNT(*) as total_policies,
+                    COUNT(embedding) as embedded_policies,
+                    COUNT(DISTINCT source) as unique_sources
+                FROM policy 
+                GROUP BY airline
+                ORDER BY total_policies DESC
+            """)
+            
+            return {
+                "airline_breakdown": [dict(row) for row in stats],
+                "total_airlines": len(stats)
+            }
     
     async def get_embedding_stats(self) -> Dict:
         """Embedding istatistikleri"""
@@ -118,7 +220,12 @@ class VectorOperations:
                 FROM policy
             """)
             
-            return dict(stats)
+            airline_stats = await self.get_airline_stats()
+            
+            return {
+                **dict(stats),
+                **airline_stats
+            }
     
     async def similarity_search_fast(self, query: str, limit: int = 2):
         # İlk threshold'ı geçen 2 sonucu bulunca dur
@@ -132,10 +239,33 @@ class VectorOperations:
         return ' '.join(words[:10])  # Max 10 kelime
     
     CATEGORIES = {
-        'baggage': ['baggage', 'luggage', 'suitcase', 'weight'],
-        'pets': ['pet', 'dog', 'cat', 'animal'],
-        'sports': ['sports', 'equipment', 'golf', 'ski']
-        }
+        'baggage': [
+            'baggage', 'luggage', 'suitcase', 'weight', 'allowance', 
+            'checked', 'carry', 'excess', 'restrictions', 'limits'
+        ],
+        'pets': [
+            'pet', 'dog', 'cat', 'animal', 'pets', 'cabin', 'cargo', 
+            'service', 'onboard', 'travelling', 'travel'
+        ],
+        'sports': [
+            'sports', 'equipment', 'golf', 'ski', 'skiing', 'snowboard',
+            'bicycle', 'mountaineering', 'canoeing', 'archery', 'parachuting',
+            'rafting', 'surfing', 'windsurfing', 'water_skiing', 'diving',
+            'hockey', 'bowling', 'tenting', 'fishing', 'hunting'
+        ],
+        'musical_instruments': [
+            'musical', 'instrument', 'instruments', 'guitar', 'piano',
+            'violin', 'drums', 'music'
+        ],
+        'services': [
+            'services', 'pricing', 'extra', 'additional', 'fees',
+            'charges', 'cost', 'price', 'table'
+        ],
+        'general_rules': [
+            'rules', 'general', 'regulations', 'terms', 'conditions',
+            'policy', 'policies', 'info', 'flights'
+        ]
+    }
 
     def category_pre_filter(query: str) -> str:
         # Önce kategori belirle, sonra o kategoride ara

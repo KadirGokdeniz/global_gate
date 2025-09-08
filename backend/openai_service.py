@@ -27,7 +27,7 @@ class OpenAIService:
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
         self.max_tokens = 400
-        self.temperature = 0.7
+        self.temperature = 0.2
 
     def test_connection(self) -> Dict:
         """Test OpenAI API connection"""

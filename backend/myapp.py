@@ -336,6 +336,7 @@ class ApiResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str = Field(..., description="User question", min_length=3, max_length=2000)
+    airline_preference: Optional[str] = Field(None, description="Preferred airline (e.g., 'turkish_airlines', 'pegasus')")
     max_results: int = Field(default=3, description="Max retrieved documents", le=10, ge=1)
     similarity_threshold: float = Field(default=0.3, description="Similarity threshold", ge=0.1, le=0.9)
     model: Optional[str] = Field(default=None, description="Model to use (optional)")
@@ -371,15 +372,20 @@ async def simple_log_query(question: str, provider: str, session_id: str):
     """Simple query logging instead of complex database tracking"""
     logger.info(f"Query: {question[:50]}... | Provider: {provider} | Session: {session_id[:8]}")
 
-async def retrieve_relevant_docs(question: str, max_results: int, similarity_threshold: float) -> List[Dict]:
+async def retrieve_relevant_docs(question: str, max_results: int, 
+                                 similarity_threshold: float,
+                                 airline_preference: Optional[str] = None) -> List[Dict]:
     """Document retrieval with simplified metrics"""
     if not vector_ops:
         return []
     
     try:
         start_time = time.time()
+        
+        # FIX: Parameter adını airline_filter olarak değiştir
         docs = await vector_ops.similarity_search(
             query=question,
+            airline_filter=airline_preference,  # airline_preference -> airline_filter
             limit=max_results,
             similarity_threshold=similarity_threshold
         )
@@ -388,7 +394,8 @@ async def retrieve_relevant_docs(question: str, max_results: int, similarity_thr
         search_duration = time.time() - start_time
         track_vector_search(search_duration)
         
-        logger.info(f"Retrieved {len(docs)} documents in {search_duration:.2f}s")
+        preference_info = f" (preference: {airline_preference})" if airline_preference else ""
+        logger.info(f"Retrieved {len(docs)} documents in {search_duration:.2f}s{preference_info}")
         return docs
         
     except Exception as e:
@@ -426,8 +433,10 @@ def prepare_retrieved_docs_preview(retrieved_docs: List[Dict]) -> List[Dict]:
     return [
         {
             "source": doc["source"],
+            "airline": doc.get("airline", "Unknown"),  # Havayolu bilgisi ekle
             "content_preview": doc["content"][:200] + "..." if len(doc["content"]) > 200 else doc["content"],
-            "similarity_score": round(doc["similarity_score"], 3)
+            "similarity_score": round(doc["similarity_score"], 3),
+            "source_display": f"{doc['source']} - {doc.get('airline', 'Unknown Airline')}"  # Display için
         }
         for doc in retrieved_docs
     ]
@@ -679,9 +688,56 @@ async def get_stats(db = Depends(get_db_connection)):
     except Exception as e:
         logger.error(f"Stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
+    
+def calculate_preference_stats(retrieved_docs: List[Dict], airline_preference: Optional[str]) -> Dict[str, Any]:
+    """Calculate preference-related statistics"""
+    if not retrieved_docs or not airline_preference:
+        return {
+            "preference_applied": False,
+            "boosted_results": 0,
+            "preferred_airline_ratio": 0
+        }
+    
+    boosted_count = len([doc for doc in retrieved_docs if doc.get('preference_boost', False)])
+    preferred_count = len([doc for doc in retrieved_docs if doc.get('airline') == airline_preference])
+    
+    return {
+        "preference_applied": True,
+        "preferred_airline": airline_preference,
+        "boosted_results": boosted_count,
+        "preferred_airline_results": preferred_count,
+        "preferred_airline_ratio": round(preferred_count / len(retrieved_docs), 2) if retrieved_docs else 0,
+        "total_results": len(retrieved_docs)
+    }
+
+def enhance_query_simple(question: str, airline_preference: Optional[str]) -> str:
+    """Simple rule-based query enhancement with airline prefix"""
+    if not airline_preference:
+        return question
+    
+    # Airline code to name mapping
+    airline_names = {
+        'turkish_airlines': 'Turkish Airlines',
+        'pegasus': 'Pegasus Airlines',
+        'sunexpress': 'SunExpress'
+    }
+    
+    airline_name = airline_names.get(airline_preference, airline_preference)
+    
+    # Simple prefix addition
+    enhanced_query = f"{airline_name} | {question}"
+    
+    # Log the enhancement
+    logger.info(f"Query enhanced: '{question}' -> '{enhanced_query}'")
+    
+    return enhanced_query
 
 # SIMPLIFIED AI CHAT ENDPOINTS
-async def _chat_with_openai_logic(question: str, max_results: int, similarity_threshold: float, model: Optional[str]):
+async def _chat_with_openai_logic(question: str,
+                                  max_results: int,
+                                  similarity_threshold: float,
+                                  model: Optional[str],
+                                  airline_preference: Optional[str] = None):
     """Simplified OpenAI chat logic"""
     if not openai_service:
         raise HTTPException(status_code=503, detail="OpenAI service not available")
@@ -690,14 +746,17 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
     session_id = await generate_session_id(question)
     
     try:
+        preference_log = f" | Airline: {airline_preference}" if airline_preference else ""
         # Simple logging instead of complex database storage
-        await simple_log_query(question, "openai", session_id)
+        await simple_log_query(question, "openai" + preference_log, session_id)
+
+        enhanced_question = enhance_query_simple(question, airline_preference)
         
         # Step 1: Retrieve documents
-        retrieved_docs = await retrieve_relevant_docs(question, max_results, similarity_threshold)
+        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold,airline_preference)
         
         # Step 2: Generate response
-        openai_response = openai_service.generate_rag_response(retrieved_docs, question, model)
+        openai_response = openai_service.generate_rag_response(retrieved_docs, enhanced_question, model)
         
         if not openai_response["success"]:
             duration = time.time() - start_time
@@ -720,15 +779,17 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
             "question": question,
             "answer": openai_response["answer"],
             "model_used": openai_response["model_used"],
+            "airline_preference": airline_preference,
             "sources": prepare_retrieved_docs_preview(retrieved_docs),
             "stats": calculate_retrieval_stats(retrieved_docs),
+            "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
                 "response_time": round(duration, 3),
                 "cost": usage.get("estimated_cost", 0.0)
             }
         }
         
-        logger.info(f"OpenAI response generated in {duration:.2f}s")
+        logger.info(f"OpenAI response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
         return fix_float_values(response_data)
         
     except HTTPException:
@@ -739,7 +800,11 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
         logger.error(f"OpenAI error: {e}")
         raise HTTPException(status_code=500, detail="OpenAI chat error")
 
-async def _chat_with_claude_logic(question: str, max_results: int, similarity_threshold: float, model: Optional[str]):
+async def _chat_with_claude_logic(question: str,
+                                  max_results: int,
+                                  similarity_threshold: float,
+                                  model: Optional[str],
+                                  airline_preference: Optional[str] = None):
     """Simplified Claude chat logic"""
     if not claude_service:
         raise HTTPException(status_code=503, detail="Claude service not available")
@@ -749,13 +814,21 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
     
     try:
         # Simple logging instead of complex database storage
-        await simple_log_query(question, "claude", session_id)
-        
+        preference_log = f" | Airline: {airline_preference}" if airline_preference else ""
+        await simple_log_query(question, "claude" + preference_log, session_id)
+
+        enhanced_question = enhance_query_simple(question, airline_preference)
+
         # Step 1: Retrieve documents
-        retrieved_docs = await retrieve_relevant_docs(question, max_results, similarity_threshold)
+        retrieved_docs = await retrieve_relevant_docs(
+            enhanced_question,
+            max_results, 
+            similarity_threshold,
+            airline_preference
+        )
         
         # Step 2: Generate response
-        claude_response = claude_service.generate_rag_response(retrieved_docs, question, model)
+        claude_response = claude_service.generate_rag_response(retrieved_docs, enhanced_question, model)
         
         if not claude_response["success"]:
             duration = time.time() - start_time
@@ -778,15 +851,17 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
             "question": question,
             "answer": claude_response["answer"],
             "model_used": claude_response["model_used"],
+            "airline_preference": airline_preference,  # NEW: Include preference in response
             "sources": prepare_retrieved_docs_preview(retrieved_docs),
             "stats": calculate_retrieval_stats(retrieved_docs),
+            "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),  # NEW
             "performance": {
                 "response_time": round(duration, 3),
                 "cost": usage.get("estimated_cost", 0.0)
             }
         }
         
-        logger.info(f"Claude response generated in {duration:.2f}s")
+        logger.info(f"Claude response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
         return fix_float_values(response_data)
         
     except HTTPException:
@@ -802,6 +877,7 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
 async def openai_chat_post(
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None, description="User question", min_length=3),
+    airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)")
@@ -813,14 +889,16 @@ async def openai_chat_post(
             chat_request.question,
             chat_request.max_results,
             chat_request.similarity_threshold,
-            chat_request.model
+            chat_request.model,
+            chat_request.airline_preference
         )
     elif question:
         return await _chat_with_openai_logic(
             question,
             max_results or 3,
             similarity_threshold or 0.3,
-            model
+            model,
+            airline_preference
         )
     else:
         raise HTTPException(
@@ -831,17 +909,19 @@ async def openai_chat_post(
 @app.get("/chat/openai") 
 async def openai_chat_get(
     question: str = Query(..., description="User question", min_length=3),
+    airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)")
 ):
     """RAG Chat with OpenAI (GET method)"""
-    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model)
+    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model, airline_preference)
 
 @app.post("/chat/claude")
 async def claude_chat_post(
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None, description="User question", min_length=3),
+    airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)")
@@ -853,14 +933,16 @@ async def claude_chat_post(
             chat_request.question,
             chat_request.max_results,
             chat_request.similarity_threshold,
-            chat_request.model
+            chat_request.model,
+            chat_request.airline_preference
         )
     elif question:
         return await _chat_with_claude_logic(
             question,
             max_results or 3,
             similarity_threshold or 0.3,
-            model
+            model,
+            airline_preference
         )
     else:
         raise HTTPException(
@@ -871,12 +953,13 @@ async def claude_chat_post(
 @app.get("/chat/claude")
 async def claude_chat_get(
     question: str = Query(..., description="User question", min_length=3),
+    airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)")
 ):
     """RAG Chat with Claude (GET method)"""
-    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model)
+    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model, airline_preference)
 
 # SIMPLIFIED FEEDBACK ENDPOINT
 @app.post("/feedback")
