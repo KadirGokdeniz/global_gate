@@ -497,13 +497,13 @@ def display_language_selector():
     """Display language selector - Simple and functional approach"""
     current_lang = st.session_state.get('language', 'en')
     
-    # Simple header with language buttons
-    col1, col2, col3 = st.columns([4, 1, 1])
+    # Simple header with language buttons - UPDATED: moved to far right
+    col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     
     with col1:
-        st.markdown("### " + get_text('language_selector'))
+        pass  # boş alan
     
-    with col2:
+    with col4:
         if st.button("🇺🇸 EN", key="lang_en_btn", 
                     type="primary" if current_lang == 'en' else "secondary"):
             st.session_state.language = 'en'
@@ -513,7 +513,7 @@ def display_language_selector():
                 st.session_state.selected_airline = list(airline_mapping.keys())[0]
             st.rerun()
     
-    with col3:
+    with col5:
         if st.button("🇹🇷 TR", key="lang_tr_btn",
                     type="primary" if current_lang == 'tr' else "secondary"):
             st.session_state.language = 'tr'
@@ -603,7 +603,7 @@ def init_session_state():
             st.session_state[key] = value
     
     # Set default airline selection based on language - FIXED LOGIC
-    if st.session_state.get('selected_airline') is None:
+    if st.session_state.get('selected_airline') is None or st.session_state.get('selected_airline') == '':
         try:
             # Get airline mapping safely
             airline_mapping = get_airline_mapping()
@@ -636,8 +636,7 @@ def display_question_input():
         value=st.session_state.get('current_question', ''),
         placeholder=get_text('question_placeholder'),
         height=100,
-        key="question_input",
-        label_visibility="collapsed"
+        key="question_input"
     )
     
     provider = st.session_state.selected_provider
