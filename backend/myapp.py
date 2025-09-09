@@ -340,6 +340,7 @@ class ChatRequest(BaseModel):
     max_results: int = Field(default=3, description="Max retrieved documents", le=10, ge=1)
     similarity_threshold: float = Field(default=0.3, description="Similarity threshold", ge=0.1, le=0.9)
     model: Optional[str] = Field(default=None, description="Model to use (optional)")
+    language: str = Field(default="en", description="Response language (en/tr)") 
 
 class FeedbackRequest(BaseModel):
     question: str
@@ -737,7 +738,8 @@ async def _chat_with_openai_logic(question: str,
                                   max_results: int,
                                   similarity_threshold: float,
                                   model: Optional[str],
-                                  airline_preference: Optional[str] = None):
+                                  airline_preference: Optional[str] = None,
+                                  language: str = "en"):
     """Simplified OpenAI chat logic"""
     if not openai_service:
         raise HTTPException(status_code=503, detail="OpenAI service not available")
@@ -756,7 +758,7 @@ async def _chat_with_openai_logic(question: str,
         retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold,airline_preference)
         
         # Step 2: Generate response
-        openai_response = openai_service.generate_rag_response(retrieved_docs, enhanced_question, model)
+        openai_response = openai_service.generate_rag_response(retrieved_docs, enhanced_question, model, language)
         
         if not openai_response["success"]:
             duration = time.time() - start_time
@@ -786,7 +788,8 @@ async def _chat_with_openai_logic(question: str,
             "performance": {
                 "response_time": round(duration, 3),
                 "cost": usage.get("estimated_cost", 0.0)
-            }
+            },
+            "language": language
         }
         
         logger.info(f"OpenAI response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
@@ -804,7 +807,8 @@ async def _chat_with_claude_logic(question: str,
                                   max_results: int,
                                   similarity_threshold: float,
                                   model: Optional[str],
-                                  airline_preference: Optional[str] = None):
+                                  airline_preference: Optional[str] = None,
+                                  language: str = "en"):
     """Simplified Claude chat logic"""
     if not claude_service:
         raise HTTPException(status_code=503, detail="Claude service not available")
@@ -828,7 +832,7 @@ async def _chat_with_claude_logic(question: str,
         )
         
         # Step 2: Generate response
-        claude_response = claude_service.generate_rag_response(retrieved_docs, enhanced_question, model)
+        claude_response = claude_service.generate_rag_response(retrieved_docs, enhanced_question, model, language)
         
         if not claude_response["success"]:
             duration = time.time() - start_time
@@ -854,11 +858,12 @@ async def _chat_with_claude_logic(question: str,
             "airline_preference": airline_preference,  # NEW: Include preference in response
             "sources": prepare_retrieved_docs_preview(retrieved_docs),
             "stats": calculate_retrieval_stats(retrieved_docs),
-            "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),  # NEW
+            "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
                 "response_time": round(duration, 3),
                 "cost": usage.get("estimated_cost", 0.0)
-            }
+            },
+            "language": language
         }
         
         logger.info(f"Claude response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
@@ -880,7 +885,8 @@ async def openai_chat_post(
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
-    model: Optional[str] = Query(None, description="Model to use (optional)")
+    model: Optional[str] = Query(None, description="Model to use (optional)"),
+    language: Optional[str] = Query("en", description="Response language (en/tr)")
 ):
     """RAG Chat with OpenAI (POST method)"""
     
@@ -890,7 +896,8 @@ async def openai_chat_post(
             chat_request.max_results,
             chat_request.similarity_threshold,
             chat_request.model,
-            chat_request.airline_preference
+            chat_request.airline_preference,
+            chat_request.language
         )
     elif question:
         return await _chat_with_openai_logic(
@@ -898,7 +905,8 @@ async def openai_chat_post(
             max_results or 3,
             similarity_threshold or 0.3,
             model,
-            airline_preference
+            airline_preference,
+            language or "en"
         )
     else:
         raise HTTPException(
@@ -912,10 +920,11 @@ async def openai_chat_get(
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
-    model: Optional[str] = Query(None, description="Model to use (optional)")
+    model: Optional[str] = Query(None, description="Model to use (optional)"),
+    language: str = Query("en", description="Response language (en/tr)")
 ):
     """RAG Chat with OpenAI (GET method)"""
-    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model, airline_preference)
+    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model, airline_preference,language)
 
 @app.post("/chat/claude")
 async def claude_chat_post(
@@ -924,7 +933,8 @@ async def claude_chat_post(
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
-    model: Optional[str] = Query(None, description="Model to use (optional)")
+    model: Optional[str] = Query(None, description="Model to use (optional)"),
+    language: str = Query("en", description="Response language (en/tr)")  # BU PARAMETRE EKLENDI
 ):
     """RAG Chat with Claude (POST method)"""
     
@@ -934,7 +944,8 @@ async def claude_chat_post(
             chat_request.max_results,
             chat_request.similarity_threshold,
             chat_request.model,
-            chat_request.airline_preference
+            chat_request.airline_preference,
+            chat_request.language
         )
     elif question:
         return await _chat_with_claude_logic(
@@ -942,7 +953,8 @@ async def claude_chat_post(
             max_results or 3,
             similarity_threshold or 0.3,
             model,
-            airline_preference
+            airline_preference,
+            language or "en"
         )
     else:
         raise HTTPException(
@@ -956,10 +968,11 @@ async def claude_chat_get(
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
     max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
-    model: Optional[str] = Query(None, description="Model to use (optional)")
+    model: Optional[str] = Query(None, description="Model to use (optional)"),
+    language: str = Query("en", description="Response language (en/tr)")
 ):
     """RAG Chat with Claude (GET method)"""
-    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model, airline_preference)
+    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model, airline_preference,language)
 
 # SIMPLIFIED FEEDBACK ENDPOINT
 @app.post("/feedback")

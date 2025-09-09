@@ -1,3 +1,5 @@
+# claude_service.py - FIXED VERSION
+
 import anthropic
 from typing import List, Dict, Optional
 import logging
@@ -8,26 +10,64 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class ClaudeService:
-    """Claude service for RAG responses"""
+    """Claude service for RAG responses - FIXED VERSION"""
     
     def __init__(self):
         """Initialize Claude client"""
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
-            logger.warning("ANTHROPIC_API_KEY not found - ANTHROPIC features will be limited")
+            logger.warning("ANTHROPIC_API_KEY not found - Claude features will be limited")
             self.client = None
         else:
             try:
                 self.client = anthropic.Anthropic(api_key=api_key)
-                logger.info("âœ… Claude service initialized successfully")
+                logger.info("✅ Claude service initialized successfully")
             except Exception as e:
-                logger.error(f"âŒ Claude initialization failed: {e}")
+                logger.error(f"❌ Claude initialization failed: {e}")
                 self.client = None
         
         # Configuration
         self.default_model = 'claude-3-haiku-20240307'
         self.max_tokens = 400
         self.temperature = 0.2
+
+        # FIXED: Better Turkish prompts
+        self.LANGUAGE_PROMPTS = {
+            "tr": {
+                "system_instruction": """Sen uzman bir havayolu müşteri hizmetleri asistanısın. 
+MUTLAKA Türkçe yanıt ver. Doğal, akıcı ve anlaşılır Türkçe kullan.
+Havayolu politikaları konusunda doğru ve faydalı bilgiler ver.
+Verilen politika belgeleri İngilizce olsa bile, yanıtını kesinlikle Türkçe yap.
+Müşteriye saygılı ve yardımsever bir şekilde yaklaş.""",
+                "context_prefix": "Havayolu Politika Belgeleri:",
+                "question_prefix": "Müşteri Sorusu:",
+                "instruction": "Yukarıdaki politika belgelerine dayanarak soruyu Türkçe yanıtla:"
+            },
+            "en": {
+                "system_instruction": """You are a professional airline customer service assistant.
+Answer ONLY in English. Provide clear and helpful responses about airline policies.""",
+                "context_prefix": "Airline Policy Documents:",
+                "question_prefix": "Customer Question:",
+                "instruction": "Please answer the question based on the policy documents above:"
+            }
+        }
+    
+    def _get_error_response(self, language: str = "en", error_msg: str = "") -> Dict:
+        """Get language-specific error response"""
+        error_messages = {
+            "tr": f"Üzgünüm, şu anda talebinizi işleyemiyorum. Lütfen tekrar deneyin. Hata: {error_msg}",
+            "en": f"I apologize, but I'm having trouble processing your request right now. Error: {error_msg}"
+        }
+        
+        return {
+            "success": False,
+            "error": error_msg,
+            "answer": error_messages.get(language, error_messages["en"]),
+            "model_used": "none",
+            "language": language,
+            "context_used": False,
+            "usage": {}
+        }
 
     def test_connection(self) -> Dict:
         """Test Claude API connection"""
@@ -55,56 +95,62 @@ class ClaudeService:
                 "message": f"Claude API error: {str(e)}"
             }
 
-    def generate_rag_response(self, retrieved_docs: List[Dict], question: str, model: str = None) -> Dict:
-        """Generate RAG response using Claude"""
+    def generate_rag_response(self, retrieved_docs: List[Dict], question: str,
+                              model: str = None, language: str = "en") -> Dict:
+        """Generate RAG response using Claude - FIXED VERSION"""
         
         if not self.client:
-            return {
-                "success": False,
-                "error": "Claude client not available",
-                "answer": "Anthropic API key not configured. Please set CLAUDE_API_KEY environment variable.",
-                "model_used": "none",
-                "context_used": False,
-                "usage": {}
-            }
+            return self._get_error_response(language)
         
         try:
             # Use provided model or default
             model_to_use = model or self.default_model
+
+            lang_config = self.LANGUAGE_PROMPTS.get(language, self.LANGUAGE_PROMPTS["en"])
             
             # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
                 for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
-                    context_parts.append(f"""
-                    Document {i} (Source: {doc.get('source', 'Unknown')}):
-                    {doc.get('content', '')[:500]}...
-                    """)
+                    airline_info = doc.get('airline', 'Bilinmiyor' if language == 'tr' else 'Unknown')
+                    source = doc.get('source', 'Bilinmiyor' if language == 'tr' else 'Unknown')
+                    content = doc.get('content', '')[:600]  # More content for Claude
+                    
+                    if language == 'tr':
+                        context_parts.append(f"""
+Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
+{content}...
+""")
+                    else:
+                        context_parts.append(f"""
+Document {i} (Source: {source} - Airline: {airline_info}):
+{content}...
+""")
+                        
                 context = "\n".join(context_parts)
                 context_used = True
             else:
-                context = "No specific policy documents found."
+                no_doc_messages = {
+                    "tr": "İlgili politika belgesi bulunamadı.",
+                    "en": "No specific policy documents found."
+                }
+                context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
-            # Create system prompt
-            system_prompt = """You are a helpful airlines customer service assistant. 
-                               Answer questions about policies clearly and accurately based on the provided context.
-                               If no relevant context is provided, politely indicate that you don't have specific policy information."""
+            # Create user prompt
+            user_prompt = f"""{lang_config['context_prefix']}
+{context}
+
+{lang_config['question_prefix']} {question}
+
+{lang_config['instruction']}"""
             
-            # Create user prompt with context
-            user_prompt = f"""Context from airlines policies:
-                              {context}
-                              
-                              Customer Question: {question}
-                              
-                              Please provide a helpful and accurate answer based on the context above."""
-            
-            # Generate response
+            # FIXED: Use correct Claude API
             response = self.client.messages.create(
                 model=model_to_use,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
-                system=system_prompt,
+                system=lang_config["system_instruction"],
                 messages=[
                     {"role": "user", "content": user_prompt}
                 ]
@@ -120,22 +166,16 @@ class ClaudeService:
             
             return {
                 "success": True,
-                "answer": response.content[0].text,
+                "answer": response.content[0].text,  # FIXED: Correct Claude response format
                 "model_used": model_to_use,
+                "language": language,
                 "context_used": context_used,
                 "usage": usage_info
             }
             
         except Exception as e:
-            logger.error(f"âŒ Claude RAG generation error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "answer": f"I apologize, but I'm having trouble processing your request right now. Error: {str(e)}",
-                "model_used": model_to_use if 'model_to_use' in locals() else "unknown",
-                "context_used": False,
-                "usage": {}
-            }
+            logger.error(f"❌ Claude RAG generation error: {e}")
+            return self._get_error_response(language, str(e))
     
     def get_available_models(self) -> List[str]:
         """Get list of Claude models with CORRECT API names (ordered by capability)"""

@@ -29,6 +29,24 @@ class OpenAIService:
         self.max_tokens = 400
         self.temperature = 0.2
 
+        self.LANGUAGE_PROMPTS = {
+            "tr": {
+                "system_instruction": """Sen profesyonel bir havayolu müşteri hizmetleri asistanısın. 
+                Yanıtlarını SADECE Türkçe ver. Havayolu politakaları hakkında doğal, akıcı ve anlaşılır yanıtlar oluştur.
+                Verilen belgeler İngilizce olsa bile, yanıtını Türkçe yap.""",
+                "context_prefix": "Havayolu Politika Belgeleri:",
+                "question_prefix": "Müşteri Sorusu:",
+                "instruction": "Yukarıdaki politika belgelerine dayanarak soruyu Türkçe yanıtla:"
+            },
+            "en": {
+                "system_instruction": """You are a professional airline customer service assistant.
+                Answer ONLY in English. Provide clear and helpful responses about airline policies.""",
+                "context_prefix": "Airline Policy Documents:",
+                "question_prefix": "Customer Question:",
+                "instruction": "Please answer the question based on the policy documents above:"
+            }
+        }
+
     def test_connection(self) -> Dict:
         """Test OpenAI API connection"""
         if not self.client:
@@ -54,56 +72,70 @@ class OpenAIService:
                 "success": False,
                 "message": f"OpenAI API error: {str(e)}"
             }
+    def _get_error_response(self, language: str = "en", error_msg: str = "") -> Dict:
+        """Get language-specific error response"""
+        error_messages = {
+            "tr": f"Üzgünüm, şu anda talebinizi işleyemiyorum. Lütfen tekrar deneyin. Hata: {error_msg}",
+            "en": f"I apologize, but I'm having trouble processing your request right now. Error: {error_msg}"
+        }
+        
+        return {
+            "success": False,
+            "error": error_msg,
+            "answer": error_messages.get(language, error_messages["en"]),
+            "model_used": "none",
+            "language": language,
+            "context_used": False,
+            "usage": {}
+        }
 
-    def generate_rag_response(self, retrieved_docs: List[Dict], question: str, model: str = None) -> Dict:
+    def generate_rag_response(self, retrieved_docs: List[Dict], question: str, 
+                              model: str = None, language:str="en") -> Dict:
         """Generate RAG response using OpenAI"""
         
         if not self.client:
-            return {
-                "success": False,
-                "error": "OpenAI client not available",
-                "answer": "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.",
-                "model_used": "none",
-                "context_used": False,
-                "usage": {}
-            }
+            return self._get_error_response(language)
         
         try:
             # Use provided model or default
             model_to_use = model or self.default_model
+
+            lang_config = self.LANGUAGE_PROMPTS.get(language, self.LANGUAGE_PROMPTS["en"])
             
             # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
                 for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
-                    context_parts.append(f"""
-                                            Document {i} (Source: {doc.get('source', 'Unknown')}):
-                                            {doc.get('content', '')[:500]}...
-                                            """)
+                    airline_info = doc.get('airline', 'Bilinmeyen' if language == 'tr' else 'Unknown')
+                    source = doc.get('source', 'Bilinmeyen' if language == 'tr' else 'Unknown')
+                    content = doc.get('content', '')[:600]  # More content for Claude
+                    
+                    if language == 'tr':
+                        context_parts.append(f"""Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
+                                                {content}...""")
+                    else:
+                        context_parts.append(f"""Document {i} (Source: {source} - Airline: {airline_info}):
+                                                {content}...""")
+                        
                 context = "\n".join(context_parts)
                 context_used = True
             else:
-                context = "No specific policy documents found."
+                no_doc_messages = {
+                    "tr": "İlgili politika belgesi bulunamadı.",
+                    "en": "No specific policy documents found."
+                }
+                context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
-            # Create system prompt
-            system_prompt = """You are a helpful airlines customer service assistant. 
-                                Answer questions about policies clearly and accurately based on the provided context.
-                                If no relevant context is provided, politely indicate that you don't have specific policy information."""
             
             # Create user prompt
-            user_prompt = f"""Context from airlines policies:
-                            {context}
-
-                            Customer Question: {question}
-
-                            Please provide a helpful and accurate answer based on the context above."""
+            user_prompt = f"""{context} {lang_config['question_prefix']} {question} {lang_config['instruction']}"""
                                         
             # Generate response
             response = self.client.chat.completions.create(
                 model=model_to_use,
                 messages=[
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": lang_config["system_instruction"]},
                     {"role": "user", "content": user_prompt}
                 ],
                 max_tokens=self.max_tokens,
@@ -122,20 +154,14 @@ class OpenAIService:
                 "success": True,
                 "answer": response.choices[0].message.content,
                 "model_used": model_to_use,
+                "language" : language,
                 "context_used": context_used,
                 "usage": usage_info
             }
             
         except Exception as e:
-            logger.error(f"âŒ OpenAI RAG generation error: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "answer": f"I apologize, but I'm having trouble processing your request right now. Error: {str(e)}",
-                "model_used": model_to_use if 'model_to_use' in locals() else "unknown",
-                "context_used": False,
-                "usage": {}
-            }
+            logger.error(f"❌ OpenAI RAG generation error: {e}")
+            return self._get_error_response(language, str(e))
     
     def _estimate_cost(self, usage, model: str) -> float:
         """Estimate cost based on token usage"""

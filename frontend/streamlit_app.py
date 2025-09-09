@@ -1,3 +1,5 @@
+# streamlit_app.py - Complete Multilingual Version - FIXED
+
 from typing import Optional
 import streamlit as st
 import requests
@@ -15,10 +17,170 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Enhanced CSS with beautiful animations and effects
+# MULTILINGUAL SUPPORT - Translation Dictionary
+TRANSLATIONS = {
+    "en": {
+        "title": "Airline Policy Assistant",
+        "subtitle": "Get instant answers about airline policies powered by AI",
+        "ask_question": "Ask Your Question",
+        "question_placeholder": "What would you like to know about airline policies?",
+        "choose_provider": "Choose Provider:",
+        "choose_model": "Model:",
+        "choose_airline": "Choose Airlines",
+        "all_airlines": "All Airlines",
+        "turkish_airlines_only": "Turkish Airlines Only", 
+        "pegasus_only": "Pegasus Airlines Only",
+        "ask_button": "Ask",
+        "recent_conversations": "Recent Conversations",
+        "popular_questions": "Popular Questions",
+        "baggage_policies": "Baggage Policies",
+        "pet_travel": "Pet Travel",
+        "special_items": "Special Items", 
+        "passenger_rights": "Passenger Rights",
+        "feedback": "Feedback",
+        "helpful": "👍 Helpful",
+        "not_helpful": "👎 Not Helpful",
+        "too_slow": "⏱️ Too Slow",
+        "wrong_info": "❌ Wrong Info",
+        "session_stats": "Session Stats",
+        "total_queries": "Total Queries",
+        "satisfaction": "Satisfaction", 
+        "clear_history": "🗑️ Clear All History",
+        "api_connected": "⚡ API Connected",
+        "api_failed": "❌ API Connection Failed",
+        "reconnect": "🔄 Reconnect",
+        "analyzing": "is analyzing airline policies...",
+        "analysis_complete": "✅ Analysis complete!",
+        "connection_lost": "Connection lost",
+        "request_timeout": "Request timeout",
+        "welcome_message": "Welcome to AI Assistant!",
+        "welcome_description": "Ask your first question about airline policies above.",
+        "features": "Features:",
+        "smart_search": "✅ Smart Policy Search",
+        "fast_response": "⚡ Fast Response Times", 
+        "quality_tracking": "📊 Quality Tracking",
+        "satisfaction_tracking": "🎯 User Satisfaction",
+        "language_selector": "Language:",
+        "excess_baggage_comparison": "Excess baggage fees comparison",
+        "thy_vs_pegasus": "Turkish Airlines vs Pegasus",
+        "carryon_limits": "Carry-on size limits", 
+        "international_requirements": "International flight requirements",
+        "pet_requirements": "Pet travel requirements",
+        "docs_and_carriers": "Documents and carrier rules",
+        "breed_restrictions": "Breed restrictions",
+        "allowed_pets": "Which pets are allowed",
+        "instrument_transport": "Musical instrument transport",
+        "size_limits_handling": "Size limits and special handling",
+        "sports_equipment": "Sports equipment rules",
+        "golf_skiing_etc": "Golf clubs, skiing gear etc.",
+        "delay_compensation": "Flight delay compensation", 
+        "turkish_policies": "Turkish airline policies",
+        "cancellation_rights": "Cancellation rights",
+        "refund_rebooking": "Refund and rebooking options",
+        "sources": "Sources:",
+        "sources_retrieved": "Sources Retrieved",
+        "avg_similarity": "Avg Similarity", 
+        "context_quality": "Context Quality",
+        "session_id": "Session ID:",
+        "you_found_helpful": "✅ You found this helpful",
+        "you_marked_not_helpful": "⚠️ You marked this as not helpful",
+        "you_reported_slow": "⏱️ You reported this was too slow", 
+        "you_reported_incorrect": "❌ You reported incorrect information",
+        "feedback_recorded": "Feedback recorded",
+        "thanks_feedback": "Thanks for your feedback!",
+        "thanks_review": "Thanks, we'll review this!",
+        "work_on_speed": "We'll work on speed!",
+        "airline_focus_thy": "🇹🇷 Turkish Airlines Focus - Queries will prioritize Turkish Airlines policies",
+        "airline_focus_pegasus": "✈️ Pegasus Airlines Focus - Queries will prioritize Pegasus Airlines policies",
+        "airline_focus_all": "🌍 All Airlines - Queries will search across all available airline policies"
+    },
+    "tr": {
+        "title": "Havayolu Politika Asistanı", 
+        "subtitle": "Yapay zeka destekli havayolu politikaları danışmanınız",
+        "ask_question": "Sorunuzu Sorun",
+        "question_placeholder": "Havayolu politikaları hakkında merak ettiklerinizi yazın...",
+        "choose_provider": "AI Sağlayıcısı Seçin:",
+        "choose_model": "Model:",
+        "choose_airline": "Havayolu Seçin",
+        "all_airlines": "Tüm Havayolları",
+        "turkish_airlines_only": "Sadece Türk Hava Yolları",
+        "pegasus_only": "Sadece Pegasus Hava Yolları", 
+        "ask_button": "AI Asistanına Sor",
+        "recent_conversations": "Son Konuşmalar",
+        "popular_questions": "💡 Popüler Sorular", 
+        "baggage_policies": "✈️ Bagaj Politikaları",
+        "pet_travel": "🐕 Evcil Hayvan Seyahati",
+        "special_items": "🎵 Özel Eşyalar",
+        "passenger_rights": "⚖️ Yolcu Hakları",
+        "feedback": "📝 Geri Bildirim",
+        "helpful": "👍 Yardımcı Oldu",
+        "not_helpful": "👎 Yardımcı Olmadı",
+        "too_slow": "⏱️ Çok Yavaş", 
+        "wrong_info": "❌ Yanlış Bilgi",
+        "session_stats": "📊 Oturum İstatistikleri",
+        "total_queries": "Toplam Sorgu",
+        "satisfaction": "Memnuniyet",
+        "clear_history": "🗑️ Geçmişi Temizle",
+        "api_connected": "⚡ API Bağlandı",
+        "api_failed": "❌ API Bağlantısı Başarısız",
+        "reconnect": "🔄 Yeniden Bağlan",
+        "analyzing": "havayolu politikalarını analiz ediyor...",
+        "analysis_complete": "✅ Analiz tamamlandı!",
+        "connection_lost": "Bağlantı kesildi", 
+        "request_timeout": "İstek zaman aşımı",
+        "welcome_message": "Havayolu Politikaları AI Asistanına Hoş Geldiniz!",
+        "welcome_description": "Yukarıdan havayolu politikaları hakkında ilk sorunuzu sorun.",
+        "features": "Özellikler:",
+        "smart_search": "✅ Akıllı Politika Arama",
+        "fast_response": "⚡ Hızlı Yanıt Süreleri",
+        "quality_tracking": "📊 Kalite Takibi", 
+        "satisfaction_tracking": "🎯 Memnuniyet Takibi",
+        "language_selector": "Dil:",
+        "excess_baggage_comparison": "Fazla bagaj ücretleri karşılaştırması",
+        "thy_vs_pegasus": "THY vs Pegasus karşılaştırması",
+        "carryon_limits": "El bagajı boyut sınırları",
+        "international_requirements": "Uluslararası uçuş gereksinimleri",
+        "pet_requirements": "Evcil hayvan seyahat gereksinimleri",
+        "docs_and_carriers": "Belgeler ve taşıyıcı kuralları",
+        "breed_restrictions": "Cins kısıtlamaları", 
+        "allowed_pets": "Hangi hayvanlar izinli",
+        "instrument_transport": "Müzik aleti taşıma",
+        "size_limits_handling": "Boyut sınırları ve özel işlemler",
+        "sports_equipment": "Spor malzemesi kuralları",
+        "golf_skiing_etc": "Golf sopası, kayak ekipmanı vb.",
+        "delay_compensation": "Uçuş gecikme tazminatı",
+        "turkish_policies": "Türk havayolu politikaları",
+        "cancellation_rights": "İptal hakları",
+        "refund_rebooking": "İade ve yeniden rezervasyon seçenekleri",
+        "sources": "Kaynaklar:",
+        "sources_retrieved": "Bulunan Kaynak",
+        "avg_similarity": "Ort. Benzerlik",
+        "context_quality": "İçerik Kalitesi", 
+        "session_id": "Oturum ID:",
+        "you_found_helpful": "✅ Bu yanıtın yardımcı olduğunu belirttiniz",
+        "you_marked_not_helpful": "⚠️ Bu yanıtın yardımcı olmadığını belirttiniz",
+        "you_reported_slow": "⏱️ Bu yanıtın çok yavaş olduğunu belirttiniz",
+        "you_reported_incorrect": "❌ Yanlış bilgi olduğunu bildirdiniz",
+        "feedback_recorded": "Geri bildirim kaydedildi",
+        "thanks_feedback": "Geri bildiriminiz için teşekkürler!",
+        "thanks_review": "Teşekkürler, bu durumu inceleyeceğiz!", 
+        "work_on_speed": "Hızda iyileştirme için çalışacağız!",
+        "airline_focus_thy": "🇹🇷 Türk Hava Yolları Odağı - Sorgular THY politikalarını önceleyecek",
+        "airline_focus_pegasus": "✈️ Pegasus Hava Yolları Odağı - Sorgular Pegasus politikalarını önceleyecek", 
+        "airline_focus_all": "🌍 Tüm Havayolları - Sorgular mevcut tüm havayolu politikalarında arama yapacak"
+    }
+}
+
+def get_text(key: str, lang: str = None) -> str:
+    """Get translated text with proper error handling"""
+    if lang is None:
+        lang = st.session_state.get('language', 'en')
+    return TRANSLATIONS.get(lang, {}).get(key, key)
+
+# Enhanced CSS with language selector support
 st.markdown("""
 <style>
-    /* Enhanced page background - fixed for full page coverage */
+    /* Enhanced page background */
     .stApp {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
     }
@@ -34,42 +196,41 @@ st.markdown("""
         position: relative;
     }
     
-    /* Body background fix for scroll */
-    body {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
-    }
-    
-    /* Animated background pattern that covers entire viewport */
-    html, body, .stApp, [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
-        background-attachment: fixed !important;
-    }
-    
-    .main > div::before {
-        content: '';
+    /* Language selector styling */
+    .language-selector {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: 
-            radial-gradient(circle at 25% 25%, rgba(102, 126, 234, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, rgba(118, 75, 162, 0.05) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 25%);
-        background-size: 100px 100px, 150px 150px, 80px 80px;
-        background-position: 0 0, 50px 50px, 25px 25px;
-        animation: backgroundMove 20s ease-in-out infinite;
-        pointer-events: none;
-        z-index: -1;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 0.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
-    @keyframes backgroundMove {
-        0%, 100% { transform: translateY(0px) translateX(0px); }
-        33% { transform: translateY(-10px) translateX(10px); }
-        66% { transform: translateY(10px) translateX(-5px); }
+    .language-flag {
+        font-size: 1.5rem;
+        margin: 0 0.25rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: inline-block;
     }
     
-    /* Advanced hero header with multiple animation layers */
+    .language-flag:hover {
+        background: rgba(102, 126, 234, 0.1);
+        transform: scale(1.1);
+    }
+    
+    .language-flag.active {
+        background: rgba(102, 126, 234, 0.2);
+        transform: scale(1.05);
+    }
+    
+    /* Hero header with language support */
     .hero-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
         padding: 3rem 2rem;
@@ -87,8 +248,25 @@ st.markdown("""
         animation: gradientShift 8s ease infinite;
     }
     
+    .hero-header-tr {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 50%, #e74c3c 100%);
+        padding: 3rem 2rem;
+        border-radius: 25px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 
+            0 20px 40px rgba(231, 76, 60, 0.3),
+            0 10px 20px rgba(192, 57, 43, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        position: relative;
+        overflow: hidden;
+        background-size: 200% 200%;
+        animation: gradientShift 8s ease infinite;
+    }
+    
     /* Floating particles animation in hero */
-    .hero-header::before {
+    .hero-header::before, .hero-header-tr::before {
         content: '';
         position: absolute;
         top: -50%;
@@ -105,7 +283,7 @@ st.markdown("""
         pointer-events: none;
     }
     
-    .hero-header h1 {
+    .hero-header h1, .hero-header-tr h1 {
         margin: 0;
         font-size: 3rem;
         font-weight: 800;
@@ -117,7 +295,7 @@ st.markdown("""
         z-index: 2;
     }
     
-    .hero-header p {
+    .hero-header p, .hero-header-tr p {
         margin: 1rem 0 0 0;
         font-size: 1.3rem;
         opacity: 0.95;
@@ -191,7 +369,7 @@ st.markdown("""
         border: 1px solid #f5c6cb;
     }
     
-    /* Simplified feedback section */
+    /* Feedback section */
     .feedback-section {
         background: rgba(255, 255, 255, 0.7);
         border-radius: 15px;
@@ -223,19 +401,6 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* Sidebar sections */
-    .sidebar-section {
-        margin: 1rem 0;
-        padding: 1rem 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    .sidebar-section h4 {
-        color: #495057;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-    
     /* Session info */
     .session-info {
         background: rgba(102, 126, 234, 0.1);
@@ -247,18 +412,118 @@ st.markdown("""
         color: #4a5568;
         border-left: 3px solid #667eea;
     }
+    
+    .session-info-tr {
+        background: rgba(231, 76, 60, 0.1);
+        border-left: 3px solid #e74c3c;
+    }
+    
+    /* Hidden button styles */
+    .lang-button-hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-AIRLINE_MAPPING = {
-    "All Airlines": None,
-    "Turkish Airlines Only": "turkish_airlines",
-    "Pegasus Airlines Only": "pegasus"
+# Multilingual quick questions
+QUICK_QUESTIONS = {
+    "en": {
+        "Baggage Policies": [
+            {"title": "Excess baggage fees comparison", "desc": "Turkish Airlines vs Pegasus"},
+            {"title": "Carry-on size limits", "desc": "International flight requirements"}
+        ],
+        "Pet Travel": [
+            {"title": "Pet travel requirements", "desc": "Documents and carrier rules"},
+            {"title": "Breed restrictions", "desc": "Which pets are allowed"}
+        ],
+        "Special Items": [
+            {"title": "Musical instrument transport", "desc": "Size limits and special handling"},
+            {"title": "Sports equipment rules", "desc": "Golf clubs, skiing gear etc."}
+        ],
+        "Passenger Rights": [
+            {"title": "Flight delay compensation", "desc": "Turkish airline policies"},
+            {"title": "Cancellation rights", "desc": "Refund and rebooking options"}
+        ]
+    },
+    "tr": {
+        "Bagaj Politikaları": [
+            {"title": "Fazla bagaj ücretleri karşılaştırması", "desc": "THY vs Pegasus karşılaştırması"},
+            {"title": "El bagajı boyut sınırları", "desc": "Uluslararası uçuş gereksinimleri"}
+        ],
+        "Evcil Hayvan Seyahati": [
+            {"title": "Evcil hayvan seyahat gereksinimleri", "desc": "Belgeler ve taşıyıcı kuralları"},
+            {"title": "Cins kısıtlamaları", "desc": "Hangi hayvanlar izinli"}
+        ],
+        "Özel Eşyalar": [
+            {"title": "Müzik aleti taşıma", "desc": "Boyut sınırları ve özel işlemler"},
+            {"title": "Spor malzemesi kuralları", "desc": "Golf sopası, kayak ekipmanı vb."}
+        ],
+        "Yolcu Hakları": [
+            {"title": "Uçuş gecikme tazminatı", "desc": "Türk havayolu politikaları"},
+            {"title": "İptal hakları", "desc": "İade ve yeniden rezervasyon seçenekleri"}
+        ]
+    }
 }
 
-def map_airline_selection(streamlit_selection: str) -> Optional[str]:
-    """Map Streamlit airline selection to API format"""
-    return AIRLINE_MAPPING.get(streamlit_selection)
+# Language-aware airline mapping
+def get_airline_mapping():
+    """Get airline mapping based on current language"""
+    try:
+        lang = st.session_state.get('language', 'en')
+        return {
+            get_text("all_airlines", lang): None,
+            get_text("turkish_airlines_only", lang): "turkish_airlines",
+            get_text("pegasus_only", lang): "pegasus"
+        }
+    except:
+        # Fallback mapping
+        return {
+            "All Airlines": None,
+            "Turkish Airlines Only": "turkish_airlines", 
+            "Pegasus Airlines Only": "pegasus",
+            "Tüm Havayolları": None,
+            "Sadece Türk Hava Yolları": "turkish_airlines",
+            "Sadece Pegasus Hava Yolları": "pegasus"
+        }
+
+def display_language_selector():
+    """Display language selector - Simple and functional approach"""
+    current_lang = st.session_state.get('language', 'en')
+    
+    # Simple header with language buttons
+    col1, col2, col3 = st.columns([4, 1, 1])
+    
+    with col1:
+        st.markdown("### " + get_text('language_selector'))
+    
+    with col2:
+        if st.button("🇺🇸 EN", key="lang_en_btn", 
+                    type="primary" if current_lang == 'en' else "secondary"):
+            st.session_state.language = 'en'
+            # Update airline selection to match new language
+            if 'selected_airline' in st.session_state:
+                airline_mapping = get_airline_mapping()
+                st.session_state.selected_airline = list(airline_mapping.keys())[0]
+            st.rerun()
+    
+    with col3:
+        if st.button("🇹🇷 TR", key="lang_tr_btn",
+                    type="primary" if current_lang == 'tr' else "secondary"):
+            st.session_state.language = 'tr'
+            # Update airline selection to match new language
+            if 'selected_airline' in st.session_state:
+                airline_mapping = get_airline_mapping()
+                st.session_state.selected_airline = list(airline_mapping.keys())[0]
+            st.rerun()
+    
+    st.markdown("---")  # Separator
 
 # API Configuration with caching
 @st.cache_data(ttl=30)
@@ -315,51 +580,69 @@ def find_working_api():
         "tested_urls": urls
     }
 
-# Session state initialization
+# FIXED Session state initialization with language support
 def init_session_state():
+    """Initialize session state with proper error handling"""
     defaults = {
         'chat_history': [],
         'api_connection': None,
         'api_url': None,
         'selected_model': 'gpt-3.5-turbo',
         'selected_provider': 'OpenAI',
-        'selected_airline': 'All Airlines',
+        'selected_airline': '',  # Will be set after language is determined
         'current_question': '',
         'show_advanced': False,
         'feedback_given': {},
-        'session_tracking': {}
+        'session_tracking': {},
+        'language': 'en'  # Default language is English
     }
     
+    # Initialize all defaults first
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+    
+    # Set default airline selection based on language - FIXED LOGIC
+    if st.session_state.get('selected_airline') is None:
+        try:
+            # Get airline mapping safely
+            airline_mapping = get_airline_mapping()
+            # Set to first airline option (All Airlines)
+            st.session_state.selected_airline = list(airline_mapping.keys())[0]
+        except Exception as e:
+            # Ultimate fallback
+            lang = st.session_state.get('language', 'en')
+            fallback = "All Airlines" if lang == 'en' else "Tüm Havayolları"
+            st.session_state.selected_airline = fallback
 
 def display_hero_header():
-    """Clean hero header"""
-    st.markdown("""
-    <div class="hero-header">
-        <h1>✈️ Airline Policy Assistant</h1>
-        <p>Get instant answers about airline policies powered by AI</p>
+    """Language-aware hero header"""
+    lang = st.session_state.get('language', 'en')
+    header_class = "hero-header-tr" if lang == 'tr' else "hero-header"
+    
+    st.markdown(f"""
+    <div class="{header_class}">
+        <h1>✈️ {get_text('title')}</h1>
+        <p>{get_text('subtitle')}</p>
     </div>
     """, unsafe_allow_html=True)
 
 def display_question_input():
-    """Clean question input area"""
-    st.markdown("### Ask Your Question")
+    """Language-aware question input area"""
+    st.markdown(f"### {get_text('ask_question')}")
     
     question = st.text_area(
         "",
         value=st.session_state.get('current_question', ''),
-        placeholder="What would you like to know about airline policies?",
+        placeholder=get_text('question_placeholder'),
         height=100,
         key="question_input",
         label_visibility="collapsed"
     )
     
-    
-
+    provider = st.session_state.selected_provider
     ask_clicked = st.button(
-        f"Ask {st.session_state.selected_provider}", 
+        f"{get_text('ask_button')} {provider}", 
         type="primary", 
         use_container_width=True,
         disabled=not question.strip()
@@ -368,22 +651,24 @@ def display_question_input():
     return ask_clicked, question
 
 def handle_question_optimized(question, api_url, model, provider, airline_selection):
-    """Simplified question handling"""
+    """Language-aware question handling"""
+    lang = st.session_state.get('language', 'en')
+    
     if not api_url:
         return {"success": False, "error": "No API connection"}
     
-    airline_preference = map_airline_selection(airline_selection)
+    airline_preference = get_airline_mapping().get(airline_selection)
     
     endpoint = f"{api_url}/chat/claude" if provider == "Claude" else f"{api_url}/chat/openai"
     
-    
     try:
-        with st.spinner(f"🤔 {provider} is analyzing airline policies..."):
+        with st.spinner(f"🤖 {provider} {get_text('analyzing')}"):
             params = {
                 "question": question,
                 "max_results": 3,
                 "similarity_threshold": 0.4,
-                "model": model
+                "model": model,
+                "language": lang  # IMPORTANT: Send language parameter
             }
             
             # Add airline preference if specified
@@ -405,7 +690,8 @@ def handle_question_optimized(question, api_url, model, provider, airline_select
                     "stats": data.get("stats", {}),
                     "preference_stats": data.get("preference_stats", {}),
                     "airline_preference": data.get("airline_preference"),
-                    "performance": data.get("performance", {})
+                    "performance": data.get("performance", {}),
+                    "language": data.get("language", lang)
                 }
             else:
                 return {"success": False, "error": data.get("error", "Processing failed")}
@@ -413,12 +699,82 @@ def handle_question_optimized(question, api_url, model, provider, airline_select
             return {"success": False, "error": f"API Error: {response.status_code}"}
     
     except requests.exceptions.Timeout:
-        return {"success": False, "error": "Request timeout (30s)"}
+        return {"success": False, "error": f"{get_text('request_timeout')} (30s)"}
     except requests.exceptions.ConnectionError:
         st.session_state.api_connection = None
-        return {"success": False, "error": "Connection lost"}
+        return {"success": False, "error": get_text('connection_lost')}
     except Exception as e:
         return {"success": False, "error": f"Error: {str(e)[:50]}"}
+
+def display_airline_selection():
+    """Language-aware airline selection"""
+    st.markdown(f"### {get_text('choose_airline')}")
+    
+    try:
+        airline_mapping = get_airline_mapping()
+        airline_options = list(airline_mapping.keys())
+        
+        # Ensure current selection is valid for current language
+        current_selection = st.session_state.get('selected_airline')
+        if current_selection not in airline_options:
+            current_selection = airline_options[0]
+            st.session_state.selected_airline = current_selection
+        
+        selected_airline = st.selectbox(
+            "Select airline focus:",
+            airline_options,
+            index=airline_options.index(current_selection) if current_selection in airline_options else 0,
+            key="airline_selectbox"
+        )
+        
+        st.session_state.selected_airline = selected_airline
+        
+        # Airline feedback with language support
+        if selected_airline in [get_text('turkish_airlines_only'), "Turkish Airlines Only", "Sadece Türk Hava Yolları"]:
+            st.error(get_text('airline_focus_thy'))
+        elif selected_airline in [get_text('pegasus_only'), "Pegasus Airlines Only", "Sadece Pegasus Hava Yolları"]:
+            st.warning(get_text('airline_focus_pegasus'))
+        else:
+            st.success(get_text('airline_focus_all'))
+            
+    except Exception as e:
+        st.error(f"Airline selection error: {e}")
+        # Set fallback
+        lang = st.session_state.get('language', 'en')
+        fallback = "All Airlines" if lang == 'en' else "Tüm Havayolları"
+        st.session_state.selected_airline = fallback
+
+def display_api_status():
+    """Language-aware API status display"""
+    if st.session_state.api_connection is None:
+        st.session_state.api_connection = find_working_api()
+    
+    connection = st.session_state.api_connection
+    
+    if connection["success"]:
+        st.session_state.api_url = connection["url"]
+        models_ready = connection.get("models_ready", False)
+        
+        if models_ready:
+            st.markdown(f"""
+            <div class="status-indicator status-success">
+                {get_text('api_connected')} (Models Ready)
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="status-indicator status-warning">
+                {get_text('api_connected')} (Loading...)
+            </div>
+            """, unsafe_allow_html=True)
+        return True
+    else:
+        st.markdown(f"""
+        <div class="status-indicator status-error">
+            {get_text('api_failed')}: {connection['error']}
+        </div>
+        """, unsafe_allow_html=True)
+        return False
 
 def send_feedback(chat_item, feedback_type):
     """Send user feedback to API"""
@@ -448,25 +804,27 @@ def send_feedback(chat_item, feedback_type):
         st.error(f"Feedback could not be sent: {e}")
 
 def display_chat_history():
-    """Simplified chat history display"""
+    """Language-aware chat history display"""
+    lang = st.session_state.get('language', 'en')
+    
     if not st.session_state.chat_history:
-        st.markdown("""
+        st.markdown(f"""
         <div class="chat-section">
-            <h3>Welcome to AI Assistant!</h3>
-            <p>Ask your first question about airline policies above. Features:</p>
+            <h3>{get_text('welcome_message')}</h3>
+            <p>{get_text('welcome_description')} {get_text('features')}</p>
             <ul>
-                <li>✅ Smart Policy Search</li>
-                <li>⚡ Fast Response Times</li>
-                <li>📊 Quality Tracking</li>
-                <li>🎯 User Satisfaction</li>
+                <li>{get_text('smart_search')}</li>
+                <li>{get_text('fast_response')}</li>
+                <li>{get_text('quality_tracking')}</li>
+                <li>{get_text('satisfaction_tracking')}</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
         return
     
-    st.markdown("""
+    st.markdown(f"""
     <div class="chat-section">
-        <h3>Recent Conversations</h3>
+        <h3>{get_text('recent_conversations')}</h3>
     </div>
     """, unsafe_allow_html=True)
     
@@ -492,18 +850,19 @@ def display_chat_history():
             
             # Session ID info
             if session_id != 'unknown':
+                session_class = "session-info-tr" if lang == 'tr' else "session-info"
                 st.markdown(f"""
-                <div class="session-info">
-                    Session ID: {session_id[:16]}...
+                <div class="{session_class}">
+                    {get_text('session_id')} {session_id[:16]}...
                 </div>
                 """, unsafe_allow_html=True)
             
             st.markdown("---")
             
-            # Simplified Feedback Section
-            st.markdown("""
+            # Language-aware Feedback Section
+            st.markdown(f"""
             <div class="feedback-section">
-                <h4>📝 Feedback</h4>
+                <h4>{get_text('feedback')}</h4>
             </div>
             """, unsafe_allow_html=True)
             
@@ -517,7 +876,7 @@ def display_chat_history():
                 disabled = feedback_given is not None and feedback_given != "helpful"
                 
                 if st.button(
-                    "👍 Helpful", 
+                    get_text('helpful'), 
                     key=f"feedback_{chat_id}_helpful",
                     help="This answer was helpful",
                     type=button_type,
@@ -526,7 +885,7 @@ def display_chat_history():
                     if feedback_given is None:
                         send_feedback(chat, "helpful")
                         st.session_state.feedback_given[chat_id] = "helpful"
-                        st.success("Thanks for your feedback!")
+                        st.success(get_text('thanks_feedback'))
                         st.rerun()
             
             with col2:
@@ -534,7 +893,7 @@ def display_chat_history():
                 disabled = feedback_given is not None and feedback_given != "not_helpful"
                 
                 if st.button(
-                    "👎 Not Helpful", 
+                    get_text('not_helpful'), 
                     key=f"feedback_{chat_id}_not_helpful",
                     help="This answer was not helpful",
                     type=button_type,
@@ -543,7 +902,7 @@ def display_chat_history():
                     if feedback_given is None:
                         send_feedback(chat, "not_helpful")
                         st.session_state.feedback_given[chat_id] = "not_helpful"
-                        st.info("Thanks for your feedback!")
+                        st.info(get_text('thanks_feedback'))
                         st.rerun()
             
             with col3:
@@ -551,7 +910,7 @@ def display_chat_history():
                 disabled = feedback_given is not None and feedback_given != "too_slow"
                 
                 if st.button(
-                    "⏱️ Too Slow", 
+                    get_text('too_slow'), 
                     key=f"feedback_{chat_id}_too_slow",
                     help="Response was too slow",
                     type=button_type,
@@ -560,7 +919,7 @@ def display_chat_history():
                     if feedback_given is None:
                         send_feedback(chat, "too_slow")
                         st.session_state.feedback_given[chat_id] = "too_slow"
-                        st.warning("We'll work on speed!")
+                        st.warning(get_text('work_on_speed'))
                         st.rerun()
             
             with col4:
@@ -568,7 +927,7 @@ def display_chat_history():
                 disabled = feedback_given is not None and feedback_given != "incorrect"
                 
                 if st.button(
-                    "❌ Wrong Info", 
+                    get_text('wrong_info'), 
                     key=f"feedback_{chat_id}_incorrect",
                     help="Information seems incorrect",
                     type=button_type,
@@ -577,33 +936,37 @@ def display_chat_history():
                     if feedback_given is None:
                         send_feedback(chat, "incorrect")
                         st.session_state.feedback_given[chat_id] = "incorrect"
-                        st.error("Thanks, we'll review this!")
+                        st.error(get_text('thanks_review'))
                         st.rerun()
             
             # Show feedback status if given
             if feedback_given:
                 feedback_messages = {
-                    "helpful": "✅ You found this helpful",
-                    "not_helpful": "⚠️ You marked this as not helpful",
-                    "too_slow": "⏱️ You reported this was too slow",
-                    "incorrect": "❌ You reported incorrect information"
+                    "helpful": get_text('you_found_helpful'),
+                    "not_helpful": get_text('you_marked_not_helpful'),
+                    "too_slow": get_text('you_reported_slow'),
+                    "incorrect": get_text('you_reported_incorrect')
                 }
-                st.info(feedback_messages.get(feedback_given, "Feedback recorded"))
+                st.info(feedback_messages.get(feedback_given, get_text('feedback_recorded')))
             
             # Show sources with quality info
             if chat.get('sources'):
-                st.markdown("**Sources:**")
+                st.markdown(f"**{get_text('sources')}**")
                 
                 # Show retrieval quality metrics if available
                 stats = chat.get('stats', {})
                 if stats:
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric("Sources Retrieved", stats.get('total_retrieved', 0))
+                        st.metric(get_text('sources_retrieved'), stats.get('total_retrieved', 0))
                     with col2:
-                        st.metric("Avg Similarity", f"{stats.get('avg_similarity', 0):.1%}")
+                        st.metric(get_text('avg_similarity'), f"{stats.get('avg_similarity', 0):.1%}")
                     with col3:
-                        st.metric("Context Quality", stats.get('context_quality', 'unknown').title())
+                        quality = stats.get('context_quality', 'unknown').title()
+                        if lang == 'tr':
+                            quality_map = {'High': 'Yüksek', 'Medium': 'Orta', 'Low': 'Düşük', 'Unknown': 'Bilinmiyor'}
+                            quality = quality_map.get(quality, quality)
+                        st.metric(get_text('context_quality'), quality)
                 
                 # Show sources
                 for doc in chat['sources'][:3]:
@@ -612,64 +975,25 @@ def display_chat_history():
                     airline_info = doc.get('airline', 'Unknown')
                     st.markdown(f"- **{source}** ({similarity:.1%} match) - {airline_info}")
 
-
-def display_api_status():
-    """Display API connection status"""
-    if st.session_state.api_connection is None:
-        st.session_state.api_connection = find_working_api()
-    
-    connection = st.session_state.api_connection
-    
-    if connection["success"]:
-        st.session_state.api_url = connection["url"]
-        models_ready = connection.get("models_ready", False)
-        
-        if models_ready:
-            st.markdown("""
-            <div class="status-indicator status-success">
-                ⚡ API Connected (Models Ready)
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="status-indicator status-warning">
-                🔄 API Connected (Loading...)
-            </div>
-            """, unsafe_allow_html=True)
-        return True
-    else:
-        st.markdown(f"""
-        <div class="status-indicator status-error">
-            ❌ API Connection Failed: {connection['error']}
-        </div>
-        """, unsafe_allow_html=True)
-        return False
-
 def display_sidebar():
-    """Simplified sidebar"""
+    """Language-aware sidebar"""
+    lang = st.session_state.get('language', 'en')
+    
     with st.sidebar:
-        st.markdown("""
-        <div class="sidebar-section">
-            <h4>🔗 Connection Status</h4>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 🔗 Connection Status" if lang == 'en' else "### 🔗 Bağlantı Durumu")
         
         api_connected = display_api_status()
         
-        if st.button("🔄 Reconnect", use_container_width=True):
+        if st.button(get_text('reconnect'), use_container_width=True):
             st.session_state.api_connection = None
             st.rerun()
         
         if api_connected:
             # AI Provider selection
-            st.markdown("""
-            <div class="sidebar-section">
-                <h4>🤖 AI Assistant</h4>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"### 🤖 {get_text('choose_provider').replace(':', '')}")
             
             provider = st.selectbox(
-                "Choose Provider:",
+                get_text('choose_provider'),
                 ["OpenAI", "Claude"],
                 index=0 if st.session_state.selected_provider == "OpenAI" else 1
             )
@@ -681,22 +1005,16 @@ def display_sidebar():
                 models = ['gpt-3.5-turbo', 'gpt-4o-mini', 'gpt-4']
             
             model = st.selectbox(
-                "Model:",
+                get_text('choose_model'),
                 models,
                 index=0 if st.session_state.selected_model not in models else models.index(st.session_state.selected_model)
             )
             st.session_state.selected_model = model
             
             # Simple Stats Section
-            st.markdown("""
-            <div class="sidebar-section">
-                <h4>📊 Session Stats</h4>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"### {get_text('session_stats')}")
             
             if st.session_state.chat_history:
-                recent = st.session_state.chat_history[-5:]
-                
                 # Simple feedback stats
                 helpful_count = len([fid for fid in st.session_state.feedback_given.values() if fid == "helpful"])
                 total_feedback = len(st.session_state.feedback_given)
@@ -704,52 +1022,33 @@ def display_sidebar():
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Total Queries", len(st.session_state.chat_history))
+                    st.metric(get_text('total_queries'), len(st.session_state.chat_history))
                 with col2:
-                    st.metric("Satisfaction", f"{satisfaction_rate:.0f}%" if total_feedback > 0 else "N/A")
+                    satisfaction_display = f"{satisfaction_rate:.0f}%" if total_feedback > 0 else ("N/A" if lang == 'en' else "Yok")
+                    st.metric(get_text('satisfaction'), satisfaction_display)
         
         # Quick Actions
-        st.markdown("""
-        <div class="sidebar-section">
-            <h4>⚡ Actions</h4>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"### ⚡ {'Actions' if lang == 'en' else 'Hızlı İşlemler'}")
         
-        if st.button("🗑️ Clear All History", use_container_width=True):
+        if st.button(get_text('clear_history'), use_container_width=True):
             st.session_state.chat_history = []
             st.session_state.feedback_given = {}
             st.session_state.session_tracking = {}
             st.rerun()
 
 def display_quick_questions():
-    """Simplified quick question cards"""
-    st.markdown("### 💡 Popular Questions")
+    """Language-aware quick question cards"""
+    lang = st.session_state.get('language', 'en')
+    st.markdown(f"### {get_text('popular_questions')}")
     
-    question_categories = {
-        "✈️ Baggage Policies": [
-            {"title": "Excess baggage fees comparison", "desc": "Compare Turkish Airlines vs Pegasus"},
-            {"title": "Carry-on size limits", "desc": "International flight requirements"}
-        ],
-        "🐕 Pet Travel": [
-            {"title": "Pet travel requirements", "desc": "Documents and carrier rules"},
-            {"title": "Breed restrictions", "desc": "Which pets are allowed"}
-        ],
-        "🎵 Special Items": [
-            {"title": "Musical instrument transport", "desc": "Size limits and special handling"},
-            {"title": "Sports equipment rules", "desc": "Golf clubs, skiing gear etc."}
-        ],
-        "⚖️ Passenger Rights": [
-            {"title": "Flight delay compensation", "desc": "Turkish airline policies"},
-            {"title": "Cancellation rights", "desc": "Refund and rebooking options"}
-        ]
-    }
+    question_categories = QUICK_QUESTIONS.get(lang, QUICK_QUESTIONS['en'])
     
     for category, questions in question_categories.items():
         with st.expander(f"{category}", expanded=False):
             for i, q in enumerate(questions):
                 if st.button(
                     f"**{q['title']}**\n{q['desc']}", 
-                    key=f"cat_{category}_{i}",
+                    key=f"cat_{lang}_{category}_{i}",
                     use_container_width=True,
                     help=f"Ask about: {q['title']}"
                 ):
@@ -757,8 +1056,13 @@ def display_quick_questions():
                     st.rerun()
 
 def main():
-    """Main application"""
+    """Main multilingual application"""
+    # Initialize session state FIRST
     init_session_state()
+    
+    # Display language selector at the top
+    display_language_selector()
+    
     display_hero_header()
     
     # Check API connection
@@ -766,8 +1070,12 @@ def main():
         st.session_state.api_connection = find_working_api()
     
     if not st.session_state.api_connection["success"]:
-        st.error("🚨 API service required for policy analysis")
-        st.info("Please ensure the FastAPI service is running")
+        lang = st.session_state.get('language', 'en')
+        error_msg = "🚨 API service required for policy analysis" if lang == 'en' else "🚨 API servisi politika analizi için gereklidir"
+        info_msg = "Please ensure the FastAPI service is running" if lang == 'en' else "Lütfen FastAPI servisinin çalıştığından emin olun"
+        
+        st.error(error_msg)
+        st.info(info_msg)
         return
     else:
         st.session_state.api_url = st.session_state.api_connection["url"]
@@ -780,25 +1088,7 @@ def main():
     
     with col1:
         # Airline selection
-        st.markdown("### Choose Airlines")
-        
-        airline_options = ["All Airlines", "Turkish Airlines Only", "Pegasus Airlines Only"]
-        selected_airline = st.selectbox(
-            "Select airline focus:",
-            airline_options,
-            index=airline_options.index(st.session_state.selected_airline) if st.session_state.selected_airline in airline_options else 0,
-            key="airline_selectbox"
-        )
-        
-        st.session_state.selected_airline = selected_airline
-        
-        # Airline feedback
-        if selected_airline == "Turkish Airlines Only":
-            st.error("🇹🇷 Turkish Airlines Focus - Queries will prioritize Turkish Airlines policies")
-        elif selected_airline == "Pegasus Airlines Only":
-            st.warning("✈️ Pegasus Airlines Focus - Queries will prioritize Pegasus Airlines policies")  
-        else:
-            st.success("🌍 All Airlines - Queries will search across all available airline policies")
+        display_airline_selection()
         
         # Question input
         ask_clicked, question = display_question_input()
@@ -827,10 +1117,11 @@ def main():
                     "stats": result.get("stats", {}),
                     "preference_stats": result.get("preference_stats", {}),
                     "session_id": result.get("session_id"),
-                    "performance": result.get("performance", {})
+                    "performance": result.get("performance", {}),
+                    "language": result.get("language", st.session_state.get('language', 'en'))
                 })
                 
-                st.success("✅ Analysis complete!")
+                st.success(get_text('analysis_complete'))
                 st.rerun()
             else:
                 st.error(f"❌ {result['error']}")
