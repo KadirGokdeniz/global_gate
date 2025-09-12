@@ -150,6 +150,7 @@ The system tracks comprehensive metrics including:
 - API Response Times: End-to-end request tracking
 - Accuracy Metrics: Transcription and response quality
 - Cost Tracking: API usage and billing optimization
+
 Access metrics and graphs at: http://localhost:3000 (Grafana Dashboard)
 
 ## Project Summary
