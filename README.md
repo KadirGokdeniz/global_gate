@@ -102,7 +102,7 @@ graph TD
 - **🔍 Multilingual Search**: Advanced semantic understanding
 - **🎤 Speech-to-Text**: Real-time voice input with AssemblyAI
 - **🔊 Text-to-Speech**: High-quality voice output with AWS Polly
-- **🌍 Voice Multilingual**: Turkish, English, and 15+ language voice support
+- **🌍 Voice Multilingual**: Turkish and English language voice support
 - **📊 Production Monitoring**: Prometheus & Grafana observability
 - **🐳 Docker-Native**: Fully containerized microservices
 - **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
