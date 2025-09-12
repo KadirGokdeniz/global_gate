@@ -110,7 +110,7 @@ graph TD
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
 
 ## Supported Languages
-- Turkish (tr)
+- Turkish (tr- Filiz voice)
 - English (en-US-Joanna voice) (en-GB-Emma voice)
 
 ## Installation & Setup
