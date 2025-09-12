@@ -2,7 +2,7 @@
 # requirements.frontend.txt - Streamlit için minimal (FIXED)
 # ===============================================
 # Streamlit core - Updated
-streamlit==1.30.0
+streamlit==1.38.0
 
 # HTTP requests
 requests==2.31.0

@@ -92,7 +92,16 @@ TRANSLATIONS = {
         "work_on_speed": "We'll work on speed!",
         "airline_focus_thy": "🇹🇷 Turkish Airlines Focus - Queries will prioritize Turkish Airlines policies",
         "airline_focus_pegasus": "✈️ Pegasus Airlines Focus - Queries will prioritize Pegasus Airlines policies",
-        "airline_focus_all": "🌍 All Airlines - Queries will search across all available airline policies"
+        "airline_focus_all": "🌍 All Airlines - Queries will search across all available airline policies",
+        "voice_input": "Voice Input",
+        "click_to_record": "Click to Record", 
+        "processing_audio": "Processing audio...",
+        "voice_question": "Ask with Voice",
+        "listen_to_answer": "Listen to Answer",
+        "voice_features": "Voice Features",
+        "processing_audio": "Processing audio...",
+        "speech_detected": "Speech detected:",
+        "speech_not_detected": "No speech detected"
     },
     "tr": {
         "title": "Havayolu Politika Asistanı", 
@@ -167,7 +176,16 @@ TRANSLATIONS = {
         "work_on_speed": "Hızda iyileştirme için çalışacağız!",
         "airline_focus_thy": "🇹🇷 Türk Hava Yolları Odağı - Sorgular THY politikalarını önceleyecek",
         "airline_focus_pegasus": "✈️ Pegasus Hava Yolları Odağı - Sorgular Pegasus politikalarını önceleyecek", 
-        "airline_focus_all": "🌍 Tüm Havayolları - Sorgular mevcut tüm havayolu politikalarında arama yapacak"
+        "airline_focus_all": "🌍 Tüm Havayolları - Sorgular mevcut tüm havayolu politikalarında arama yapacak",
+        "voice_input": "Sesli Giriş",
+        "click_to_record": "Kayıt İçin Tıklayın",
+        "processing_audio": "Ses işleniyor...", 
+        "voice_question": "Sesle Sor",
+        "listen_to_answer": "Cevabı Dinle",
+        "voice_features": "Ses Özellikleri",
+        "processing_audio": "Ses işleniyor...",
+        "speech_detected": "Konuşma algılandı:",
+        "speech_not_detected": "Konuşma algılanmadı"
     }
 }
 
@@ -530,7 +548,7 @@ def display_language_selector():
 def get_api_urls():
     """Get multiple API URL options"""
     urls = [
-        os.getenv('DEFAULT_API_URL', 'http://api:8000'),
+        os.getenv('DEFAULT_API_URL', 'http://localhost:8000'),
         'http://localhost:8000',
         'http://127.0.0.1:8000',
     ]
@@ -615,6 +633,18 @@ def init_session_state():
             fallback = "All Airlines" if lang == 'en' else "Tüm Havayolları"
             st.session_state.selected_airline = fallback
 
+def display_voice_recorder():
+    """Streamlit native ses kaydı bileşeni"""
+    st.markdown(f"#### {get_text('voice_input')}")
+    
+    # Native Streamlit audio input kullan
+    audio_bytes = st.audio_input(get_text('click_to_record'))
+    
+    if audio_bytes:
+        st.success("Ses kaydı tamamlandı!")
+    
+    return audio_bytes
+
 def display_hero_header():
     """Language-aware hero header"""
     lang = st.session_state.get('language', 'en')
@@ -627,17 +657,97 @@ def display_hero_header():
     </div>
     """, unsafe_allow_html=True)
 
+def process_voice_input(audio_bytes):
+    """Ses kaydını backend'e gönderip text'e çevirir"""
+    if not audio_bytes:
+        return None, "No audio data"
+    
+    try:
+        api_url = st.session_state.get('api_url')
+        if not api_url:
+            return None, "API connection required"
+        
+        # Dil ayarını al
+        lang = st.session_state.get('language', 'en')
+        language_code = "tr-TR" if lang == 'tr' else "en-US"
+        
+        # Audio dosyasını backend'e gönder
+        files = {
+            'audio_file': ('audio.wav', audio_bytes, 'audio/wav')
+        }
+        params = {
+            'language': language_code
+        }
+        
+        with st.spinner(get_text('processing_audio')):
+            response = requests.post(
+                f"{api_url}/speech/transcribe",
+                files=files,
+                params=params,
+                timeout=15
+            )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success'):
+                return data.get('text', ''), None
+            else:
+                return None, "Transcription failed"
+        else:
+            return None, f"API Error: {response.status_code}"
+            
+    except Exception as e:
+        return None, f"Error: {str(e)}"
+
+def display_voice_recorder():
+    """JavaScript tabanlı ses kayıt"""
+    st.markdown(f"#### {get_text('voice_input')}")
+    
+    # HTML/JavaScript ile mikrofon erişimi
+    audio_component = st.components.v1.html("""
+    <div>
+        <button id="recordBtn">🎤 Kayıt Başlat</button>
+        <button id="stopBtn" disabled>⏹️ Dur</button>
+        <div id="status">Hazır</div>
+    </div>
+    
+    <script>
+    let mediaRecorder;
+    let recordedBlobs = [];
+    
+    document.getElementById('recordBtn').onclick = async function() {
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        
+        document.getElementById('recordBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        document.getElementById('status').innerText = 'Kaydediliyor...';
+    };
+    
+    document.getElementById('stopBtn').onclick = function() {
+        mediaRecorder.stop();
+        document.getElementById('recordBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+        document.getElementById('status').innerText = 'Kayıt tamamlandı';
+    };
+    </script>
+    """, height=150)
+    
+    return None  # Şimdilik placeholder
+
 def display_question_input():
-    """Language-aware question input area"""
+    """Language-aware question input area WITH voice processing"""
     st.markdown(f"### {get_text('ask_question')}")
     
     question = st.text_area(
-        "",
-        value=st.session_state.get('current_question', ''),
-        placeholder=get_text('question_placeholder'),
-        height=100,
-        key="question_input"
-    )
+    label="Question Input",
+    value=st.session_state.get('current_question', ''),
+    placeholder=get_text('question_placeholder'),
+    height=100,
+    key="question_input",
+    label_visibility="hidden"  # Label'i gizle ama var et
+)
     
     provider = st.session_state.selected_provider
     ask_clicked = st.button(
@@ -646,6 +756,23 @@ def display_question_input():
         use_container_width=True,
         disabled=not question.strip()
     )
+
+    st.markdown("---")
+    st.markdown("**Alternatif:** Sesli soru sormak için:")
+    audio_data = display_voice_recorder()
+    
+    # ✨ YENİ KOD: Audio data'yı işle
+    if audio_data and st.button("🎯 Sesli Soruyu İşle", type="secondary"):
+        text_result, error = process_voice_input(audio_data)
+        
+        if text_result:
+            st.success(f"✅ {get_text('speech_detected')} {text_result}")
+            # Question'ı otomatik güncelle
+            st.session_state.current_question = text_result
+            st.rerun()  # Sayfayı yenile, text area'da görünsün
+        else:
+            error_msg = error or get_text('speech_not_detected')
+            st.error(f"❌ {error_msg}")
     
     return ask_clicked, question
 

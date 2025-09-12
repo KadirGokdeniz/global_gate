@@ -25,13 +25,17 @@ import asyncpg
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Database configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'db'),
     'database': os.getenv('DB_DATABASE', 'global_gate'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', 'qeqe')
+    'password': os.getenv('DB_PASSWORD')  # Default yok!
 }
+
+# Validation ekle
+if not DB_CONFIG['password']:
+    logger.error("DB_PASSWORD environment variable required!")
+    sys.exit(1)
 
 def print_banner():
     """Enhanced startup banner"""

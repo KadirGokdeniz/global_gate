@@ -26,6 +26,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import time
 
+from fastapi import File, UploadFile
+from fastapi.responses import Response
+from services.aws_speech import get_aws_speech_service
+import asyncio
+from services.assemblyai_stt import get_assemblyai_service
+
 # SIMPLIFIED METRICS SYSTEM - Only 5 core metrics
 try:
     # Try to use centralized metrics if available
@@ -149,6 +155,8 @@ vector_ops = None
 embedding_service = None
 openai_service = None
 claude_service = None
+aws_speech_service = None 
+assemblyai_service = None
 
 # SIMPLIFIED HELPER FUNCTIONS
 def track_rag_query(provider: str, duration: float, status: str = "success"):
@@ -199,7 +207,7 @@ class SimplifiedMetricsMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown procedures"""
-    global db_pool, vector_ops, embedding_service, openai_service, claude_service
+    global db_pool, vector_ops, embedding_service, openai_service, claude_service, aws_speech_service, assemblyai_service
     
     # Startup
     logger.info("Airlines Policy API starting...")
@@ -268,14 +276,32 @@ async def lifespan(app: FastAPI):
             logger.error(f"Vector operations init failed: {ve}")
             vector_ops = None
         
-        # 4. Startup summary
+        # 4. Voice service initialization
+        try:
+            aws_speech_service = get_aws_speech_service()
+            logger.info("AWS Speech Service loaded successfully")
+        except Exception as e:
+            logger.error(f"AWS Speech Service load failed: {e}")
+            aws_speech_service = None
+        
+        # 5. AssemblyAI service initialization
+        try:
+            assemblyai_service = get_assemblyai_service()
+            logger.info("AssemblyAI service loaded successfully")
+        except Exception as e:
+            logger.error(f"AssemblyAI service load failed: {e}")
+            assemblyai_service = None
+        
+        # 6. Startup summary
         services_status = {
             "database": "ready" if db_pool else "failed",
             "embedding": "ready" if embedding_service else "failed",
             "openai": "ready" if openai_service else "failed",
             "claude": "ready" if claude_service else "failed",
             "vector_ops": "ready" if vector_ops else "failed",
-            "metrics": "ready" if METRICS_AVAILABLE else "failed"
+            "metrics": "ready" if METRICS_AVAILABLE else "failed",
+            "aws_tts": "ready" if aws_speech_service else "failed",
+            "assemblyai_stt": "ready" if assemblyai_service else "failed"
         }
         
         logger.info("Startup Summary:")
@@ -302,6 +328,7 @@ async def lifespan(app: FastAPI):
     openai_service = None
     claude_service = None
     vector_ops = None
+    aws_speech_service = None
     
     logger.info("Shutdown completed")
 
@@ -914,6 +941,37 @@ async def openai_chat_post(
             detail="Either provide JSON body with 'question' field or 'question' query parameter"
         )
 
+@app.post("/speech/synthesize")
+async def text_to_speech(
+    text: str,
+    language: str = "tr-TR"
+):
+    """AWS Polly ile TTS"""
+    try:
+        if not aws_speech_service:
+            raise HTTPException(status_code=503, detail="AWS Speech Service not available")
+        
+        if not text or len(text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Empty text not allowed")
+        
+        result = aws_speech_service.text_to_audio(text, language)
+        
+        if result["success"]:
+            return Response(
+                content=result["audio_data"],
+                media_type="audio/mpeg",
+                headers={
+                    "Content-Disposition": "attachment; filename=speech.mp3"
+                }
+            )
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+
 @app.get("/chat/openai") 
 async def openai_chat_get(
     question: str = Query(..., description="User question", min_length=3),
@@ -1003,83 +1061,175 @@ async def get_metrics():
         media_type=CONTENT_TYPE_LATEST
     )
 
-# HEALTH CHECK
-@app.get("/health")
-async def health_check():
-    """Simple health check"""
-    
+@app.post("/speech/transcribe")
+async def speech_to_text_realtime(
+    audio_file: UploadFile = File(...),
+    language: str = Query("tr", description="Language code (tr, en, etc.)")
+):
+    """AssemblyAI Real-time STT"""
     try:
-        if not db_pool:
-            return {
-                "status": "unhealthy",
-                "database": "disconnected",
-                "error": "Connection pool not available"
-            }
+        if not assemblyai_service:
+            raise HTTPException(status_code=503, detail="AssemblyAI service not available")
         
-        # Database connectivity test
-        async with db_pool.acquire() as conn:
-            test_result = await conn.fetchval("SELECT 1")
-            policy_count = await conn.fetchval("SELECT COUNT(*) FROM policy")
+        # Validate file
+        if not audio_file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
         
-        # AI services status
-        ai_services_health = {
-            "embedding_service": {
-                "status": "ready" if embedding_service else "unavailable",
-                "model": embedding_service._model_name if embedding_service else "not loaded"
-            },
-            "vector_operations": {
-                "status": "ready" if vector_ops else "unavailable"
-            },
-            "openai": {
-                "status": "ready" if openai_service else "unavailable",
-                "model": openai_service.default_model if openai_service else "not loaded"
-            },
-            "claude": {
-                "status": "ready" if claude_service else "unavailable", 
-                "model": claude_service.default_model if claude_service else "not loaded"
-            }
-        }
+        # Check file size (limit to 25MB)
+        MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB
+        audio_bytes = await audio_file.read()
         
-        # Metrics status
-        metrics_status = {
-            "simplified_metrics": METRICS_AVAILABLE,
-            "prometheus_endpoint": "/metrics",
-            "core_metrics_count": 5
-        }
+        if len(audio_bytes) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large (max 25MB)")
         
-        # Overall health status
-        all_services_ready = all(
-            service["status"] == "ready" for service in ai_services_health.values()
+        if len(audio_bytes) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        # Log the request
+        logger.info(f"STT request: {audio_file.filename} ({len(audio_bytes)} bytes, lang: {language})")
+        
+        # Transcribe using AssemblyAI
+        result = await assemblyai_service.transcribe_audio_file(
+            audio_bytes=audio_bytes,
+            language=language,
+            filename=audio_file.filename
         )
         
-        return {
-            "status": "healthy" if all_services_ready else "partially_healthy",
-            "database": "connected",
-            "ai_services": ai_services_health,
-            "metrics_system": metrics_status,
-            "connection_pool": {
-                "size": db_pool.get_size(),
-                "max_size": db_pool.get_max_size(),
-                "min_size": db_pool.get_min_size()
-            },
-            "data": {
-                "total_policies": policy_count
-            },
-            "features": {
-                "models_preloaded": True,
-                "simplified_metrics": True,
-                "core_tracking": True
-            },
-            "timestamp": datetime.now().isoformat()
-        }
+        if result["success"]:
+            # Success response
+            response_data = {
+                "success": True,
+                "transcript": result["transcript"],
+                "language": language,
+                "filename": audio_file.filename,
+                "file_size_bytes": len(audio_bytes),
+                "details": result["details"],
+                "service": "AssemblyAI",
+                "timestamp": time.time()
+            }
+            
+            logger.info(f"STT success: '{result['transcript'][:50]}...' ({result['details'].get('words_count', 0)} words)")
+            return response_data
+        else:
+            # Error response
+            logger.error(f"STT failed: {result['error']}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Transcription failed: {result['error']}"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"STT endpoint error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"STT error: {str(e)}")
+
+# AssemblyAI service info endpoint'i de ekle:
+@app.get("/speech/assemblyai/info")
+async def get_assemblyai_info():
+    """Get AssemblyAI service information"""
+    try:
+        if not assemblyai_service:
+            return {
+                "status": "unavailable",
+                "error": "AssemblyAI service not initialized"
+            }
+        
+        info = assemblyai_service.get_service_info()
+        return info
         
     except Exception as e:
-        logger.error(f"Health check error: {e}")
+        logger.error(f"AssemblyAI info error: {e}")
         return {
-            "status": "unhealthy",
-            "database": "error",
+            "status": "error", 
             "error": str(e)
         }
+
+@app.get("/speech/health")
+async def speech_health_check():
+    """Speech Services health check - TTS + STT"""
+    try:
+        if not aws_speech_service:
+            return {
+                "status": "unhealthy", 
+                "error": "TTS Service not initialized",
+                "services": {
+                    "polly": "unavailable",
+                    "assemblyai": "not_loaded"
+                }
+            }
+        
+        # Polly test (TTS)
+        try:
+            voices = aws_speech_service.polly_client.describe_voices(LanguageCode='tr-TR')
+            polly_status = "ready"
+            polly_info = f"{len(voices.get('Voices', []))} Turkish voices available"
+        except Exception as e:
+            polly_status = "failed"
+            polly_info = str(e)
+        
+        # AssemblyAI test (STT) - YENİ
+        assemblyai_status = "ready" if os.getenv("ASSEMBLYAI_API_KEY") else "not_configured"
+        
+        # Overall status
+        overall_status = "healthy" if polly_status == "ready" and assemblyai_status == "ready" else "partial"
+        
+        return {
+            "status": overall_status,
+            "service": "Speech Services (TTS + STT)",
+            "services": {
+                "polly": {
+                    "status": polly_status,
+                    "info": polly_info,
+                    "purpose": "Text-to-Speech"
+                },
+                "assemblyai": {
+                    "status": assemblyai_status,
+                    "info": "Real-time Speech-to-Text",
+                    "purpose": "Speech-to-Text"
+                }
+            },
+            "features": {
+                "tts_enabled": polly_status == "ready",
+                "stt_enabled": assemblyai_status == "ready",
+                "supported_languages": ["tr-TR", "en-US", "en-GB"]
+            }
+        }
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
+@app.get("/speech/debug")
+async def debug_speech():
+    """Speech Services debug - S3 kısımları kaldırıldı"""
+    try:
+        debug_info = {
+            "environment_variables": {
+                "AWS_REGION": os.getenv("AWS_REGION", "NOT_SET"),
+                "AWS_ACCESS_KEY_ID": "SET" if os.getenv("AWS_ACCESS_KEY_ID") else "NOT_SET",
+                "AWS_SECRET_ACCESS_KEY": "SET" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT_SET",
+                "ASSEMBLYAI_API_KEY": "SET" if os.getenv("ASSEMBLYAI_API_KEY") else "NOT_SET"  # YENİ
+            }
+        }
+        
+        if aws_speech_service:
+            # Sadece Polly test
+            try:
+                voices = aws_speech_service.polly_client.describe_voices(LanguageCode='tr-TR')
+                debug_info["polly_test"] = {
+                    "status": "success",
+                    "voices_count": len(voices.get('Voices', [])),
+                    "sample_voices": [v.get('Name') for v in voices.get('Voices', [])[:3]]
+                }
+            except Exception as e:
+                debug_info["polly_test"] = {
+                    "status": "failed",
+                    "error": str(e)
+                }
+        
+        return debug_info
+        
+    except Exception as e:
+        return {"error": f"Debug failed: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
