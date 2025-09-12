@@ -49,19 +49,39 @@ The system follows a moduler architecture with orchestrated startup sequence:
 ```mermaid
 graph TD
     A[User] --> B[Streamlit Frontend]
-    B --> C[FastAPI Backend]
-    C <--> D[PostgreSQL + pgvector]
     
+    %% Text Input Path
+    B --> C[FastAPI Backend]
+    
+    %% Audio Input Path  
+    B --> I[Audio Input]
+    I --> J[AssemblyAI STT]
+    J --> C
+    
+    %% Backend Operations
+    C <--> D[PostgreSQL + pgvector]
     E[Web Scraper] --> D
     C <--> F[OpenAI/Claude APIs]
     
+    %% Audio Output Path
+    C --> K[AWS Polly TTS]
+    K --> L[Audio Output]
+    K --> B
+    
+    %% Monitoring
     G[Prometheus] --> H[Grafana]
     C --> G
     
-    I[Audio Input] --> J[AssemblyAI STT]
-    J --> C
-    C --> K[AWS Polly TTS]
-    K --> L[Audio Output]
+    %% Styling
+    classDef userPath fill:#e1f5fe
+    classDef audioPath fill:#f3e5f5
+    classDef backend fill:#e8f5e8
+    classDef monitoring fill:#fff3e0
+    
+    class A,B userPath
+    class I,J,K,L audioPath
+    class C,D,E,F backend
+    class G,H monitoring
 ```
 
 ## 📊 Service Endpoints
