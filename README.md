@@ -50,7 +50,7 @@ The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
-    A[User] --> B[Frontend (React)]
+    A[User] --> B[Frontend React]
     B --> C[FastAPI Backend]
     
     %% Audio Input Path  
@@ -87,7 +87,7 @@ graph TD
 ## 📊 Service Endpoints
 | Service | Port | URL |
 |:--------|:----:|:----|
-| **Frontend (React)** | 8501 | http://localhost:8501 |
+| **Frontend React** | 8501 | http://localhost:8501 |
 | **Backend API** | 8000 | http://localhost:8000 | 
 | **Grafana** | 3000 | http://localhost:3000 | 
 | **Prometheus** | 9090 | http://localhost:9090 | 
