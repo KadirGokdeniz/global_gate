@@ -75,7 +75,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 660s
+      start_period: 1800s
     restart: unless-stopped
     deploy:
       resources:
@@ -89,18 +89,23 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.streamlit
+      dockerfile: docker/Dockerfile.react  # ✅ React için doğru dockerfile
     container_name: global-gate-frontend
     depends_on:
-      - api
+      api:
+        condition: service_healthy  # ✅ API hazır olana kadar bekler
     environment:
-      DEFAULT_API_URL: http://api:8000
-      STREAMLIT_SERVER_HEADLESS: true
-      STREAMLIT_SERVER_PORT: 8501
-      STREAMLIT_SERVER_ADDRESS: 0.0.0.0
+      # React için environment variables (build time)
+      REACT_APP_API_URL: http://localhost:8000
+      VITE_API_URL: http://localhost:8000  # Vite için
     ports:
-      - "8501:8501"
-    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+      - "8501:3000"  # ✅ React için doğru port
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     networks:
       - turkish_airlines_net

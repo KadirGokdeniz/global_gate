@@ -1,0 +1,28 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/ask-sky-wise-main/package*.json ./
+COPY frontend/ask-sky-wise-main/bun.lockb ./
+
+# Install dependencies (try bun first, fallback to npm)
+RUN npm install -g bun || true
+RUN (bun install) || (npm install)
+
+# Copy source code
+COPY frontend/ask-sky-wise-main/ .
+
+# Build the app
+RUN npm run build 2>&1 || (echo "Build failed, checking syntax..." && npm run lint && exit 1)
+
+# Serve with a simple http server
+RUN npm install -g serve
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget -q --spider http://localhost:3000 || exit 1
+
+CMD ["serve", "-s", "dist", "-l", "3000"]

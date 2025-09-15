@@ -25,6 +25,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import time
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import File, UploadFile
 from fastapi.responses import Response
@@ -342,6 +343,17 @@ app = FastAPI(
 
 # Add simplified middleware
 app.add_middleware(SimplifiedMetricsMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,  # ❌ Bu eksik - ZORUNLU
+    allow_origins=[
+        "http://localhost:8501",
+        "http://localhost:5173", 
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 # Add Prometheus instrumentation
 instrumentator = Instrumentator()
@@ -1144,6 +1156,32 @@ async def get_assemblyai_info():
             "status": "error", 
             "error": str(e)
         }
+
+@app.get("/health")
+async def health_check(db = Depends(get_db_connection)):
+    """Health check endpoint for frontend"""
+    try:
+        total_count = await db.fetchval("SELECT COUNT(*) FROM policy")
+        
+        ai_status = {
+            "embedding_service": embedding_service is not None,
+            "openai_service": openai_service is not None,
+            "claude_service": claude_service is not None,
+            "vector_operations": vector_ops is not None
+        }
+        
+        return {
+            "status": "healthy",
+            "models_ready": all(ai_status.values()),
+            "database": {"connected": True, "policies_count": total_count},
+            "ai_services": ai_status,
+            "speech_services": {
+                "tts": aws_speech_service is not None,
+                "stt": assemblyai_service is not None
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
 
 @app.get("/speech/health")
 async def speech_health_check():

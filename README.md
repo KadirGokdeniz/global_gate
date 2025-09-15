@@ -16,13 +16,13 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 **3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
 
-**4. Feedback System:** Give your feedback. 
+**4. Speak System:** Ask your question via recording. 
 
 | The Main Interface | The Backend in Action |
 |:------------------:|:---------------------:|
-| ![How It Works](assets/streamlit_interface1.png) | ![System Process](assets/streamlit_interface4.png) |
+| ![How It Works](assets/interface1.png) | ![System Process](assets/interface4.png) |
 | **The Final Result** | **Feedback System** |
-| ![Final Answer](assets/streamlit_interface2.png) | ![Feedback](assets/streamlit_interface3.png) |
+| ![Final Answer](assets/interface2.png) | ![Speak System](assets/interface3.png) |
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
 
@@ -36,7 +36,9 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 | **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
-| **Streamlit** | Frontend Interface | Rapid prototyping, interactive data applications |
+| **React + TypeScript** | Frontend Interface | Modern UI framework with type safety, excellent user experience |
+| **Vite**| Frontend Build Tool | Fast development server, optimized production builds |
+| **Tailwind CSS**| Styling Framework | Rapid UI development, consistent design system |
 | **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
 | **Prometheus & Grafana**| Monitoring & Logging|Real-time performance tracking, industry-standard observability stack|
 
@@ -46,7 +48,7 @@ The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
-    A[User] --> B[Streamlit Frontend]
+    A[User] --> B[Frontend (React)]
     B --> C[FastAPI Backend]
     C <--> D[PostgreSQL + pgvector]
     
@@ -60,7 +62,7 @@ graph TD
 ## 📊 Service Endpoints
 | Service | Port | URL |
 |:--------|:----:|:----|
-| **Frontend** | 8501 | http://localhost:8501 |
+| **Frontend (React)** | 8501 | http://localhost:8501 |
 | **Backend API** | 8000 | http://localhost:8000 | 
 | **Grafana** | 3000 | http://localhost:3000 | 
 | **Prometheus** | 9090 | http://localhost:9090 | 
@@ -77,6 +79,8 @@ graph TD
 - **🐳 Docker-Native**: Fully containerized microservices
 - **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
 - **🚀 Intelligent Caching**: Multi-layered LRU cache with performance tracking and batch optimization
+- **📱 Responsive Design: Modern UI that works on desktop and mobile**:  Modern UI that works on desktop and mobile
+- **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
 
 ## Installation & Setup
@@ -84,7 +88,9 @@ graph TD
 ### Prerequisites
 - Docker & Docker Compose
 - OpenAI API Key
-- Claude API Key
+- Anthropic Claude API Key
+- AWS Credentials (for TTS)
+- AssemblyAI API Key (for STT)
 
 ### Quick Start
 ```bash
