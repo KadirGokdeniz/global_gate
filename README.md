@@ -4,15 +4,15 @@
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
 
-**Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses with both english and turkish support.
+**Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses with multilingual support including voice interaction capabilities.
 
 ### **A Quick Tour of the Application**
 
 This intelligent RAG (Retrieval-Augmented Generation) system streamlines the process of finding airline policy information. Here's a quick look at the user experience from start to finish.
 
-**1. The Main Interface:** Simply select an airline and type your question in natural language.
+**1. The Main Interface:** Simply select an airline and type your question in natural language or use voice input.
 
-**2. The Backend in Action:** The system instantly connects to the API and processes your request.
+**2. The Backend in Action:** The system instantly connects to the API and processes your request with optional text-to-speech output.
 
 **3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
 
@@ -24,7 +24,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 | **The Final Result** | **Feedback System** |
 | ![Final Answer](assets/interface2.png) | ![Speak System](assets/interface3.png) |
 
-*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing and real-time data from multiple airlines.*
+*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing, real-time data from multiple airlines, and advanced speech capabilities.*
 
 ## Technology Stack
 
@@ -40,6 +40,8 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 | **Vite**| Frontend Build Tool | Fast development server, optimized production builds |
 | **Tailwind CSS**| Styling Framework | Rapid UI development, consistent design system |
 | **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
+| **AWS Polly** | Text-to-Speech (TTS) | High-quality voice synthesis with multilingual support |
+| **AssemblyAI**| Speech-to-Text (STT) | Real-time transcription with high accuracy and language detection |
 | **Prometheus & Grafana**| Monitoring & Logging|Real-time performance tracking, industry-standard observability stack|
 
 ## System Architecture
@@ -50,13 +52,36 @@ The system follows a moduler architecture with orchestrated startup sequence:
 graph TD
     A[User] --> B[Frontend (React)]
     B --> C[FastAPI Backend]
-    C <--> D[PostgreSQL + pgvector]
     
+    %% Audio Input Path  
+    B --> I[Audio Input]
+    I --> J[AssemblyAI STT]
+    J --> C
+    
+    %% Backend Operations
+    C <--> D[PostgreSQL + pgvector]
     E[Web Scraper] --> D
     C <--> F[OpenAI/Claude APIs]
     
+    %% Audio Output Path
+    C --> K[AWS Polly TTS]
+    K --> L[Audio Output]
+    K --> B
+    
+    %% Monitoring
     G[Prometheus] --> H[Grafana]
     C --> G
+    
+    %% Styling
+    classDef userPath fill:#e1f5fe
+    classDef audioPath fill:#f3e5f5
+    classDef backend fill:#e8f5e8
+    classDef monitoring fill:#fff3e0
+    
+    class A,B userPath
+    class I,J,K,L audioPath
+    class C,D,E,F backend
+    class G,H monitoring
 ```
 
 ## 📊 Service Endpoints
@@ -75,6 +100,9 @@ graph TD
 - **🕷️ Real-time Scraping**: Automated airline data collection
 - **🧠 Multi-LLM Support**: OpenAI GPT & Anthropic Claude integration
 - **🔍 Multilingual Search**: Advanced semantic understanding
+- **🎤 Speech-to-Text**: Real-time voice input with AssemblyAI
+- **🔊 Text-to-Speech**: High-quality voice output with AWS Polly
+- **🌍 Voice Multilingual**: Turkish and English language voice support
 - **📊 Production Monitoring**: Prometheus & Grafana observability
 - **🐳 Docker-Native**: Fully containerized microservices
 - **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
@@ -82,6 +110,10 @@ graph TD
 - **📱 Responsive Design: Modern UI that works on desktop and mobile**:  Modern UI that works on desktop and mobile
 - **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
+
+## Supported Languages
+- Turkish (tr- Filiz voice)
+- English (en-US-Joanna voice) (en-GB-Emma voice)
 
 ## Installation & Setup
 
@@ -114,6 +146,10 @@ docker-compose run scraper python scraper_only.py
 # Verify all services are running
 curl http://localhost:8000/health
 curl http://localhost:8501/_stcore/health
+
+# Check speech services specifically
+curl http://localhost:8000/speech/health
+curl http://localhost:8000/speech/assemblyai/info
 ```
 
 ## Contributing
@@ -130,14 +166,23 @@ curl http://localhost:8501/_stcore/health
 3. Add airline configuration to settings
 4. Test data collection and search functionality
 
+### Performance Metrics
+The system tracks comprehensive metrics including:
+- Speech Processing Time: STT/TTS latency monitoring
+- API Response Times: End-to-end request tracking
+- Accuracy Metrics: Transcription and response quality
+- Cost Tracking: API usage and billing optimization
+
+Access metrics and graphs at: http://localhost:3000 (Grafana Dashboard)
+
 ## Project Summary
 
-This AI-powered airline policy assistant represents a modern approach to information retrieval in the travel industry. By combining web scraping, vector databases, and large language models, we've created a system that transforms how travelers access airline policy information. The solution addresses real pain points in travel planning while demonstrating practical applications of RAG architecture in production environments.
+This AI-powered airline policy assistant represents a modern approach to information retrieval in the travel industry. By combining web scraping, vector databases, large language models, and advanced speech processing capabilities, we've created a comprehensive system that transforms how travelers access airline policy information. The solution addresses real pain points in travel planning while demonstrating practical applications of RAG architecture with multimodal interaction in production environments.
 
 ## Conclusion
 
-Built with modern AI and microservices principles, this system showcases how intelligent automation can significantly improve user experience in complex information domains. The project serves both as a practical travel tool and a reference implementation for RAG-based information systems.
+Built with modern AI, microservices principles, and cutting-edge speech technology, this system showcases how intelligent automation combined with natural voice interaction can significantly improve user experience in complex information domains. The project serves both as a practical travel tool and a reference implementation for RAG-based information systems with integrated speech capabilities.
 
 ---
 
-**Ready to streamline your travel planning? Start asking questions and experience the future of airline policy assistance.**
+**Ready to streamline your travel planning? Start asking questions through text or voice and experience the future of airline policy assistance with full speech integration.**
