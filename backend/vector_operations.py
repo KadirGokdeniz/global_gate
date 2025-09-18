@@ -15,7 +15,7 @@ class VectorOperations:
     
     async def embed_existing_policies(self, batch_size: int = 50) -> int:
         """Mevcut tüm policy'leri embed et"""
-        logger.info("🔄 Starting to embed existing policies...")
+        logger.info("📄 Starting to embed existing policies...")
         
         async with self.db_pool.acquire() as conn:
             # Get policies without embeddings
@@ -63,15 +63,16 @@ class VectorOperations:
         airline_filter: Optional[str] = None,
         source_filter: Optional[str] = None
     ) -> List[Dict]:
-        """Vector similarity search"""
+        """Vector similarity search - GÜNCELLENDİ: url ve updated_at eklendi"""
         
         # Generate query embedding
         query_embedding = self.embedding_service.generate_embedding(query)
         
-        # Build SQL query
+        # Build SQL query - GÜNCELLENDİ: url, updated_at eklendi
         sql = """
             SELECT 
-                id, airline,source, content, quality_score, created_at,
+                id, airline, source, content, quality_score, 
+                created_at, updated_at, url,
                 1 - (embedding <=> $1::vector) as similarity_score
             FROM policy
             WHERE embedding IS NOT NULL
@@ -102,8 +103,11 @@ class VectorOperations:
             formatted_results = []
             for row in results:
                 result_dict = dict(row)
+                # Format dates
                 if result_dict.get('created_at'):
                     result_dict['created_at'] = result_dict['created_at'].isoformat()
+                if result_dict.get('updated_at'):
+                    result_dict['updated_at'] = result_dict['updated_at'].isoformat()
                 formatted_results.append(result_dict)
             
             logger.info(f"🔍 Vector search for '{query}': {len(formatted_results)} results (airline: {airline_filter or 'all'})")
@@ -117,16 +121,17 @@ class VectorOperations:
         similarity_threshold: float = 0.3,
         boost_factor: float = 1.2
     ) -> List[Dict]:
-        """Simplified preference search with database-level scoring"""
+        """Simplified preference search with database-level scoring - GÜNCELLENDİ"""
         
         # Generate query embedding
         query_embedding = self.embedding_service.generate_embedding(query)
         
         if airline_preference:
-            # Single query with conditional scoring in PostgreSQL
+            # Single query with conditional scoring in PostgreSQL - GÜNCELLENDİ: url, updated_at eklendi
             sql = f"""
                 SELECT 
-                    id, airline, source, content, quality_score, created_at,
+                    id, airline, source, content, quality_score, 
+                    created_at, updated_at, url,
                     CASE WHEN airline = $2 
                          THEN {boost_factor} * (1 - (embedding <=> $1::vector))
                          ELSE (1 - (embedding <=> $1::vector))
@@ -148,10 +153,11 @@ class VectorOperations:
             ]
             
         else:
-            # Regular search without preference
+            # Regular search without preference - GÜNCELLENDİ: url, updated_at eklendi
             sql = """
                 SELECT 
-                    id, airline, source, content, quality_score, created_at,
+                    id, airline, source, content, quality_score, 
+                    created_at, updated_at, url,
                     (1 - (embedding <=> $1::vector)) as similarity_score,
                     (1 - (embedding <=> $1::vector)) as original_similarity_score,
                     false as preference_boost
@@ -175,8 +181,11 @@ class VectorOperations:
             formatted_results = []
             for row in results:
                 result_dict = dict(row)
+                # Format dates - GÜNCELLENDİ
                 if result_dict.get('created_at'):
                     result_dict['created_at'] = result_dict['created_at'].isoformat()
+                if result_dict.get('updated_at'):
+                    result_dict['updated_at'] = result_dict['updated_at'].isoformat()
                 formatted_results.append(result_dict)
             
             if airline_preference:

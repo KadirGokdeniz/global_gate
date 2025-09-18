@@ -216,7 +216,7 @@ class APIService {
       const response = await fetch(`${this.baseUrl}/speech/synthesize?${params}`, {
         method: 'POST',
         headers: {
-          'Accept': 'audio/mpeg'
+          'Accept': 'audio/mpeg, audio/wav, audio/*'
         }
       });
 

@@ -112,6 +112,4 @@ export const AirlineSelector = ({ selectedAirline, onAirlineSelect, language }: 
           </button>
         ))}
       </div>
-    </div>
-  );
-};
+

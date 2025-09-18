@@ -14,10 +14,12 @@ export interface Message {
 }
 
 export interface Source {
-  source: string;
-  similarity_score: number;
   airline: string;
-  content?: string;
+  source: string;
+  content_preview: string;
+  updated_date?: string;
+  url?: string;
+  similarity_score: number;
 }
 
 export interface ResponseStats {

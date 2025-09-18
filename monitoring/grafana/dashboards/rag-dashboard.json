@@ -20,6 +20,18 @@
   "liveNow": false,
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "📊 OPERATIONAL METRICS - Core System Health",
+      "type": "row"
+    },
+    {
       "datasource": "Prometheus",
       "description": "Total HTTP requests per second by status code",
       "fieldConfig": {
@@ -30,32 +42,10 @@
           "custom": {
             "axisLabel": "Requests/sec",
             "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "lineWidth": 2
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -70,46 +60,40 @@
             ]
           },
           "unit": "reqps"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 1,
       "options": {
         "legend": {
-          "calcs": [],
           "displayMode": "list",
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "single"
         }
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "rate(http_requests_total{status_code=~\"2..\"}[5m])",
-          "interval": "",
           "legendFormat": "2xx Success",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
           "expr": "rate(http_requests_total{status_code=~\"4..\"}[5m])",
-          "interval": "",
           "legendFormat": "4xx Client Error",
           "refId": "B"
         },
         {
           "datasource": "Prometheus",
           "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
-          "interval": "",
           "legendFormat": "5xx Server Error",
           "refId": "C"
         }
@@ -125,7 +109,6 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -144,51 +127,38 @@
             ]
           },
           "unit": "reqps"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
-        "h": 8,
+        "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 1
       },
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
+        "graphMode": "area"
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "sum(rate(http_requests_total[5m]))",
-          "interval": "",
           "legendFormat": "Total RPS",
           "refId": "A"
         }
       ],
-      "title": "📊 Current Request Rate",
+      "title": "📊 Current RPS",
       "type": "stat"
     },
     {
       "datasource": "Prometheus",
-      "description": "Total requests processed (all time)",
+      "description": "Total requests processed (cumulative)",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -199,41 +169,124 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
-        "h": 8,
+        "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 1
       },
       "id": 3,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
+        "graphMode": "area"
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "sum(http_requests_total)",
-          "interval": "",
           "legendFormat": "Total Requests",
           "refId": "A"
         }
       ],
       "title": "📈 Total Requests",
       "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "System health indicators",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "active_database_connections",
+          "legendFormat": "DB Connections",
+          "refId": "A"
+        }
+      ],
+      "title": "💾 Active DB Connections",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Embedding cache performance",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(rate(embedding_cache_hits_total{hit_type=\"hit\"}[5m]))",
+          "legendFormat": "Cache Hits/s",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Cache Hit Rate",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 101,
+      "title": "🤖 RAG PERFORMANCE - Query & Vector Metrics",
+      "type": "row"
     },
     {
       "datasource": "Prometheus",
@@ -246,32 +299,10 @@
           "custom": {
             "axisLabel": "Duration (seconds)",
             "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
+            "fillOpacity": 10
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -290,170 +321,43 @@
             ]
           },
           "unit": "s"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 10
       },
-      "id": 4,
+      "id": 6,
       "options": {
         "legend": {
-          "calcs": [],
           "displayMode": "list",
           "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
         }
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.50, rate(rag_query_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "{{provider}} {{status}} p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.95, rate(rag_query_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "{{provider}} {{status}} p95",
           "refId": "B"
         },
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.99, rate(rag_query_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "{{provider}} {{status}} p99",
           "refId": "C"
         }
       ],
       "title": "🤖 RAG Query Duration",
       "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "Average RAG query duration",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 3
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 8
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, rate(rag_query_duration_seconds_bucket[5m]))",
-          "interval": "",
-          "legendFormat": "Avg Duration",
-          "refId": "A"
-        }
-      ],
-      "title": "⏱️ Avg RAG Duration",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "Total RAG queries processed",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 8
-      },
-      "id": 6,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "sum(increase(rag_query_duration_seconds_count[24h]))",
-          "interval": "",
-          "legendFormat": "RAG Queries (24h)",
-          "refId": "A"
-        }
-      ],
-      "title": "🎯 RAG Queries Today",
-      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -466,32 +370,10 @@
           "custom": {
             "axisLabel": "Duration (seconds)",
             "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
+            "fillOpacity": 10
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -510,46 +392,37 @@
             ]
           },
           "unit": "s"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 16
+        "x": 12,
+        "y": 10
       },
       "id": 7,
       "options": {
         "legend": {
-          "calcs": [],
           "displayMode": "list",
           "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
         }
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.50, rate(vector_search_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "Vector Search p50",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.95, rate(vector_search_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "Vector Search p95",
           "refId": "B"
         },
         {
           "datasource": "Prometheus",
           "expr": "histogram_quantile(0.99, rate(vector_search_duration_seconds_bucket[5m]))",
-          "interval": "",
           "legendFormat": "Vector Search p99",
           "refId": "C"
         }
@@ -559,274 +432,19 @@
     },
     {
       "datasource": "Prometheus",
-      "description": "Average vector search duration",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.3
-              },
-              {
-                "color": "red",
-                "value": 0.5
-              }
-            ]
-          },
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 16
-      },
-      "id": 8,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "histogram_quantile(0.50, rate(vector_search_duration_seconds_bucket[5m]))",
-          "interval": "",
-          "legendFormat": "Avg Search Time",
-          "refId": "A"
-        }
-      ],
-      "title": "⚡ Avg Vector Search",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "Total vector searches performed",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 16
-      },
-      "id": 9,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "sum(increase(vector_search_duration_seconds_count[24h]))",
-          "interval": "",
-          "legendFormat": "Searches (24h)",
-          "refId": "A"
-        }
-      ],
-      "title": "🔎 Vector Searches Today",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "AI API costs by provider and model",
+      "description": "RAG component latency breakdown - Enhanced metric showing retrieval vs generation timing",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
-            "axisLabel": "Cost (USD)",
+            "axisLabel": "Duration (seconds)",
             "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "fillOpacity": 10
           },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 24
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "rate(ai_api_cost_total_usd[5m]) * 3600",
-          "interval": "",
-          "legendFormat": "{{provider}} {{model}} /hour",
-          "refId": "A"
-        }
-      ],
-      "title": "💰 AI API Cost Rate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "Total AI API costs (cumulative)",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 24
-      },
-      "id": 11,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "datasource": "Prometheus",
-          "expr": "sum(ai_api_cost_total_usd)",
-          "interval": "",
-          "legendFormat": "Total Cost",
-          "refId": "A"
-        }
-      ],
-      "title": "💳 Total API Cost",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "description": "Daily API cost",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -840,46 +458,427 @@
               },
               {
                 "color": "red",
-                "value": 10
+                "value": 5
               }
             ]
           },
-          "unit": "currencyUSD"
-        },
-        "overrides": []
+          "unit": "s"
+        }
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 24
+        "w": 24,
+        "x": 0,
+        "y": 18
       },
-      "id": 12,
+      "id": 8,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
       },
       "targets": [
         {
           "datasource": "Prometheus",
-          "expr": "sum(increase(ai_api_cost_total_usd[24h]))",
-          "interval": "",
-          "legendFormat": "Daily Cost",
+          "expr": "histogram_quantile(0.50, rate(rag_component_latency_seconds_bucket{component=\"retrieval\"}[5m]))",
+          "legendFormat": "{{provider}} Retrieval p50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(rag_component_latency_seconds_bucket{component=\"generation\"}[5m]))",
+          "legendFormat": "{{provider}} Generation p50",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(rag_component_latency_seconds_bucket{component=\"total\"}[5m]))",
+          "legendFormat": "{{provider}} Total p95",
+          "refId": "C"
+        }
+      ],
+      "title": "⚙️ RAG Component Latency Breakdown (Enhanced)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 102,
+      "title": "🧠 BUSINESS INTELLIGENCE - Accuracy & Quality",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "RAG response accuracy score by provider, airline and language - NEW ENHANCED METRIC",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Accuracy Score",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.85
+              }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 27
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(rag_accuracy_score_bucket[5m]))",
+          "legendFormat": "{{provider}} {{airline}} {{language}} p50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(rag_accuracy_score_bucket[5m]))",
+          "legendFormat": "{{provider}} {{airline}} {{language}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "🎯 RAG Accuracy Score (Enhanced)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Current average accuracy across providers",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.85
+              }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "id": 10,
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "avg by (provider) (rate(rag_accuracy_score_sum[5m]) / rate(rag_accuracy_score_count[5m]))",
+          "legendFormat": "{{provider}}",
           "refId": "A"
         }
       ],
-      "title": "📅 Daily API Cost",
-      "type": "stat"
+      "title": "📊 Accuracy by Provider",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 103,
+      "title": "💰 COST ANALYSIS - Financial & Efficiency Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "AI API costs - cumulative total (existing metric)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Cost (USD)",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "rate(ai_api_cost_total_usd[5m]) * 3600",
+          "legendFormat": "{{provider}} {{model}} /hour",
+          "refId": "A"
+        }
+      ],
+      "title": "💰 AI API Cost Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Cost per individual query - NEW ENHANCED METRIC",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Cost (USD)",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(cost_per_query_usd_bucket[5m]))",
+          "legendFormat": "{{provider}} {{model}} p50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(cost_per_query_usd_bucket[5m]))",
+          "legendFormat": "{{provider}} {{model}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "💸 Cost Per Query (Enhanced)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Token usage distribution by provider and model - NEW ENHANCED METRIC",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Tokens",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(token_usage_per_query_bucket{token_type=\"input\"}[5m]))",
+          "legendFormat": "{{provider}} {{model}} Input p50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(token_usage_per_query_bucket{token_type=\"output\"}[5m]))",
+          "legendFormat": "{{provider}} {{model}} Output p50",
+          "refId": "B"
+        }
+      ],
+      "title": "🔢 Token Usage Distribution (Enhanced)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Cost efficiency: accuracy per dollar spent - NEW ENHANCED METRIC",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Efficiency Score",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 100
+              },
+              {
+                "color": "green",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(query_cost_efficiency_bucket[5m]))",
+          "legendFormat": "{{provider}} {{model}} p50",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "avg by (provider) (rate(query_cost_efficiency_sum[5m]) / rate(query_cost_efficiency_count[5m]))",
+          "legendFormat": "{{provider}} Average",
+          "refId": "B"
+        }
+      ],
+      "title": "⚖️ Cost Efficiency (Enhanced)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 104,
+      "title": "😊 USER EXPERIENCE - Satisfaction & Feedback",
+      "type": "row"
     },
     {
       "datasource": "Prometheus",
@@ -892,40 +891,9 @@
           "custom": {
             "axisLabel": "Feedback/min",
             "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "vis": false
-            },
-            "lineInterpolation": "linear",
             "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "fillOpacity": 10
           },
           "unit": "short"
         },
@@ -964,34 +932,27 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 16,
         "x": 0,
-        "y": 32
+        "y": 53
       },
-      "id": 13,
+      "id": 15,
       "options": {
         "legend": {
-          "calcs": [],
           "displayMode": "list",
           "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
         }
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_up\"}[5m]) * 60",
-          "interval": "",
           "legendFormat": "👍 Positive",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_down\"}[5m]) * 60",
-          "interval": "",
           "legendFormat": "👎 Negative",
           "refId": "B"
         }
@@ -1007,7 +968,6 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1028,25 +988,17 @@
           "unit": "percent",
           "min": 0,
           "max": 100
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 32
+        "w": 8,
+        "x": 16,
+        "y": 53
       },
-      "id": 14,
+      "id": 16,
       "options": {
         "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
         "showThresholdLabels": true,
         "showThresholdMarkers": true
       },
@@ -1054,7 +1006,6 @@
         {
           "datasource": "Prometheus",
           "expr": "(sum(user_satisfaction_total{rating=\"thumbs_up\"}) / sum(user_satisfaction_total) * 100) or vector(0)",
-          "interval": "",
           "legendFormat": "Satisfaction %",
           "refId": "A"
         }
@@ -1063,14 +1014,225 @@
       "type": "gauge"
     },
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "id": 105,
+      "title": "📈 SUMMARY STATS - Key Performance Indicators",
+      "type": "row"
+    },
+    {
       "datasource": "Prometheus",
-      "description": "Total feedback collected",
+      "description": "Average RAG query duration",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 62
+      },
+      "id": 17,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(rag_query_duration_seconds_bucket[5m]))",
+          "legendFormat": "Avg Duration",
+          "refId": "A"
+        }
+      ],
+      "title": "⏱️ Avg RAG Duration",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Average vector search duration",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 62
+      },
+      "id": 18,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(vector_search_duration_seconds_bucket[5m]))",
+          "legendFormat": "Avg Search Time",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Avg Vector Search",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total AI API costs (cumulative)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 62
+      },
+      "id": 19,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(ai_api_cost_total_usd)",
+          "legendFormat": "Total Cost",
+          "refId": "A"
+        }
+      ],
+      "title": "💳 Total API Cost",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Daily API cost",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 62
+      },
+      "id": 20,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(increase(ai_api_cost_total_usd[24h]))",
+          "legendFormat": "Daily Cost",
+          "refId": "A"
+        }
+      ],
+      "title": "📅 Daily API Cost",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total RAG queries processed",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1081,35 +1243,65 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 32
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 62
       },
-      "id": 15,
+      "id": 21,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "textMode": "auto"
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "sum(increase(rag_query_duration_seconds_count[24h]))",
+          "legendFormat": "RAG Queries (24h)",
+          "refId": "A"
+        }
+      ],
+      "title": "🎯 RAG Queries Today",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total feedback collected",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 62
+      },
+      "id": 22,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
       },
       "targets": [
         {
           "datasource": "Prometheus",
           "expr": "sum(user_satisfaction_total)",
-          "interval": "",
           "legendFormat": "Total Feedback",
           "refId": "A"
         }
@@ -1118,9 +1310,16 @@
       "type": "stat"
     }
   ],
+  "refresh": "30s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["rag", "simplified", "metrics", "airlines"],
+  "tags": [
+    "rag",
+    "unified",
+    "metrics", 
+    "business-intelligence",
+    "operational"
+  ],
   "templating": {
     "list": [
       {
@@ -1154,15 +1353,15 @@
           "value": "$__all"
         },
         "datasource": "Prometheus",
-        "definition": "label_values(rag_query_duration_seconds, status)",
+        "definition": "label_values(rag_accuracy_score, airline)",
         "hide": 0,
         "includeAll": true,
-        "label": "Status",
+        "label": "Airline",
         "multi": true,
-        "name": "status",
+        "name": "airline",
         "options": [],
         "query": {
-          "query": "label_values(rag_query_duration_seconds, status)",
+          "query": "label_values(rag_accuracy_score, airline)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1179,8 +1378,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "RAG System - Simplified Metrics Dashboard",
-  "uid": "rag-simplified-metrics",
+  "title": "Unified RAG Monitoring Dashboard - Compatible Format",
+  "uid": "rag-unified-compatible",
   "version": 1,
   "weekStart": ""
 }

@@ -1,4 +1,4 @@
-# Required imports
+# myapp.py - UNIFIED METRICS EDITION
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.responses import Response
 from typing import List, Optional, Dict, Any
@@ -19,8 +19,313 @@ import uuid
 from datetime import datetime, timedelta
 import hashlib
 
-# Basic Prometheus instrumentation
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, CONTENT_TYPE_LATEST, generate_latest
+# UNIFIED METRICS SYSTEM - Inline definitions (like original working code)
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from functools import wraps
+
+# =============================================================================
+# 1. OPERATIONAL METRICS - Temel sistem metrikleri 
+# =============================================================================
+
+# HTTP Request Metrics - Instrumentator ile birlikte çalışır
+http_requests_total = Counter(
+    'http_requests_total', 
+    'Total HTTP requests', 
+    ['method', 'endpoint', 'status_code']
+)
+
+# RAG System Core Metrics
+rag_query_duration_seconds = Histogram(
+    'rag_query_duration_seconds',
+    'RAG query end-to-end duration in seconds',
+    ['provider', 'status'],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0]
+)
+
+vector_search_duration_seconds = Histogram(
+    'vector_search_duration_seconds',
+    'Vector search duration in seconds',
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0]
+)
+
+ai_api_cost_total_usd = Counter(
+    'ai_api_cost_total_usd',
+    'Total AI API cost in USD (cumulative)',
+    ['provider', 'model']
+)
+
+user_satisfaction_total = Counter(
+    'user_satisfaction_total',
+    'User satisfaction feedback count',
+    ['rating']  # thumbs_up, thumbs_down
+)
+
+# =============================================================================
+# 2. BUSINESS INTELLIGENCE METRICS - Enhanced metrikler 
+# =============================================================================
+
+# Accuracy & Quality Metrics
+rag_accuracy_score = Histogram(
+    "rag_accuracy_score",
+    "RAG response accuracy score (0.0-1.0) based on source relevance and answer quality",
+    ["provider", "airline", "language"],
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+)
+
+# Cost Analysis Metrics
+cost_per_query_usd = Histogram(
+    "cost_per_query_usd", 
+    "Cost per individual RAG query in USD",
+    ["provider", "model"],
+    buckets=[0.0, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+)
+
+token_usage_per_query = Histogram(
+    "token_usage_per_query",
+    "Token usage per query breakdown",
+    ["provider", "model", "token_type"], # token_type: input/output
+    buckets=[10, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+)
+
+query_cost_efficiency = Histogram(
+    "query_cost_efficiency",
+    "Cost efficiency: accuracy_score / cost_usd (higher is better)",
+    ["provider", "model"],
+    buckets=[0, 10, 50, 100, 200, 500, 1000, 2000, 5000]
+)
+
+# Performance Breakdown Metrics
+rag_component_latency_seconds = Histogram(
+    "rag_component_latency_seconds",
+    "RAG pipeline component latency breakdown",
+    ["component", "provider"], # component: retrieval/generation/total
+    buckets=[0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+)
+
+# =============================================================================
+# 3. SYSTEM HEALTH METRICS - Sistem durumu
+# =============================================================================
+
+active_connections_gauge = Gauge(
+    'active_database_connections',
+    'Number of active database connections'
+)
+
+embedding_cache_hits_total = Counter(
+    'embedding_cache_hits_total',
+    'Total embedding cache hits',
+    ['hit_type']  # hit, miss
+)
+
+# =============================================================================
+# 4. UNIFIED TRACKING FUNCTIONS - Inline function definitions
+# =============================================================================
+
+def track_http_request(method: str, endpoint: str, status_code: str):
+    """HTTP request tracking - Instrumentator ile koordineli çalışır"""
+    try:
+        http_requests_total.labels(
+            method=method,
+            endpoint=endpoint, 
+            status_code=status_code
+        ).inc()
+    except Exception as e:
+        logger.error(f"HTTP request tracking error: {e}")
+
+def track_rag_query(provider: str, duration: float, status: str = "success"):
+    """RAG query tracking - Hem temel hem enhanced sistemde kullanılır"""
+    try:
+        rag_query_duration_seconds.labels(
+            provider=provider,
+            status=status
+        ).observe(duration)
+        
+        logger.debug(f"RAG query tracked: {duration:.3f}s for {provider}")
+    except Exception as e:
+        logger.error(f"RAG query tracking error: {e}")
+
+def track_vector_search(duration: float):
+    """Vector search performance tracking"""
+    try:
+        vector_search_duration_seconds.observe(duration)
+        logger.debug(f"Vector search tracked: {duration:.3f}s")
+    except Exception as e:
+        logger.error(f"Vector search tracking error: {e}")
+
+def track_api_cost(provider: str, model: str, cost: float):
+    """API cost tracking - Cumulative total"""
+    try:
+        ai_api_cost_total_usd.labels(
+            provider=provider,
+            model=model
+        ).inc(cost)
+        logger.debug(f"API cost tracked: ${cost:.4f} for {provider}/{model}")
+    except Exception as e:
+        logger.error(f"API cost tracking error: {e}")
+
+def track_user_feedback(rating: str):
+    """User satisfaction tracking"""
+    try:
+        user_satisfaction_total.labels(rating=rating).inc()
+        logger.debug(f"User feedback tracked: {rating}")
+    except Exception as e:
+        logger.error(f"User feedback tracking error: {e}")
+
+def track_rag_accuracy(
+    provider: str,
+    airline: str, 
+    language: str,
+    accuracy_score: float
+):
+    """RAG accuracy tracking for business intelligence"""
+    try:
+        rag_accuracy_score.labels(
+            provider=provider,
+            airline=airline, 
+            language=language
+        ).observe(accuracy_score)
+        
+        logger.debug(f"RAG accuracy tracked: {accuracy_score:.3f} for {provider}")
+    except Exception as e:
+        logger.error(f"RAG accuracy tracking error: {e}")
+
+def track_query_cost(
+    provider: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int, 
+    total_cost_usd: float,
+    accuracy_score: Optional[float] = None
+):
+    """Comprehensive query cost and efficiency tracking"""
+    try:
+        # Per-query cost
+        cost_per_query_usd.labels(
+            provider=provider,
+            model=model
+        ).observe(total_cost_usd)
+        
+        # Token usage breakdown
+        token_usage_per_query.labels(
+            provider=provider,
+            model=model,
+            token_type="input"
+        ).observe(input_tokens)
+        
+        token_usage_per_query.labels(
+            provider=provider,
+            model=model, 
+            token_type="output"
+        ).observe(output_tokens)
+        
+        # Cost efficiency calculation
+        if accuracy_score and total_cost_usd > 0:
+            efficiency = accuracy_score / total_cost_usd
+            query_cost_efficiency.labels(
+                provider=provider,
+                model=model
+            ).observe(efficiency)
+        
+        # Also track in cumulative cost (for backward compatibility)
+        track_api_cost(provider, model, total_cost_usd)
+        
+        logger.debug(f"Query cost tracked: ${total_cost_usd:.4f} for {provider}/{model}")
+    except Exception as e:
+        logger.error(f"Query cost tracking error: {e}")
+
+def track_component_latency(
+    component: str,  # "retrieval", "generation", "total" 
+    provider: str,
+    duration_seconds: float
+):
+    """RAG component latency tracking for performance analysis"""
+    try:
+        rag_component_latency_seconds.labels(
+            component=component,
+            provider=provider
+        ).observe(duration_seconds)
+        
+        logger.debug(f"{component} latency tracked: {duration_seconds:.3f}s for {provider}")
+    except Exception as e:
+        logger.error(f"Component latency tracking error: {e}")
+
+def calculate_source_precision(sources: List[Dict], relevance_threshold: float = 0.7) -> float:
+    """Calculate precision of retrieved sources based on similarity scores"""
+    if not sources:
+        return 0.0
+    
+    relevant_count = sum(1 for source in sources 
+                        if source.get('similarity_score', 0) >= relevance_threshold)
+    return relevant_count / len(sources)
+
+def calculate_answer_completeness(
+    sources_count: int = 0,
+    expected_sources: int = 3
+) -> float:
+    """Calculate answer completeness based on source coverage"""
+    if expected_sources <= 0:
+        return 0.0
+    source_coverage = min(sources_count / expected_sources, 1.0)
+    return source_coverage
+
+def calculate_overall_accuracy(
+    source_precision: float,
+    answer_completeness: float,
+    precision_weight: float = 0.6,
+    completeness_weight: float = 0.4
+) -> float:
+    """Calculate overall RAG accuracy score"""
+    accuracy = (source_precision * precision_weight) + (answer_completeness * completeness_weight)
+    return min(accuracy, 1.0)
+
+def track_system_health(db_pool=None):
+    """Track system health metrics"""
+    try:
+        if db_pool:
+            active_connections_gauge.set(db_pool.get_size())
+    except Exception as e:
+        logger.error(f"System health tracking error: {e}")
+
+def track_embedding_cache(hit_type: str):
+    """Track embedding cache performance"""
+    try:
+        embedding_cache_hits_total.labels(hit_type=hit_type).inc()
+    except Exception as e:
+        logger.error(f"Embedding cache tracking error: {e}")
+
+def get_metrics_text() -> str:
+    """Generate Prometheus metrics text format"""
+    try:
+        return generate_latest().decode('utf-8')
+    except Exception as e:
+        logger.error(f"Metrics generation error: {e}")
+        return ""
+
+def get_metrics_summary() -> Dict:
+    """Get metrics summary for debugging"""
+    return {
+        "operational_metrics": [
+            "http_requests_total",
+            "rag_query_duration_seconds", 
+            "vector_search_duration_seconds",
+            "ai_api_cost_total_usd",
+            "user_satisfaction_total"
+        ],
+        "business_metrics": [
+            "rag_accuracy_score",
+            "cost_per_query_usd",
+            "token_usage_per_query", 
+            "query_cost_efficiency",
+            "rag_component_latency_seconds"
+        ],
+        "system_metrics": [
+            "active_database_connections",
+            "embedding_cache_hits_total"
+        ],
+        "status": "unified_system_active"
+    }
+
+# FastAPI Prometheus Instrumentator - Automatic HTTP metrics
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -32,63 +337,6 @@ from fastapi.responses import Response
 from services.aws_speech import get_aws_speech_service
 import asyncio
 from services.assemblyai_stt import get_assemblyai_service
-
-# SIMPLIFIED METRICS SYSTEM - Only 5 core metrics
-try:
-    # Try to use centralized metrics if available
-    from monitoring.metrics import (
-        http_requests_total,
-        rag_query_duration_seconds,
-        vector_search_duration_seconds,
-        ai_api_cost_total_usd,
-        user_satisfaction_total
-    )
-    
-    # Core metrics
-    REQUEST_COUNT = http_requests_total
-    RAG_DURATION = rag_query_duration_seconds  
-    VECTOR_DURATION = vector_search_duration_seconds
-    API_COST = ai_api_cost_total_usd
-    USER_SATISFACTION = user_satisfaction_total
-    
-    METRICS_AVAILABLE = True
-    print("Using centralized metrics")
-    
-except ImportError:
-    # Fallback: create basic metrics
-    REQUEST_COUNT = Counter(
-        'http_requests_total', 
-        'Total HTTP requests', 
-        ['method', 'endpoint', 'status_code']
-    )
-    
-    RAG_DURATION = Histogram(
-        'rag_query_duration_seconds',
-        'RAG query duration',
-        ['provider', 'status'],
-        buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
-    )
-    
-    VECTOR_DURATION = Histogram(
-        'vector_search_duration_seconds',
-        'Vector search duration',
-        buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0]
-    )
-    
-    API_COST = Counter(
-        'ai_api_cost_total_usd',
-        'Total AI API cost in USD',
-        ['provider', 'model']
-    )
-    
-    USER_SATISFACTION = Counter(
-        'user_satisfaction_total',
-        'User satisfaction feedback',
-        ['rating']  # thumbs_up, thumbs_down
-    )
-    
-    METRICS_AVAILABLE = True
-    print("Using fallback metrics")
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -159,29 +407,9 @@ claude_service = None
 aws_speech_service = None 
 assemblyai_service = None
 
-# SIMPLIFIED HELPER FUNCTIONS
-def track_rag_query(provider: str, duration: float, status: str = "success"):
-    """Simple RAG query tracking"""
-    RAG_DURATION.labels(provider=provider, status=status).observe(duration)
-
-def track_vector_search(duration: float):
-    """Simple vector search tracking"""  
-    VECTOR_DURATION.observe(duration)
-
-def track_api_cost(provider: str, model: str, cost: float):
-    """Simple API cost tracking"""
-    API_COST.labels(provider=provider, model=model).inc(cost)
-
-def track_user_feedback(rating: str):
-    """Simple user feedback tracking"""
-    USER_SATISFACTION.labels(rating=rating).inc()
-
-def track_http_request(method: str, endpoint: str, status_code: str):
-    """Simple HTTP request tracking"""
-    REQUEST_COUNT.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
-
-class SimplifiedMetricsMiddleware(BaseHTTPMiddleware):
-    """Simplified FastAPI Middleware for basic metrics"""
+# UNIFIED METRICS MIDDLEWARE - Replaces old complex middleware systems
+class UnifiedMetricsMiddleware(BaseHTTPMiddleware):
+    """Unified middleware that tracks both operational and business metrics"""
     
     async def dispatch(self, request: Request, call_next) -> Response:
         method = request.method
@@ -193,7 +421,7 @@ class SimplifiedMetricsMiddleware(BaseHTTPMiddleware):
             duration = time.time() - start_time
             status_code = str(response.status_code)
             
-            # Track basic metrics
+            # Track HTTP request metrics (unified system)
             track_http_request(method, path, status_code)
             
             return response
@@ -211,7 +439,7 @@ async def lifespan(app: FastAPI):
     global db_pool, vector_ops, embedding_service, openai_service, claude_service, aws_speech_service, assemblyai_service
     
     # Startup
-    logger.info("Airlines Policy API starting...")
+    logger.info("Airlines Policy API starting with Unified Metrics...")
     try:
         # 1. Database connection
         db_pool = await asyncpg.create_pool(
@@ -293,14 +521,17 @@ async def lifespan(app: FastAPI):
             logger.error(f"AssemblyAI service load failed: {e}")
             assemblyai_service = None
         
-        # 6. Startup summary
+        # 6. Track system health metrics
+        track_system_health(db_pool)
+        
+        # 7. Startup summary
         services_status = {
             "database": "ready" if db_pool else "failed",
-            "embedding": "ready" if embedding_service else "failed",
+            "embedding": "ready" if embedding_service else "failed", 
             "openai": "ready" if openai_service else "failed",
             "claude": "ready" if claude_service else "failed",
             "vector_ops": "ready" if vector_ops else "failed",
-            "metrics": "ready" if METRICS_AVAILABLE else "failed",
+            "unified_metrics": "ready",
             "aws_tts": "ready" if aws_speech_service else "failed",
             "assemblyai_stt": "ready" if assemblyai_service else "failed"
         }
@@ -309,7 +540,7 @@ async def lifespan(app: FastAPI):
         for service, status in services_status.items():
             logger.info(f"   {service}: {status}")
         
-        logger.info("Airlines Policy API ready!")
+        logger.info("Airlines Policy API ready with Unified Metrics!")
             
     except Exception as e:
         logger.error(f"Critical startup error: {e}")
@@ -330,22 +561,21 @@ async def lifespan(app: FastAPI):
     claude_service = None
     vector_ops = None
     aws_speech_service = None
+    assemblyai_service = None
     
     logger.info("Shutdown completed")
 
 # FastAPI instance
 app = FastAPI(
-    title="Airlines Policy API - Simplified",
-    description="RAG-powered PostgreSQL API with Clean Metrics",
-    version="5.0.0",
+    title="Airlines Policy API - Unified Metrics",
+    description="RAG-powered PostgreSQL API with Unified Metrics System",
+    version="7.0.0-unified",
     lifespan=lifespan
 )
 
-# Add simplified middleware
-app.add_middleware(SimplifiedMetricsMiddleware)
-
+# CORS Middleware
 app.add_middleware(
-    CORSMiddleware,  # ❌ Bu eksik - ZORUNLU
+    CORSMiddleware,
     allow_origins=[
         "http://localhost:8501",
         "http://localhost:5173", 
@@ -355,8 +585,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add Prometheus instrumentation
-instrumentator = Instrumentator()
+# Add Unified Metrics Middleware
+app.add_middleware(UnifiedMetricsMiddleware)
+
+# Add Prometheus Instrumentator for automatic HTTP metrics
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_instrument_requests_inprogress=True,
+    should_respect_env_var=True,
+    inprogress_name="fastapi_inprogress",
+    inprogress_labels=True,
+)
 instrumentator.instrument(app).expose(app)
 
 # SIMPLIFIED PYDANTIC MODELS 
@@ -409,28 +649,27 @@ async def generate_session_id(question: str) -> str:
     return f"session_{timestamp}_{question_hash}"
 
 async def simple_log_query(question: str, provider: str, session_id: str):
-    """Simple query logging instead of complex database tracking"""
+    """Simple query logging"""
     logger.info(f"Query: {question[:50]}... | Provider: {provider} | Session: {session_id[:8]}")
 
 async def retrieve_relevant_docs(question: str, max_results: int, 
                                  similarity_threshold: float,
                                  airline_preference: Optional[str] = None) -> List[Dict]:
-    """Document retrieval with simplified metrics"""
+    """Document retrieval with unified metrics tracking"""
     if not vector_ops:
         return []
     
     try:
         start_time = time.time()
         
-        # FIX: Parameter adını airline_filter olarak değiştir
         docs = await vector_ops.similarity_search(
             query=question,
-            airline_filter=airline_preference,  # airline_preference -> airline_filter
+            airline_filter=airline_preference,
             limit=max_results,
             similarity_threshold=similarity_threshold
         )
         
-        # Simple metrics tracking
+        # Track vector search performance (unified metrics)
         search_duration = time.time() - start_time
         track_vector_search(search_duration)
         
@@ -469,14 +708,15 @@ def calculate_retrieval_stats(retrieved_docs: List[Dict]) -> Dict[str, Any]:
     }
 
 def prepare_retrieved_docs_preview(retrieved_docs: List[Dict]) -> List[Dict]:
-    """Retrieved docs preview"""
+    """Simplified source preview"""
     return [
         {
-            "source": doc["source"],
-            "airline": doc.get("airline", "Unknown"),  # Havayolu bilgisi ekle
-            "content_preview": doc["content"][:200] + "..." if len(doc["content"]) > 200 else doc["content"],
-            "similarity_score": round(doc["similarity_score"], 3),
-            "source_display": f"{doc['source']} - {doc.get('airline', 'Unknown Airline')}"  # Display için
+            "airline": doc.get("airline", "Unknown"),
+            "source": doc["source"], 
+            "content_preview": doc["content"][:300] + "..." if len(doc["content"]) > 300 else doc["content"],
+            "updated_date": doc.get("updated_at") or doc.get("created_at"),
+            "url": doc.get("url"),
+            "similarity_score": round(doc["similarity_score"], 3)
         }
         for doc in retrieved_docs
     ]
@@ -492,6 +732,49 @@ def fix_float_values(obj):
             return 0.0
         return obj
     return obj
+
+def calculate_preference_stats(retrieved_docs: List[Dict], airline_preference: Optional[str]) -> Dict[str, Any]:
+    """Calculate preference-related statistics"""
+    if not retrieved_docs or not airline_preference:
+        return {
+            "preference_applied": False,
+            "boosted_results": 0,
+            "preferred_airline_ratio": 0
+        }
+    
+    boosted_count = len([doc for doc in retrieved_docs if doc.get('preference_boost', False)])
+    preferred_count = len([doc for doc in retrieved_docs if doc.get('airline') == airline_preference])
+    
+    return {
+        "preference_applied": True,
+        "preferred_airline": airline_preference,
+        "boosted_results": boosted_count,
+        "preferred_airline_results": preferred_count,
+        "preferred_airline_ratio": round(preferred_count / len(retrieved_docs), 2) if retrieved_docs else 0,
+        "total_results": len(retrieved_docs)
+    }
+
+def enhance_query_simple(question: str, airline_preference: Optional[str]) -> str:
+    """Simple rule-based query enhancement with airline prefix"""
+    if not airline_preference:
+        return question
+    
+    # Airline code to name mapping
+    airline_names = {
+        'turkish_airlines': 'Turkish Airlines',
+        'pegasus': 'Pegasus Airlines',
+        'sunexpress': 'SunExpress'
+    }
+    
+    airline_name = airline_names.get(airline_preference, airline_preference)
+    
+    # Simple prefix addition
+    enhanced_query = f"{airline_name} | {question}"
+    
+    # Log the enhancement
+    logger.info(f"Query enhanced: '{question}' -> '{enhanced_query}'")
+    
+    return enhanced_query
 
 # MAIN ENDPOINTS
 @app.get("/")
@@ -513,22 +796,17 @@ async def read_root(db = Depends(get_db_connection)):
         }
         
         return {
-            "service": "Airlines Policy API - Simplified",
-            "version": "5.0.0 (Clean Architecture)",
+            "service": "Airlines Policy API - Unified Metrics",
+            "version": "7.0.0-unified",
             "data_source": "PostgreSQL Database + Vector Search",
             "status": "active",
             "ai_services_status": ai_status,
             "metrics_status": {
-                "simplified_metrics": METRICS_AVAILABLE,
-                "core_metrics_only": True
+                "unified_metrics": "active",
+                "prometheus_instrumentator": "active",
+                "business_intelligence": "enabled"
             },
-            "core_metrics": [
-                "http_requests_total",
-                "rag_query_duration_seconds", 
-                "vector_search_duration_seconds",
-                "ai_api_cost_total_usd",
-                "user_satisfaction_total"
-            ],
+            "unified_metrics_summary": get_metrics_summary(),
             "endpoints": {
                 "all_policies": "/policies",
                 "search": "/search?q=yoursearchterm",
@@ -537,6 +815,7 @@ async def read_root(db = Depends(get_db_connection)):
                 "health": "/health",
                 "openai_chat": "/chat/openai",
                 "claude_chat": "/chat/claude",
+                "test_metrics": "/test-unified-metrics",
                 "metrics": "/metrics",
                 "documentation": "/docs"
             },
@@ -659,7 +938,7 @@ async def vector_similarity_search(
     threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
     db = Depends(get_db_connection)
 ):
-    """Vector similarity search"""
+    """Vector similarity search with unified metrics"""
     try:
         if not vector_ops:
             raise HTTPException(status_code=503, detail="Vector search not available")
@@ -671,6 +950,7 @@ async def vector_similarity_search(
             similarity_threshold=threshold
         )
         
+        # Track performance with unified metrics
         search_duration = time.time() - start_time
         track_vector_search(search_duration)
         
@@ -691,9 +971,9 @@ async def vector_similarity_search(
 
 @app.get("/stats")
 async def get_stats(db = Depends(get_db_connection)):
-    """Simple database statistics"""
+    """Simple database statistics with unified metrics info"""
     try:
-        # Basic stats only
+        # Basic stats
         total_policies = await db.fetchval("SELECT COUNT(*) FROM policy")
         
         source_breakdown = await db.fetch("""
@@ -722,64 +1002,22 @@ async def get_stats(db = Depends(get_db_connection)):
                 "vector_search": "ready" if vector_ops else "unavailable",
                 "openai": "ready" if openai_service else "unavailable", 
                 "claude": "ready" if claude_service else "unavailable"
-            }
+            },
+            "unified_metrics": get_metrics_summary()
         }
         
     except Exception as e:
         logger.error(f"Stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
-    
-def calculate_preference_stats(retrieved_docs: List[Dict], airline_preference: Optional[str]) -> Dict[str, Any]:
-    """Calculate preference-related statistics"""
-    if not retrieved_docs or not airline_preference:
-        return {
-            "preference_applied": False,
-            "boosted_results": 0,
-            "preferred_airline_ratio": 0
-        }
-    
-    boosted_count = len([doc for doc in retrieved_docs if doc.get('preference_boost', False)])
-    preferred_count = len([doc for doc in retrieved_docs if doc.get('airline') == airline_preference])
-    
-    return {
-        "preference_applied": True,
-        "preferred_airline": airline_preference,
-        "boosted_results": boosted_count,
-        "preferred_airline_results": preferred_count,
-        "preferred_airline_ratio": round(preferred_count / len(retrieved_docs), 2) if retrieved_docs else 0,
-        "total_results": len(retrieved_docs)
-    }
 
-def enhance_query_simple(question: str, airline_preference: Optional[str]) -> str:
-    """Simple rule-based query enhancement with airline prefix"""
-    if not airline_preference:
-        return question
-    
-    # Airline code to name mapping
-    airline_names = {
-        'turkish_airlines': 'Turkish Airlines',
-        'pegasus': 'Pegasus Airlines',
-        'sunexpress': 'SunExpress'
-    }
-    
-    airline_name = airline_names.get(airline_preference, airline_preference)
-    
-    # Simple prefix addition
-    enhanced_query = f"{airline_name} | {question}"
-    
-    # Log the enhancement
-    logger.info(f"Query enhanced: '{question}' -> '{enhanced_query}'")
-    
-    return enhanced_query
-
-# SIMPLIFIED AI CHAT ENDPOINTS
+# ENHANCED OPENAI CHAT ENDPOINT WITH UNIFIED METRICS
 async def _chat_with_openai_logic(question: str,
                                   max_results: int,
                                   similarity_threshold: float,
                                   model: Optional[str],
                                   airline_preference: Optional[str] = None,
                                   language: str = "en"):
-    """Simplified OpenAI chat logic"""
+    """Enhanced OpenAI chat logic with unified metrics tracking"""
     if not openai_service:
         raise HTTPException(status_code=503, detail="OpenAI service not available")
     
@@ -788,32 +1026,66 @@ async def _chat_with_openai_logic(question: str,
     
     try:
         preference_log = f" | Airline: {airline_preference}" if airline_preference else ""
-        # Simple logging instead of complex database storage
         await simple_log_query(question, "openai" + preference_log, session_id)
 
         enhanced_question = enhance_query_simple(question, airline_preference)
         
-        # Step 1: Retrieve documents
-        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold,airline_preference)
+        # Step 1: Retrieve documents (with component timing)
+        retrieval_start = time.time()
+        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
+        retrieval_time = time.time() - retrieval_start
         
-        # Step 2: Generate response
+        # Step 2: Generate response (with component timing)
+        generation_start = time.time()
         openai_response = openai_service.generate_rag_response(retrieved_docs, enhanced_question, model, language)
+        generation_time = time.time() - generation_start
         
         if not openai_response["success"]:
-            duration = time.time() - start_time
-            track_rag_query("openai", duration, "error")
+            total_duration = time.time() - start_time
+            track_rag_query("openai", total_duration, "error")
             raise HTTPException(status_code=500, detail="OpenAI generation failed")
         
-        # Step 3: Track metrics
-        duration = time.time() - start_time
-        track_rag_query("openai", duration, "success")
-        
-        # Track cost
+        # Step 3: Unified Metrics Tracking
+        total_duration = time.time() - start_time
         usage = openai_response.get("usage", {})
-        if "estimated_cost" in usage:
-            track_api_cost("openai", openai_response.get("model_used", model or "unknown"), usage["estimated_cost"])
         
-        # Simple response
+        # Track operational metrics (basic)
+        track_rag_query("openai", total_duration, "success")
+        
+        # Track component latency
+        track_component_latency("retrieval", "openai", retrieval_time)
+        track_component_latency("generation", "openai", generation_time)
+        track_component_latency("total", "openai", total_duration)
+        
+        # Track business intelligence metrics
+        source_precision = calculate_source_precision(retrieved_docs, 0.7)
+        answer_completeness = calculate_answer_completeness(len(retrieved_docs), 3)
+        accuracy_score = calculate_overall_accuracy(source_precision, answer_completeness)
+        
+        # Track accuracy
+        track_rag_accuracy(
+            provider="openai",
+            airline=airline_preference or "all",
+            language=language,
+            accuracy_score=accuracy_score
+        )
+        
+        # Track cost metrics
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        total_cost = usage.get("estimated_cost", 0.0)
+        
+        if total_cost > 0:
+            track_query_cost(
+                provider="openai",
+                model=openai_response.get("model_used", model or "gpt-4o-mini"),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_cost_usd=total_cost,
+                accuracy_score=accuracy_score
+            )
+        
+        # Enhanced response data
         response_data = {
             "success": True,
             "session_id": session_id,
@@ -825,30 +1097,39 @@ async def _chat_with_openai_logic(question: str,
             "stats": calculate_retrieval_stats(retrieved_docs),
             "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
-                "response_time": round(duration, 3),
-                "cost": usage.get("estimated_cost", 0.0)
+                "response_time": round(total_duration, 3),
+                "retrieval_time": round(retrieval_time, 3),
+                "generation_time": round(generation_time, 3),
+                "cost": total_cost
             },
-            "language": language
+            "accuracy": {
+                "overall_score": round(accuracy_score, 3),
+                "source_precision": round(source_precision, 3),
+                "answer_completeness": round(answer_completeness, 3)
+            },
+            "language": language,
+            "metrics_tracked": "unified_system"
         }
         
-        logger.info(f"OpenAI response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
+        logger.info(f"OpenAI response generated in {total_duration:.2f}s (R:{retrieval_time:.2f}s G:{generation_time:.2f}s) Accuracy:{accuracy_score:.3f}")
         return fix_float_values(response_data)
         
     except HTTPException:
         raise
     except Exception as e:
-        duration = time.time() - start_time
-        track_rag_query("openai", duration, "error")
+        total_duration = time.time() - start_time
+        track_rag_query("openai", total_duration, "error")
         logger.error(f"OpenAI error: {e}")
         raise HTTPException(status_code=500, detail="OpenAI chat error")
 
+# ENHANCED CLAUDE CHAT ENDPOINT WITH UNIFIED METRICS
 async def _chat_with_claude_logic(question: str,
                                   max_results: int,
                                   similarity_threshold: float,
                                   model: Optional[str],
                                   airline_preference: Optional[str] = None,
                                   language: str = "en"):
-    """Simplified Claude chat logic"""
+    """Enhanced Claude chat logic with unified metrics tracking"""
     if not claude_service:
         raise HTTPException(status_code=503, detail="Claude service not available")
     
@@ -856,67 +1137,104 @@ async def _chat_with_claude_logic(question: str,
     session_id = await generate_session_id(question)
     
     try:
-        # Simple logging instead of complex database storage
         preference_log = f" | Airline: {airline_preference}" if airline_preference else ""
         await simple_log_query(question, "claude" + preference_log, session_id)
 
         enhanced_question = enhance_query_simple(question, airline_preference)
 
-        # Step 1: Retrieve documents
-        retrieved_docs = await retrieve_relevant_docs(
-            enhanced_question,
-            max_results, 
-            similarity_threshold,
-            airline_preference
-        )
+        # Step 1: Retrieve documents (with component timing)
+        retrieval_start = time.time()
+        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
+        retrieval_time = time.time() - retrieval_start
         
-        # Step 2: Generate response
+        # Step 2: Generate response (with component timing)
+        generation_start = time.time()
         claude_response = claude_service.generate_rag_response(retrieved_docs, enhanced_question, model, language)
+        generation_time = time.time() - generation_start
         
         if not claude_response["success"]:
-            duration = time.time() - start_time
-            track_rag_query("claude", duration, "error")
+            total_duration = time.time() - start_time
+            track_rag_query("claude", total_duration, "error")
             raise HTTPException(status_code=500, detail="Claude generation failed")
         
-        # Step 3: Track metrics
-        duration = time.time() - start_time
-        track_rag_query("claude", duration, "success")
-        
-        # Track cost
+        # Step 3: Unified Metrics Tracking
+        total_duration = time.time() - start_time
         usage = claude_response.get("usage", {})
-        if "estimated_cost" in usage:
-            track_api_cost("claude", claude_response.get("model_used", model or "unknown"), usage["estimated_cost"])
         
-        # Simple response
+        # Track operational metrics (basic)
+        track_rag_query("claude", total_duration, "success")
+        
+        # Track component latency
+        track_component_latency("retrieval", "claude", retrieval_time)
+        track_component_latency("generation", "claude", generation_time)
+        track_component_latency("total", "claude", total_duration)
+        
+        # Track business intelligence metrics
+        source_precision = calculate_source_precision(retrieved_docs, 0.7)
+        answer_completeness = calculate_answer_completeness(len(retrieved_docs), 3)
+        accuracy_score = calculate_overall_accuracy(source_precision, answer_completeness)
+        
+        # Track accuracy
+        track_rag_accuracy(
+            provider="claude",
+            airline=airline_preference or "all",
+            language=language,
+            accuracy_score=accuracy_score
+        )
+        
+        # Track cost metrics
+        input_tokens = usage.get("input_tokens", 0)
+        output_tokens = usage.get("output_tokens", 0)
+        total_cost = usage.get("estimated_cost", 0.0)
+        
+        if total_cost > 0:
+            track_query_cost(
+                provider="claude",
+                model=claude_response.get("model_used", model or "claude-3-5-haiku-20241022"),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_cost_usd=total_cost,
+                accuracy_score=accuracy_score
+            )
+        
+        # Enhanced response data
         response_data = {
             "success": True,
             "session_id": session_id,
             "question": question,
             "answer": claude_response["answer"],
             "model_used": claude_response["model_used"],
-            "airline_preference": airline_preference,  # NEW: Include preference in response
+            "airline_preference": airline_preference,
             "sources": prepare_retrieved_docs_preview(retrieved_docs),
             "stats": calculate_retrieval_stats(retrieved_docs),
             "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
-                "response_time": round(duration, 3),
-                "cost": usage.get("estimated_cost", 0.0)
+                "response_time": round(total_duration, 3),
+                "retrieval_time": round(retrieval_time, 3),
+                "generation_time": round(generation_time, 3),
+                "cost": total_cost
             },
-            "language": language
+            "accuracy": {
+                "overall_score": round(accuracy_score, 3),
+                "source_precision": round(source_precision, 3),
+                "answer_completeness": round(answer_completeness, 3)
+            },
+            "language": language,
+            "metrics_tracked": "unified_system"
         }
         
-        logger.info(f"Claude response generated in {duration:.2f}s (preference: {airline_preference or 'none'})")
+        logger.info(f"Claude response generated in {total_duration:.2f}s (R:{retrieval_time:.2f}s G:{generation_time:.2f}s) Accuracy:{accuracy_score:.3f}")
         return fix_float_values(response_data)
         
     except HTTPException:
         raise
     except Exception as e:
-        duration = time.time() - start_time
-        track_rag_query("claude", duration, "error")
+        total_duration = time.time() - start_time
+        track_rag_query("claude", total_duration, "error")
         logger.error(f"Claude error: {e}")
         raise HTTPException(status_code=500, detail="Claude chat error")
 
-# Chat Endpoints
+# Chat Endpoints - All HTTP methods supported
 @app.post("/chat/openai")
 async def openai_chat_post(
     chat_request: Optional[ChatRequest] = None,
@@ -927,7 +1245,7 @@ async def openai_chat_post(
     model: Optional[str] = Query(None, description="Model to use (optional)"),
     language: Optional[str] = Query("en", description="Response language (en/tr)")
 ):
-    """RAG Chat with OpenAI (POST method)"""
+    """RAG Chat with OpenAI (POST method) - Unified Metrics"""
     
     if chat_request:
         return await _chat_with_openai_logic(
@@ -953,37 +1271,6 @@ async def openai_chat_post(
             detail="Either provide JSON body with 'question' field or 'question' query parameter"
         )
 
-@app.post("/speech/synthesize")
-async def text_to_speech(
-    text: str,
-    language: str = "tr-TR"
-):
-    """AWS Polly ile TTS"""
-    try:
-        if not aws_speech_service:
-            raise HTTPException(status_code=503, detail="AWS Speech Service not available")
-        
-        if not text or len(text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Empty text not allowed")
-        
-        result = aws_speech_service.text_to_audio(text, language)
-        
-        if result["success"]:
-            return Response(
-                content=result["audio_data"],
-                media_type="audio/mpeg",
-                headers={
-                    "Content-Disposition": "attachment; filename=speech.mp3"
-                }
-            )
-        else:
-            raise HTTPException(status_code=400, detail=result["error"])
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
-
 @app.get("/chat/openai") 
 async def openai_chat_get(
     question: str = Query(..., description="User question", min_length=3),
@@ -993,8 +1280,8 @@ async def openai_chat_get(
     model: Optional[str] = Query(None, description="Model to use (optional)"),
     language: str = Query("en", description="Response language (en/tr)")
 ):
-    """RAG Chat with OpenAI (GET method)"""
-    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model, airline_preference,language)
+    """RAG Chat with OpenAI (GET method) - Unified Metrics"""
+    return await _chat_with_openai_logic(question, max_results, similarity_threshold, model, airline_preference, language)
 
 @app.post("/chat/claude")
 async def claude_chat_post(
@@ -1004,9 +1291,9 @@ async def claude_chat_post(
     max_results: Optional[int] = Query(None, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: Optional[float] = Query(None, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)"),
-    language: str = Query("en", description="Response language (en/tr)")  # BU PARAMETRE EKLENDI
+    language: str = Query("en", description="Response language (en/tr)")
 ):
-    """RAG Chat with Claude (POST method)"""
+    """RAG Chat with Claude (POST method) - Unified Metrics"""
     
     if chat_request:
         return await _chat_with_claude_logic(
@@ -1041,44 +1328,66 @@ async def claude_chat_get(
     model: Optional[str] = Query(None, description="Model to use (optional)"),
     language: str = Query("en", description="Response language (en/tr)")
 ):
-    """RAG Chat with Claude (GET method)"""
-    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model, airline_preference,language)
+    """RAG Chat with Claude (GET method) - Unified Metrics"""
+    return await _chat_with_claude_logic(question, max_results, similarity_threshold, model, airline_preference, language)
 
-# SIMPLIFIED FEEDBACK ENDPOINT
+# FEEDBACK ENDPOINT WITH UNIFIED METRICS
 @app.post("/feedback")
 async def collect_user_feedback(feedback: FeedbackRequest):
-    """Simplified user feedback"""
+    """User feedback collection with unified metrics tracking"""
     try:
         rating = "thumbs_up" if feedback.feedback_type == "helpful" else "thumbs_down"
         track_user_feedback(rating)
         
-        # Simple logging instead of complex database storage
         logger.info(f"Feedback: {feedback.feedback_type} for {feedback.provider}")
         
         return {
             "success": True,
-            "message": "Feedback recorded"
+            "message": "Feedback recorded in unified metrics system"
         }
         
     except Exception as e:
         logger.error(f"Feedback error: {e}")
         raise HTTPException(status_code=500, detail="Feedback error")
 
-# METRICS ENDPOINT
-@app.get("/metrics")
-async def get_metrics():
-    """Simple Prometheus metrics endpoint"""
-    return Response(
-        generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
+# SPEECH ENDPOINTS (unchanged)
+@app.post("/speech/synthesize")
+async def text_to_speech(
+    text: str,
+    language: str = "tr-TR"
+):
+    """AWS Polly TTS"""
+    try:
+        if not aws_speech_service:
+            raise HTTPException(status_code=503, detail="AWS Speech Service not available")
+        
+        if not text or len(text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Empty text not allowed")
+        
+        result = aws_speech_service.text_to_audio(text, language)
+        
+        if result["success"]:
+            return Response(
+                content=result["audio_data"],
+                media_type="audio/mpeg",
+                headers={
+                    "Content-Disposition": "attachment; filename=speech.mp3"
+                }
+            )
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 @app.post("/speech/transcribe")
 async def speech_to_text_realtime(
     audio_file: UploadFile = File(...),
     language: str = Query("tr", description="Language code (tr, en, etc.)")
 ):
-    """AssemblyAI Real-time STT"""
+    """AssemblyAI STT"""
     try:
         if not assemblyai_service:
             raise HTTPException(status_code=503, detail="AssemblyAI service not available")
@@ -1108,7 +1417,6 @@ async def speech_to_text_realtime(
         )
         
         if result["success"]:
-            # Success response
             response_data = {
                 "success": True,
                 "transcript": result["transcript"],
@@ -1123,7 +1431,6 @@ async def speech_to_text_realtime(
             logger.info(f"STT success: '{result['transcript'][:50]}...' ({result['details'].get('words_count', 0)} words)")
             return response_data
         else:
-            # Error response
             logger.error(f"STT failed: {result['error']}")
             raise HTTPException(
                 status_code=500, 
@@ -1136,30 +1443,65 @@ async def speech_to_text_realtime(
         logger.error(f"STT endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"STT error: {str(e)}")
 
-# AssemblyAI service info endpoint'i de ekle:
-@app.get("/speech/assemblyai/info")
-async def get_assemblyai_info():
-    """Get AssemblyAI service information"""
+# UNIFIED METRICS TEST ENDPOINT
+@app.post("/test-unified-metrics")
+async def generate_test_unified_metrics():
+    """Test endpoint to generate sample data for unified metrics system"""
+    
     try:
-        if not assemblyai_service:
-            return {
-                "status": "unavailable",
-                "error": "AssemblyAI service not initialized"
-            }
+        # Generate sample operational metrics
+        track_rag_query("openai", 1.5, "success")
+        track_rag_query("claude", 1.2, "success")
+        track_vector_search(0.3)
+        track_api_cost("openai", "gpt-4o-mini", 0.005)
+        track_api_cost("claude", "claude-3-5-haiku", 0.008)
+        track_user_feedback("thumbs_up")
         
-        info = assemblyai_service.get_service_info()
-        return info
+        # Generate sample business intelligence metrics
+        track_rag_accuracy("openai", "turkish_airlines", "tr", 0.85)
+        track_rag_accuracy("claude", "pegasus", "en", 0.92)
+        
+        track_query_cost("openai", "gpt-4o-mini", 150, 75, 0.005, 0.85)
+        track_query_cost("claude", "claude-3-5-haiku", 200, 100, 0.008, 0.92)
+        
+        track_component_latency("retrieval", "openai", 0.5)
+        track_component_latency("generation", "openai", 1.0)
+        track_component_latency("total", "openai", 1.5)
+        
+        track_component_latency("retrieval", "claude", 0.4)
+        track_component_latency("generation", "claude", 0.8)
+        track_component_latency("total", "claude", 1.2)
+        
+        return {
+            "success": True,
+            "message": "Unified metrics test data generated successfully",
+            "metrics_categories": {
+                "operational": ["http_requests_total", "rag_query_duration_seconds", "vector_search_duration_seconds", "ai_api_cost_total_usd", "user_satisfaction_total"],
+                "business_intelligence": ["rag_accuracy_score", "cost_per_query_usd", "token_usage_per_query", "query_cost_efficiency", "rag_component_latency_seconds"],
+                "system": ["active_database_connections", "embedding_cache_hits_total"]
+            },
+            "data_points_generated": 14,
+            "unified_system": "active"
+        }
         
     except Exception as e:
-        logger.error(f"AssemblyAI info error: {e}")
-        return {
-            "status": "error", 
-            "error": str(e)
-        }
+        logger.error(f"Test metrics generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Test metrics error: {str(e)}")
 
+# METRICS ENDPOINT - Unified Prometheus export
+@app.get("/metrics")
+async def get_metrics():
+    """Unified metrics endpoint for Prometheus scraping"""
+    metrics_text = get_metrics_text()
+    return Response(
+        content=metrics_text,
+        media_type=CONTENT_TYPE_LATEST
+    )
+
+# HEALTH ENDPOINTS (updated with unified metrics info)
 @app.get("/health")
 async def health_check(db = Depends(get_db_connection)):
-    """Health check endpoint for frontend"""
+    """Health check endpoint with unified metrics status"""
     try:
         total_count = await db.fetchval("SELECT COUNT(*) FROM policy")
         
@@ -1178,6 +1520,11 @@ async def health_check(db = Depends(get_db_connection)):
             "speech_services": {
                 "tts": aws_speech_service is not None,
                 "stt": assemblyai_service is not None
+            },
+            "metrics": {
+                "unified_system": "active",
+                "prometheus_instrumentator": "active",
+                "business_intelligence": "enabled"
             }
         }
     except Exception as e:
@@ -1206,7 +1553,7 @@ async def speech_health_check():
             polly_status = "failed"
             polly_info = str(e)
         
-        # AssemblyAI test (STT) - YENİ
+        # AssemblyAI test (STT)
         assemblyai_status = "ready" if os.getenv("ASSEMBLYAI_API_KEY") else "not_configured"
         
         # Overall status
@@ -1238,19 +1585,19 @@ async def speech_health_check():
 
 @app.get("/speech/debug")
 async def debug_speech():
-    """Speech Services debug - S3 kısımları kaldırıldı"""
+    """Speech Services debug info"""
     try:
         debug_info = {
             "environment_variables": {
                 "AWS_REGION": os.getenv("AWS_REGION", "NOT_SET"),
                 "AWS_ACCESS_KEY_ID": "SET" if os.getenv("AWS_ACCESS_KEY_ID") else "NOT_SET",
                 "AWS_SECRET_ACCESS_KEY": "SET" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT_SET",
-                "ASSEMBLYAI_API_KEY": "SET" if os.getenv("ASSEMBLYAI_API_KEY") else "NOT_SET"  # YENİ
+                "ASSEMBLYAI_API_KEY": "SET" if os.getenv("ASSEMBLYAI_API_KEY") else "NOT_SET"
             }
         }
         
         if aws_speech_service:
-            # Sadece Polly test
+            # Polly test
             try:
                 voices = aws_speech_service.polly_client.describe_voices(LanguageCode='tr-TR')
                 debug_info["polly_test"] = {
@@ -1268,6 +1615,26 @@ async def debug_speech():
         
     except Exception as e:
         return {"error": f"Debug failed: {str(e)}"}
+
+@app.get("/speech/assemblyai/info")
+async def get_assemblyai_info():
+    """Get AssemblyAI service information"""
+    try:
+        if not assemblyai_service:
+            return {
+                "status": "unavailable",
+                "error": "AssemblyAI service not initialized"
+            }
+        
+        info = assemblyai_service.get_service_info()
+        return info
+        
+    except Exception as e:
+        logger.error(f"AssemblyAI info error: {e}")
+        return {
+            "status": "error", 
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

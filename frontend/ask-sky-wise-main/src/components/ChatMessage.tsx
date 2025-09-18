@@ -1,7 +1,16 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThumbsUp, ThumbsDown, Clock, AlertTriangle, Volume2 } from 'lucide-react';
+import { 
+  ThumbsUp, 
+  ThumbsDown, 
+  Clock,  
+  AlertTriangle, 
+  Volume2, 
+  ExternalLink,
+  ChevronDown,
+  ChevronUp     
+} from 'lucide-react';
 import { Message, FeedbackType, Language } from '@/types';
 import { useState } from 'react';
 
@@ -21,6 +30,7 @@ export const ChatMessage = ({
   feedbackGiven 
 }: ChatMessageProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [expandedSources, setExpandedSources] = useState<Record<number, boolean>>({});
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString(language === 'tr' ? 'tr-TR' : 'en-US', {
@@ -50,6 +60,13 @@ export const ChatMessage = ({
       {label}
     </Button>
   );
+
+  const toggleSourceExpansion = (index: number) => {
+    setExpandedSources(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  }; // ← Bu closing bracket eksikti!
 
   return (
     <Card className="glass-card animate-fade-in-up">
@@ -144,26 +161,95 @@ export const ChatMessage = ({
           </div>
         )}
 
-        {/* Sources */}
+        {/* Sources - Fixed Version */}
         {message.sources && message.sources.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-medium text-sm">
               {language === 'en' ? 'Sources:' : 'Kaynaklar:'}
             </h4>
-            <div className="space-y-1">
-              {message.sources.slice(0, 3).map((source, index) => (
-                <div key={index} className="text-sm p-2 bg-muted/30 rounded border-l-2 border-muted">
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="font-medium">{source.source}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {(source.similarity_score * 100).toFixed(1)}%
-                    </Badge>
+            <div className="space-y-3">
+              {message.sources.slice(0, 5).map((source, index) => {
+                const isExpanded = expandedSources[index] || false;
+                
+                return (
+                  <div key={index} className="p-3 bg-muted/30 rounded border-l-2 border-primary/50">
+                    {/* 1. Havayolu ve 2. Başlık */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        {source.airline}
+                      </Badge>
+                      <span className="text-sm font-medium">{source.source}</span>
+                      <Badge variant="outline" className="text-xs ml-auto">
+                        {(source.similarity_score * 100).toFixed(1)}%
+                      </Badge>
+                    </div>
+                    
+                    {/* 3. İçerik - Expandable */}
+                    <div className="mb-2">
+                      {/* Kısa önizleme - her zaman göster */}
+                      <div className="text-sm text-muted-foreground">
+                        {source.content_preview && source.content_preview.substring(0, 150)}
+                        {source.content_preview && source.content_preview.length > 150 && !isExpanded && "..."}
+                      </div>
+                      
+                      {/* Tam içerik - sadece expand edildiğinde göster */}
+                      {isExpanded && source.content_preview && source.content_preview.length > 150 && (
+                        <div className="text-sm text-muted-foreground mt-2 pl-3 border-l-2 border-muted">
+                          {source.content_preview.substring(150)}
+                        </div>
+                      )}
+                      
+                      {/* Expand/Collapse butonu - sadece uzun content için göster */}
+                      {source.content_preview && source.content_preview.length > 150 && (
+                        <button
+                          onClick={() => toggleSourceExpansion(index)}
+                          className="text-xs text-blue-600 hover:text-blue-800 mt-1 flex items-center gap-1"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="w-3 h-3" />
+                              {language === 'en' ? 'Show Less' : 'Daha Az'}
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3 h-3" />
+                              {language === 'en' ? 'Show More' : 'Devamını Oku'}
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* 4. Tarih ve 5. URL */}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {source.updated_date && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {new Date(source.updated_date).toLocaleDateString(
+                              language === 'tr' ? 'tr-TR' : 'en-US'
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {source.url && (
+                        <div className="flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" />
+                          <a 
+                            href={source.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {language === 'en' ? 'Source Link' : 'Kaynak Bağlantı'}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {source.airline}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

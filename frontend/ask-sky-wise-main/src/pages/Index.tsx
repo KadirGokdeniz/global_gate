@@ -172,7 +172,6 @@ const Index = () => {
     }
   }, [messages, language, toast]);
 
-  // ✅ DÜZELTILMIŞ: TTS function returns audio URL properly
   const handlePlayAudio = useCallback(async (text: string): Promise<string | null> => {
     console.log('🔊 Index: handlePlayAudio called with text length:', text.length);
     
@@ -240,11 +239,14 @@ const Index = () => {
     setCurrentQuestion(question);
   }, []);
 
-  // ✅ DÜZELTILDI: Default airline 'thy' olarak değiştirildi ('all' kaldırıldığı için)
-  const [selectedAirline, setSelectedAirline] = useState<AirlinePreference>('thy');
+  const [selectedAirline, setSelectedAirline] = useState<AirlinePreference>('all');
   const [provider, setProvider] = useState<Provider>('OpenAI');
   const [model, setModel] = useState('gpt-4o-mini');
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    console.log('🌍 Default airline state:', selectedAirline);
+  }, []);
 
   const handleAirlineSelect = (airline: AirlinePreference) => {
     setSelectedAirline(airline);
@@ -300,15 +302,17 @@ const Index = () => {
                 </span>
               </div>
 
-              {/* NEW: Current Configuration Status */}
+              {/* Current Configuration Status */}
               <div className="hidden lg:flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20 shadow-lg">
                 {/* Airline Status */}
                 <div className="flex items-center gap-2">
                   <span className="text-lg">
-                    {selectedAirline === 'thy' ? '🇹🇷' : '✈️'}
+                    {selectedAirline === 'thy' ? '🇹🇷' : 
+                     selectedAirline === 'pegasus' ? '✈️' : '🌍'}
                   </span>
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
+                    {selectedAirline === 'thy' ? 'THY' : 
+                     selectedAirline === 'pegasus' ? 'Pegasus' : 'All Airlines'}
                   </span>
                 </div>
                 
@@ -331,11 +335,14 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Mobile: Compact Status */}
+              {/* Mobile: Enhanced Compact Status */}
               <div className="lg:hidden flex items-center gap-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20">
                 <span className="text-sm">
                   {selectedAirline === 'thy' ? '🇹🇷' : 
                    selectedAirline === 'pegasus' ? '✈️' : '🌍'}
+                </span>
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  {selectedAirline === 'all' ? 'All' : selectedAirline.toUpperCase()}
                 </span>
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'
@@ -355,8 +362,8 @@ const Index = () => {
                   </Button>
                 </SheetTrigger>
                 <SheetOverlay className="bg-black/50 backdrop-blur-sm" />
-                <SheetContent side="right" className="w-[750px] p-0 border-l-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
-                  <div className="p-8">
+                <SheetContent className="w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl p-0 border-l-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-y-auto">
+                  <div className="p-4 w-full max-w-none">
                     <SettingsPanel
                       language={language}
                       t={t}
@@ -425,7 +432,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* ✅ EKLENDI: Airline Selector Landing Page'de */}
+            {/* Airline Selector Landing Page'de */}
             <div className="w-full max-w-4xl mb-12 relative z-10">
               <AirlineSelector
                 selectedAirline={selectedAirline}
@@ -475,7 +482,7 @@ const Index = () => {
               </div>
             </div>
 
-            {/* ✅ DÜZELTILDI: Messages reverse - En yeni mesajlar üstte */}
+            {/* Messages - En yeni mesajlar üstte */}
             <div className="space-y-8 px-4 relative z-10">
               {messages.slice().reverse().map((message, index) => (
                 <div key={message.id} className="animate-fade-in-up" style={{animationDelay: `${index * 0.1}s`}}>

@@ -1,15 +1,16 @@
+// ✅ ResponseCard.tsx - TTS Control mekanizması eklendi
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThumbsUp, ThumbsDown, Clock, AlertTriangle, Volume2, ExternalLink } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Clock, AlertTriangle, Volume2, VolumeX, Play, Pause, Square, ExternalLink } from 'lucide-react';
 import { Message, FeedbackType, Language } from '@/types';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ResponseCardProps {
   message: Message;
   language: Language;
   onFeedback: (messageId: string, feedback: FeedbackType) => void;
-  onPlayAudio?: (text: string) => void;
+  onPlayAudio?: (text: string) => Promise<string | null>;
   feedbackGiven?: FeedbackType | null;
 }
 
@@ -20,12 +21,58 @@ export const ResponseCard = ({
   onPlayAudio,
   feedbackGiven 
 }: ResponseCardProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  // ✅ FIX 1: Audio state management genişletildi
+  const [audioState, setAudioState] = useState<'idle' | 'loading' | 'playing' | 'paused' | 'error'>('idle');
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const [feedbackLoading, setFeedbackLoading] = useState<FeedbackType | null>(null);
+  
+  // ✅ FIX 2: Audio element referansı saklanıyor
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ DÜZELTILMIŞ: Enhanced audio handling with comprehensive debugging
+  // ✅ FIX 3: Component unmount'ta cleanup
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // ✅ FIX 4: Progress tracking fonksiyonu
+  const startProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    progressIntervalRef.current = setInterval(() => {
+      if (audioRef.current) {
+        const currentTime = audioRef.current.currentTime;
+        const duration = audioRef.current.duration;
+        
+        if (duration > 0) {
+          setAudioProgress((currentTime / duration) * 100);
+        }
+      }
+    }, 100);
+  };
+
+  const stopProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
+  // ✅ FIX 5: Enhanced audio control fonksiyonları
   const handlePlayAudio = async () => {
-    console.log('🔊 TTS: Audio button clicked');
+    console.log('🔊 TTS: Play button clicked, current state:', audioState);
     
     if (!onPlayAudio) {
       console.error('❌ TTS: onPlayAudio function not provided');
@@ -33,37 +80,72 @@ export const ResponseCard = ({
     }
 
     try {
-      setIsPlaying(true);
-      console.log('🔊 TTS: Requesting audio URL...');
+      // Eğer zaten bir audio varsa ve paused durumundaysa, resume et
+      if (audioRef.current && audioState === 'paused') {
+        console.log('▶️ TTS: Resuming paused audio');
+        audioRef.current.play();
+        setAudioState('playing');
+        startProgressTracking();
+        return;
+      }
+
+      // Yeni audio için loading state'i
+      setAudioState('loading');
+      console.log('🔊 TTS: Requesting new audio URL...');
       
       const audioUrl = await onPlayAudio(message.answer);
       
       if (!audioUrl) {
         console.error('❌ TTS: No audio URL returned');
+        setAudioState('error');
         return;
       }
       
-      console.log('✅ TTS: Audio URL received:', audioUrl.substring(0, 50) + '...');
+      console.log('✅ TTS: Audio URL received, creating audio element');
       
-      // Create and configure audio
+      // Eski audio'yu temizle
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      
+      // Yeni audio element oluştur
       const audio = new Audio(audioUrl);
+      audioRef.current = audio;
       
-      // Add event listeners for debugging
+      // ✅ FIX 6: Comprehensive audio event listeners
       audio.addEventListener('loadstart', () => {
         console.log('🔊 TTS: Audio loading started');
+        setAudioState('loading');
       });
       
       audio.addEventListener('canplay', () => {
         console.log('✅ TTS: Audio can play');
       });
       
+      audio.addEventListener('loadedmetadata', () => {
+        console.log('📊 TTS: Audio metadata loaded, duration:', audio.duration);
+        setAudioDuration(audio.duration);
+        setAudioProgress(0);
+      });
+      
       audio.addEventListener('play', () => {
         console.log('▶️ TTS: Audio playback started');
+        setAudioState('playing');
+        startProgressTracking();
+      });
+      
+      audio.addEventListener('pause', () => {
+        console.log('⏸️ TTS: Audio paused');
+        setAudioState('paused');
+        stopProgressTracking();
       });
       
       audio.addEventListener('ended', () => {
         console.log('⏹️ TTS: Audio playback ended');
-        setIsPlaying(false);
+        setAudioState('idle');
+        setAudioProgress(0);
+        stopProgressTracking();
       });
       
       audio.addEventListener('error', (e) => {
@@ -72,45 +154,73 @@ export const ResponseCard = ({
           code: audio.error?.code,
           message: audio.error?.message
         });
-        setIsPlaying(false);
+        setAudioState('error');
+        stopProgressTracking();
       });
       
-      // Attempt to play
-      console.log('🔊 TTS: Attempting to play audio...');
+      // Audio'yu oynat
+      console.log('🔊 TTS: Starting playback...');
       const playPromise = audio.play();
       
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
             console.log('✅ TTS: Audio play promise resolved');
-            // Set timeout to reset playing state if ended event doesn't fire
-            setTimeout(() => {
-              if (isPlaying) {
-                console.log('⏱️ TTS: Timeout - resetting playing state');
-                setIsPlaying(false);
-              }
-            }, 10000); // 10 second safety timeout
           })
           .catch((error) => {
             console.error('❌ TTS: Audio play promise rejected:', error);
-            setIsPlaying(false);
+            setAudioState('error');
             
-            // Check for common browser audio policy issues
             if (error.name === 'NotAllowedError') {
-              console.error('🚫 TTS: Browser blocked audio - user interaction may be required');
+              console.error('🚫 TTS: Browser blocked audio - user interaction required');
             }
           });
       }
       
     } catch (error) {
       console.error('❌ TTS: General error in handlePlayAudio:', error);
-      setIsPlaying(false);
+      setAudioState('error');
     }
   };
 
-  // ✅ DÜZELTILDI: Debug ve loading state eklenmiş feedback handler
+  // ✅ FIX 7: Pause fonksiyonu
+  const handlePauseAudio = () => {
+    console.log('⏸️ TTS: Pause button clicked');
+    if (audioRef.current && audioState === 'playing') {
+      audioRef.current.pause();
+    }
+  };
+
+  // ✅ FIX 8: Stop fonksiyonu
+  const handleStopAudio = () => {
+    console.log('⏹️ TTS: Stop button clicked');
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setAudioState('idle');
+      setAudioProgress(0);
+      stopProgressTracking();
+    }
+  };
+
+  // ✅ FIX 9: Progress seek fonksiyonu
+  const handleSeekAudio = (percentage: number) => {
+    if (audioRef.current && audioDuration > 0) {
+      const newTime = (percentage / 100) * audioDuration;
+      audioRef.current.currentTime = newTime;
+      setAudioProgress(percentage);
+    }
+  };
+
+  // ✅ FIX 10: Format time helper
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleFeedbackClick = async (type: FeedbackType) => {
-    console.log('🔔 Feedback button clicked:', { messageId: message.id, type, feedbackGiven });
+    console.log('📝 Feedback button clicked:', { messageId: message.id, type, feedbackGiven });
     
     try {
       setFeedbackLoading(type);
@@ -125,18 +235,14 @@ export const ResponseCard = ({
 
   const getFeedbackButton = (type: FeedbackType, icon: React.ReactNode, label: string) => {
     const isSelected = feedbackGiven === type;
-    const isDisabled = feedbackGiven !== null && feedbackGiven !== type;
+    const isDisabled = (feedbackGiven !== null && feedbackGiven !== undefined) && feedbackGiven !== type;
     const isLoading = feedbackLoading === type;
     
     return (
       <Button
         variant={isSelected ? "default" : "outline"}
         size="sm"
-        onClick={() => {
-          // BASIT TEST: Bu log görünüyor mu?
-          console.log('BASIC TEST: Button clicked!', type);
-          handleFeedbackClick(type);
-        }}
+        onClick={() => handleFeedbackClick(type)}
         disabled={isDisabled || isLoading}
         className={`text-xs transition-all duration-200 ${
           isSelected ? 'ring-2 ring-primary/50' : ''
@@ -177,22 +283,148 @@ export const ResponseCard = ({
                 {message.answer}
               </p>
             </div>
-            
-            {/* Audio Button */}
-            {onPlayAudio && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handlePlayAudio}
-                disabled={isPlaying}
-                className="shrink-0 h-12 w-12 rounded-full"
-                title={language === 'en' ? 'Listen to answer' : 'Cevabı dinle'}
-              >
-                <Volume2 className={`w-5 h-5 ${isPlaying ? 'animate-pulse' : ''}`} />
-              </Button>
-            )}
           </div>
 
+          {/* ✅ FIX 11: Enhanced Audio Controls Panel */}
+          {onPlayAudio && (
+            <div className="mb-6 p-4 bg-muted/20 rounded-xl border border-muted/50">
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  {language === 'en' ? 'Audio Player' : 'Ses Oynatıcı'}
+                </h4>
+                
+                {/* Audio Control Buttons */}
+                <div className="flex items-center gap-2">
+                  {audioState === 'idle' || audioState === 'error' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePlayAudio}
+                      disabled={audioState === 'loading'}
+                      className="h-10 px-4"
+                    >
+                      {audioState === 'loading' ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Play className="w-4 h-4" />
+                      )}
+                      <span className="ml-2">
+                        {language === 'en' ? 'Play' : 'Oynat'}
+                      </span>
+                    </Button>
+                  ) : (
+                    <>
+                      {audioState === 'playing' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePauseAudio}
+                          className="h-10 px-4"
+                        >
+                          <Pause className="w-4 h-4" />
+                          <span className="ml-2">
+                            {language === 'en' ? 'Pause' : 'Duraklat'}
+                          </span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePlayAudio}
+                          className="h-10 px-4"
+                        >
+                          <Play className="w-4 h-4" />
+                          <span className="ml-2">
+                            {language === 'en' ? 'Resume' : 'Devam'}
+                          </span>
+                        </Button>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleStopAudio}
+                        className="h-10 px-4"
+                      >
+                        <Square className="w-4 h-4" />
+                        <span className="ml-2">
+                          {language === 'en' ? 'Stop' : 'Dur'}
+                        </span>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* ✅ FIX 12: Progress Bar */}
+              {audioState !== 'idle' && audioState !== 'error' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground min-w-[40px]">
+                      {formatTime((audioProgress / 100) * audioDuration)}
+                    </span>
+                    
+                    {/* Interactive Progress Bar */}
+                    <div 
+                      className="flex-1 h-2 bg-muted rounded-full overflow-hidden cursor-pointer"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const percentage = ((e.clientX - rect.left) / rect.width) * 100;
+                        handleSeekAudio(Math.max(0, Math.min(100, percentage)));
+                      }}
+                    >
+                      <div 
+                        className="h-full bg-primary transition-all duration-150 ease-out rounded-full"
+                        style={{ width: `${audioProgress}%` }}
+                      />
+                    </div>
+                    
+                    <span className="text-xs text-muted-foreground min-w-[40px]">
+                      {formatTime(audioDuration)}
+                    </span>
+                  </div>
+                  
+                  {/* Audio State Indicator */}
+                  <div className="flex items-center justify-center">
+                    <div className={`flex items-center gap-2 text-xs px-3 py-1 rounded-full ${
+                      audioState === 'playing' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' :
+                      audioState === 'paused' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300' :
+                      audioState === 'loading' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' :
+                      'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        audioState === 'playing' ? 'bg-green-500 animate-pulse' :
+                        audioState === 'paused' ? 'bg-yellow-500' :
+                        audioState === 'loading' ? 'bg-blue-500 animate-pulse' :
+                        'bg-red-500'
+                      }`} />
+                      <span className="font-medium capitalize">
+                        {audioState === 'playing' ? (language === 'en' ? 'Playing' : 'Oynatılıyor') :
+                         audioState === 'paused' ? (language === 'en' ? 'Paused' : 'Duraklatıldı') :
+                         audioState === 'loading' ? (language === 'en' ? 'Loading' : 'Yükleniyor') :
+                         (language === 'en' ? 'Error' : 'Hata')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Error State */}
+              {audioState === 'error' && (
+                <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <div className="flex items-center justify-center gap-2 text-red-700 dark:text-red-300">
+                    <VolumeX className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {language === 'en' ? 'Audio playback failed' : 'Ses oynatma başarısız'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Rest of the existing content - Metadata, Statistics, Feedback, etc. */}
           {/* Metadata */}
           <div className="flex flex-wrap gap-2 mb-6">
             <Badge variant="secondary" className="px-3 py-1">
@@ -202,7 +434,7 @@ export const ResponseCard = ({
               <Badge variant="outline" className="px-3 py-1">
                 {message.airline_preference === 'thy' ? '🇹🇷 Turkish Airlines' : 
                  message.airline_preference === 'pegasus' ? '✈️ Pegasus Airlines' : 
-                 '🌍 All Airlines'}
+                 '🌐 All Airlines'}
               </Badge>
             )}
             {message.sources && (
@@ -243,7 +475,7 @@ export const ResponseCard = ({
             </div>
           )}
 
-          {/* ✅ GELİŞTİRİLDİ: Enhanced Feedback Section */}
+          {/* Feedback Section */}
           <div className="space-y-4">
             <div className="text-center">
               <h4 className="text-sm font-medium text-muted-foreground mb-3">
@@ -274,7 +506,7 @@ export const ResponseCard = ({
               )}
             </div>
 
-            {/* ✅ DÜZELTILDI: Enhanced Feedback Status */}
+            {/* Feedback Status */}
             {feedbackGiven && (
               <div className="mt-4 text-center">
                 <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-4 py-2 rounded-full border border-green-200 dark:border-green-800">
@@ -283,20 +515,6 @@ export const ResponseCard = ({
                     {language === 'en' ? 'Thank you for your feedback!' : 'Geri bildiriminiz için teşekkürler!'}
                   </span>
                 </div>
-              </div>
-            )}
-
-            {/* ✅ YENİ: Debug Info (sadece development için) */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-2 text-center">
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer">Debug Info</summary>
-                  <div className="mt-2 p-2 bg-muted/20 rounded text-left">
-                    <div>Message ID: {message.id}</div>
-                    <div>Feedback Given: {feedbackGiven || 'none'}</div>
-                    <div>Loading: {feedbackLoading || 'none'}</div>
-                  </div>
-                </details>
               </div>
             )}
           </div>
