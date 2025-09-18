@@ -16,12 +16,12 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 
 **3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
 
-**4. Speak System:** Ask your question via recording. 
+**4. Speaker System:** Ask your question via recording. 
 
 | The Main Interface | The Backend in Action |
 |:------------------:|:---------------------:|
 | ![How It Works](assets/interface1.png) | ![System Process](assets/interface4.png) |
-| **The Final Result** | **Feedback System** |
+| **The Final Result** | **Speaker System** |
 | ![Final Answer](assets/interface2.png) | ![Speak System](assets/interface3.png) |
 
 *An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing, real-time data from multiple airlines, and advanced speech capabilities.*
@@ -50,7 +50,7 @@ The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
-    A[User] --> B[Frontend (React)]
+    A[User] --> B[Frontend React]
     B --> C[FastAPI Backend]
     
     %% Audio Input Path  
@@ -87,7 +87,7 @@ graph TD
 ## 📊 Service Endpoints
 | Service | Port | URL |
 |:--------|:----:|:----|
-| **Frontend (React)** | 8501 | http://localhost:8501 |
+| **Frontend React** | 8501 | http://localhost:8501 |
 | **Backend API** | 8000 | http://localhost:8000 | 
 | **Grafana** | 3000 | http://localhost:3000 | 
 | **Prometheus** | 9090 | http://localhost:9090 | 
