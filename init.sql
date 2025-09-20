@@ -20,7 +20,7 @@ CREATE TABLE policy (
     metadata JSONB DEFAULT '{}',
     
     -- Vector embedding
-    embedding vector(384),  -- 384 dimension for multilingual model
+    embedding vector(768),  -- 384 dimension for multilingual model
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

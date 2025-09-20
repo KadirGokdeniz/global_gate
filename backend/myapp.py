@@ -1,7 +1,7 @@
 # myapp.py - UNIFIED METRICS EDITION
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.responses import Response
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 import asyncpg
 import os
 from contextlib import asynccontextmanager
@@ -616,7 +616,7 @@ class ApiResponse(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(..., description="User question", min_length=3, max_length=2000)
     airline_preference: Optional[str] = Field(None, description="Preferred airline (e.g., 'turkish_airlines', 'pegasus')")
-    max_results: int = Field(default=3, description="Max retrieved documents", le=10, ge=1)
+    max_results: int = Field(default=5, description="Max retrieved documents", le=10, ge=1)
     similarity_threshold: float = Field(default=0.3, description="Similarity threshold", ge=0.1, le=0.9)
     model: Optional[str] = Field(default=None, description="Model to use (optional)")
     language: str = Field(default="en", description="Response language (en/tr)") 
@@ -654,32 +654,43 @@ async def simple_log_query(question: str, provider: str, session_id: str):
 
 async def retrieve_relevant_docs(question: str, max_results: int, 
                                  similarity_threshold: float,
-                                 airline_preference: Optional[str] = None) -> List[Dict]:
-    """Document retrieval with unified metrics tracking"""
+                                 airline_preference: Optional[str] = None,
+                                 use_category_hint: bool = True) -> Tuple[List[Dict], Dict]:
+    """Document retrieval with optional category hints"""
     if not vector_ops:
-        return []
+        return [], {}
     
     try:
         start_time = time.time()
         
+        # Category detection (if enabled)
+        detected_categories = []
+        if use_category_hint:
+            detected_categories = vector_ops.detect_query_categories(question, airline_preference)
+        
+        # Use enhanced similarity search
         docs = await vector_ops.similarity_search(
             query=question,
             airline_filter=airline_preference,
             limit=max_results,
-            similarity_threshold=similarity_threshold
+            similarity_threshold=similarity_threshold,
+            use_category_hint=use_category_hint
         )
         
-        # Track vector search performance (unified metrics)
         search_duration = time.time() - start_time
         track_vector_search(search_duration)
         
-        preference_info = f" (preference: {airline_preference})" if airline_preference else ""
-        logger.info(f"Retrieved {len(docs)} documents in {search_duration:.2f}s{preference_info}")
-        return docs
+        metadata = {
+            "detected_categories": detected_categories,
+            "category_hint_used": use_category_hint,
+            "search_duration": round(search_duration, 3)
+        }
+        
+        return docs, metadata
         
     except Exception as e:
         logger.error(f"Document retrieval error: {e}")
-        return []
+        return [], {}
 
 def calculate_retrieval_stats(retrieved_docs: List[Dict]) -> Dict[str, Any]:
     """Basic retrieval statistics"""
@@ -815,7 +826,6 @@ async def read_root(db = Depends(get_db_connection)):
                 "health": "/health",
                 "openai_chat": "/chat/openai",
                 "claude_chat": "/chat/claude",
-                "test_metrics": "/test-unified-metrics",
                 "metrics": "/metrics",
                 "documentation": "/docs"
             },
@@ -1001,7 +1011,8 @@ async def get_stats(db = Depends(get_db_connection)):
                 "embedding": "ready" if embedding_service else "unavailable",
                 "vector_search": "ready" if vector_ops else "unavailable",
                 "openai": "ready" if openai_service else "unavailable", 
-                "claude": "ready" if claude_service else "unavailable"
+                "claude": "ready" if claude_service else "unavailable",
+                "category_enhancement": "active"
             },
             "unified_metrics": get_metrics_summary()
         }
@@ -1032,7 +1043,7 @@ async def _chat_with_openai_logic(question: str,
         
         # Step 1: Retrieve documents (with component timing)
         retrieval_start = time.time()
-        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
+        retrieved_docs, retrieval_metadata = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
         retrieval_time = time.time() - retrieval_start
         
         # Step 2: Generate response (with component timing)
@@ -1108,7 +1119,8 @@ async def _chat_with_openai_logic(question: str,
                 "answer_completeness": round(answer_completeness, 3)
             },
             "language": language,
-            "metrics_tracked": "unified_system"
+            "metrics_tracked": "unified_system",
+            "retrieval_metadata": retrieval_metadata
         }
         
         logger.info(f"OpenAI response generated in {total_duration:.2f}s (R:{retrieval_time:.2f}s G:{generation_time:.2f}s) Accuracy:{accuracy_score:.3f}")
@@ -1144,7 +1156,7 @@ async def _chat_with_claude_logic(question: str,
 
         # Step 1: Retrieve documents (with component timing)
         retrieval_start = time.time()
-        retrieved_docs = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
+        retrieved_docs, retrieval_metadata = await retrieve_relevant_docs(enhanced_question, max_results, similarity_threshold, airline_preference)
         retrieval_time = time.time() - retrieval_start
         
         # Step 2: Generate response (with component timing)
@@ -1220,7 +1232,8 @@ async def _chat_with_claude_logic(question: str,
                 "answer_completeness": round(answer_completeness, 3)
             },
             "language": language,
-            "metrics_tracked": "unified_system"
+            "metrics_tracked": "unified_system",
+            "retrieval_metadata": retrieval_metadata
         }
         
         logger.info(f"Claude response generated in {total_duration:.2f}s (R:{retrieval_time:.2f}s G:{generation_time:.2f}s) Accuracy:{accuracy_score:.3f}")
@@ -1443,51 +1456,6 @@ async def speech_to_text_realtime(
         logger.error(f"STT endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"STT error: {str(e)}")
 
-# UNIFIED METRICS TEST ENDPOINT
-@app.post("/test-unified-metrics")
-async def generate_test_unified_metrics():
-    """Test endpoint to generate sample data for unified metrics system"""
-    
-    try:
-        # Generate sample operational metrics
-        track_rag_query("openai", 1.5, "success")
-        track_rag_query("claude", 1.2, "success")
-        track_vector_search(0.3)
-        track_api_cost("openai", "gpt-4o-mini", 0.005)
-        track_api_cost("claude", "claude-3-5-haiku", 0.008)
-        track_user_feedback("thumbs_up")
-        
-        # Generate sample business intelligence metrics
-        track_rag_accuracy("openai", "turkish_airlines", "tr", 0.85)
-        track_rag_accuracy("claude", "pegasus", "en", 0.92)
-        
-        track_query_cost("openai", "gpt-4o-mini", 150, 75, 0.005, 0.85)
-        track_query_cost("claude", "claude-3-5-haiku", 200, 100, 0.008, 0.92)
-        
-        track_component_latency("retrieval", "openai", 0.5)
-        track_component_latency("generation", "openai", 1.0)
-        track_component_latency("total", "openai", 1.5)
-        
-        track_component_latency("retrieval", "claude", 0.4)
-        track_component_latency("generation", "claude", 0.8)
-        track_component_latency("total", "claude", 1.2)
-        
-        return {
-            "success": True,
-            "message": "Unified metrics test data generated successfully",
-            "metrics_categories": {
-                "operational": ["http_requests_total", "rag_query_duration_seconds", "vector_search_duration_seconds", "ai_api_cost_total_usd", "user_satisfaction_total"],
-                "business_intelligence": ["rag_accuracy_score", "cost_per_query_usd", "token_usage_per_query", "query_cost_efficiency", "rag_component_latency_seconds"],
-                "system": ["active_database_connections", "embedding_cache_hits_total"]
-            },
-            "data_points_generated": 14,
-            "unified_system": "active"
-        }
-        
-    except Exception as e:
-        logger.error(f"Test metrics generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Test metrics error: {str(e)}")
-
 # METRICS ENDPOINT - Unified Prometheus export
 @app.get("/metrics")
 async def get_metrics():
@@ -1582,39 +1550,6 @@ async def speech_health_check():
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
-
-@app.get("/speech/debug")
-async def debug_speech():
-    """Speech Services debug info"""
-    try:
-        debug_info = {
-            "environment_variables": {
-                "AWS_REGION": os.getenv("AWS_REGION", "NOT_SET"),
-                "AWS_ACCESS_KEY_ID": "SET" if os.getenv("AWS_ACCESS_KEY_ID") else "NOT_SET",
-                "AWS_SECRET_ACCESS_KEY": "SET" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT_SET",
-                "ASSEMBLYAI_API_KEY": "SET" if os.getenv("ASSEMBLYAI_API_KEY") else "NOT_SET"
-            }
-        }
-        
-        if aws_speech_service:
-            # Polly test
-            try:
-                voices = aws_speech_service.polly_client.describe_voices(LanguageCode='tr-TR')
-                debug_info["polly_test"] = {
-                    "status": "success",
-                    "voices_count": len(voices.get('Voices', [])),
-                    "sample_voices": [v.get('Name') for v in voices.get('Voices', [])[:3]]
-                }
-            except Exception as e:
-                debug_info["polly_test"] = {
-                    "status": "failed",
-                    "error": str(e)
-                }
-        
-        return debug_info
-        
-    except Exception as e:
-        return {"error": f"Debug failed: {str(e)}"}
 
 @app.get("/speech/assemblyai/info")
 async def get_assemblyai_info():

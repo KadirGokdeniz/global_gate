@@ -40,6 +40,8 @@ services:
     restart: "no"
     networks:
       - turkish_airlines_net
+    volumes:
+      - model_cache:/app/model_cache
 
   api:
     build:
@@ -85,6 +87,8 @@ services:
           memory: 1G
     networks:
       - turkish_airlines_net
+    volumes:
+      - model_cache:/app/model_cache
 
   frontend:
     build:
@@ -177,6 +181,7 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  model_cache:
 
 networks:
   turkish_airlines_net:

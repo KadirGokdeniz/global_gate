@@ -85,8 +85,8 @@ class OptimizedEmbeddingService:
     def __init__(self, cache_size: int = 2000, preload: bool = True):
         # Model konfigürasyonu
         self.model = None
-        self._model_name = 'paraphrase-multilingual-MiniLM-L12-v2'  # public property
-        self.embedding_dimension = 384  # public property
+        self._model_name = 'Alibaba-NLP/gte-multilingual-base'    # public property
+        self.embedding_dimension = 768  # public property
         self._model_loaded = False
         self._load_lock = threading.Lock()
         
@@ -120,7 +120,9 @@ class OptimizedEmbeddingService:
             self.model = SentenceTransformer(
                 self._model_name,
                 device='cpu',
-                cache_folder=model_cache_dir
+                cache_folder=model_cache_dir,
+                trust_remote_code=True,
+                revision="main"
             )
             
             # Model warm-up with real embedding
