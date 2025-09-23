@@ -1,5 +1,4 @@
 # STEP 1: Fixed Embedding Service - TRUE PRELOADING
-# Değişiklik: Model startup'ta yüklenir, lazy loading kaldırıldı
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -15,7 +14,7 @@ import os
 logger = logging.getLogger(__name__)
 
 class ImprovedLRUCache:
-    """Geliştirilmiş LRU Cache - mevcut cache'den daha verimli"""
+    """Upgraded LRU Cache"""
     
     def __init__(self, max_size: int = 1000):
         self.max_size = max_size
@@ -80,7 +79,7 @@ class ImprovedLRUCache:
         }
 
 class OptimizedEmbeddingService:
-    """İyileştirilmiş embedding service - TRUE PRELOADING FIXED"""
+    """Embedding service - TRUE PRELOADING FIXED"""
     
     def __init__(self, cache_size: int = 2000, preload: bool = True):
         # Model konfigürasyonu
@@ -95,10 +94,6 @@ class OptimizedEmbeddingService:
         
         # Preprocessing optimization
         self._preprocessing_cache = {}
-        self._stop_words = {
-            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 
-            'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about'
-        }
         
         # FIXED: TRUE PRELOADING - Load model immediately if requested
         if preload:
@@ -107,7 +102,7 @@ class OptimizedEmbeddingService:
         logger.info(f"Embedding Service initialized (preload: {preload})")
     
     def _preload_model_now(self):
-        """IMMEDIATE model loading - no lazy loading"""
+        """IMMEDIATE model loading"""
         logger.info(f"🔥 PRELOADING MODEL: {self._model_name}")
         start_time = time.time()
         
@@ -302,7 +297,7 @@ class OptimizedEmbeddingService:
         """Check if service is ready for use"""
         return self._model_loaded and self.model is not None
 
-# FIXED: Global instance with TRUE PRELOADING
+# Global instance with TRUE PRELOADING
 @lru_cache()
 def get_embedding_service() -> OptimizedEmbeddingService:
     """Get embedding service instance - PRELOADED"""

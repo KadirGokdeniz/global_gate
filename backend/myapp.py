@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 from embedding_service import get_embedding_service
-from vector_operations import VectorOperations
+from vector_operations import EnhancedVectorOperations
 from openai_service import get_openai_service
 from claude_service import get_claude_service
 import math
@@ -407,7 +407,7 @@ claude_service = None
 aws_speech_service = None 
 assemblyai_service = None
 
-# UNIFIED METRICS MIDDLEWARE - Replaces old complex middleware systems
+# UNIFIED METRICS MIDDLEWARE 
 class UnifiedMetricsMiddleware(BaseHTTPMiddleware):
     """Unified middleware that tracks both operational and business metrics"""
     
@@ -493,7 +493,7 @@ async def lifespan(app: FastAPI):
         # 3. Vector operations initialization
         try:
             if embedding_service:
-                vector_ops = VectorOperations(db_pool)
+                vector_ops = EnhancedVectorOperations(db_pool)
                 logger.info("Vector operations initialized")
                 
                 # Auto-embed existing policies
@@ -666,7 +666,8 @@ async def retrieve_relevant_docs(question: str, max_results: int,
         # Category detection (if enabled)
         detected_categories = []
         if use_category_hint:
-            detected_categories = vector_ops.detect_query_categories(question, airline_preference)
+            semantic_results = await vector_ops.semantic_category_detection(question, airline_preference)
+            detected_categories = [cat for cat, score in semantic_results]
         
         # Use enhanced similarity search
         docs = await vector_ops.similarity_search(
@@ -674,7 +675,7 @@ async def retrieve_relevant_docs(question: str, max_results: int,
             airline_filter=airline_preference,
             limit=max_results,
             similarity_threshold=similarity_threshold,
-            use_category_hint=use_category_hint
+            use_semantic_categories=use_category_hint
         )
         
         search_duration = time.time() - start_time
@@ -1288,7 +1289,7 @@ async def openai_chat_post(
 async def openai_chat_get(
     question: str = Query(..., description="User question", min_length=3),
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
-    max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
+    max_results: int = Query(5, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)"),
     language: str = Query("en", description="Response language (en/tr)")
@@ -1336,7 +1337,7 @@ async def claude_chat_post(
 async def claude_chat_get(
     question: str = Query(..., description="User question", min_length=3),
     airline_preference: Optional[str] = Query(None, description="Preferred airline"),
-    max_results: int = Query(3, description="Max retrieved documents", le=10, ge=1),
+    max_results: int = Query(5, description="Max retrieved documents", le=10, ge=1),
     similarity_threshold: float = Query(0.3, description="Similarity threshold", ge=0.1, le=0.9),
     model: Optional[str] = Query(None, description="Model to use (optional)"),
     language: str = Query("en", description="Response language (en/tr)")

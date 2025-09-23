@@ -8,7 +8,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class OpenAIService:
-    """OpenAI service for RAG responses - FIXED VERSION"""
+    """OpenAI service for RAG responses"""
     
     def __init__(self):
         """Initialize OpenAI client"""
@@ -19,14 +19,14 @@ class OpenAIService:
         else:
             try:
                 self.client = openai.OpenAI(api_key=api_key)
-                logger.info("âœ… OpenAI service initialized successfully")
+                logger.info("✅ OpenAI service initialized successfully")
             except Exception as e:
-                logger.error(f"âŒ OpenAI initialization failed: {e}")
+                logger.error(f"❌OpenAI initialization failed: {e}")
                 self.client = None
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
-        self.max_tokens = 400
+        self.max_tokens = 500
         self.temperature = 0.2
 
         self.LANGUAGE_PROMPTS = {
@@ -105,10 +105,10 @@ class OpenAIService:
             # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
-                for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
+                for i, doc in enumerate(retrieved_docs[:5], 1):  # Top 5 docs
                     airline_info = doc.get('airline', 'Bilinmeyen' if language == 'tr' else 'Unknown')
                     source = doc.get('source', 'Bilinmeyen' if language == 'tr' else 'Unknown')
-                    content = doc.get('content', '')[:600]  # More content for Claude
+                    content = doc.get('content', '')[:600]
                     
                     if language == 'tr':
                         context_parts.append(f"""Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
@@ -166,16 +166,16 @@ class OpenAIService:
     def _estimate_cost(self, usage, model: str) -> float:
         """Estimate cost based on token usage"""
         
-        # Pricing per 1K tokens (as of 2024)
+        # Pricing per 1K tokens
         pricing = {
             "gpt-3.5-turbo": {"input": 0.001, "output": 0.002},
             "gpt-4": {"input": 0.03, "output": 0.06},
             "gpt-4-turbo": {"input": 0.01, "output": 0.03},
-            "gpt-4o-mini": {"input": 0.00015, "output": 0.0006}
         }
         
         if model not in pricing:
-            model = "gpt-3.5-turbo"  # Default pricing
+            logger.warning(f"No pricing info for model {model}, using gpt-4-turbo pricing")
+            model = "gpt-4-turbo"  # Default pricing
         
         input_cost = (usage.prompt_tokens / 1000) * pricing[model]["input"]
         output_cost = (usage.completion_tokens / 1000) * pricing[model]["output"]

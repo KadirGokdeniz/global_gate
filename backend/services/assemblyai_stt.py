@@ -43,7 +43,7 @@ class AssemblyAIService:
             raise
     
     async def transcribe_audio_file(self, audio_bytes: bytes, 
-                                   language: str = "tr",
+                                   language: str = "en",
                                    filename: str = "audio.mp3") -> Dict:
         """
         Transcribe audio file using AssemblyAI

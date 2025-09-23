@@ -18,7 +18,7 @@ from web_scraper import (
     get_detailed_stats,
     print_airline_summary
 )
-from vector_operations import VectorOperations
+from vector_operations import EnhancedVectorOperations
 import asyncpg
 
 # Logging setup

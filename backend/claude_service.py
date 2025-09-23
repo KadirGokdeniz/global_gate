@@ -1,4 +1,4 @@
-# claude_service.py - FIXED VERSION
+# claude_service.py
 
 import anthropic
 from typing import List, Dict, Optional
@@ -10,7 +10,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 class ClaudeService:
-    """Claude service for RAG responses - FIXED VERSION"""
+    """Claude service for RAG responses"""
     
     def __init__(self):
         """Initialize Claude client"""
@@ -28,24 +28,24 @@ class ClaudeService:
         
         # Configuration
         self.default_model = 'claude-3-haiku-20240307'
-        self.max_tokens = 400
+        self.max_tokens = 500
         self.temperature = 0.2
 
         # FIXED: Better Turkish prompts
         self.LANGUAGE_PROMPTS = {
             "tr": {
                 "system_instruction": """Sen uzman bir havayolu müşteri hizmetleri asistanısın. 
-MUTLAKA Türkçe yanıt ver. Doğal, akıcı ve anlaşılır Türkçe kullan.
-Havayolu politikaları konusunda doğru ve faydalı bilgiler ver.
-Verilen politika belgeleri İngilizce olsa bile, yanıtını kesinlikle Türkçe yap.
-Müşteriye saygılı ve yardımsever bir şekilde yaklaş.""",
+                                        MUTLAKA Türkçe yanıt ver. Doğal, akıcı ve anlaşılır Türkçe kullan.
+                                        Havayolu politikaları konusunda doğru ve faydalı bilgiler ver.
+                                        Verilen politika belgeleri İngilizce olsa bile, yanıtını kesinlikle Türkçe yap.
+                                        Müşteriye saygılı ve yardımsever bir şekilde yaklaş.""",
                 "context_prefix": "Havayolu Politika Belgeleri:",
                 "question_prefix": "Müşteri Sorusu:",
                 "instruction": "Yukarıdaki politika belgelerine dayanarak soruyu Türkçe yanıtla:"
             },
             "en": {
                 "system_instruction": """You are a professional airline customer service assistant.
-Answer ONLY in English. Provide clear and helpful responses about airline policies.""",
+                                        Answer ONLY in English. Provide clear and helpful responses about airline policies.""",
                 "context_prefix": "Airline Policy Documents:",
                 "question_prefix": "Customer Question:",
                 "instruction": "Please answer the question based on the policy documents above:"
@@ -111,21 +111,21 @@ Answer ONLY in English. Provide clear and helpful responses about airline polici
             # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
-                for i, doc in enumerate(retrieved_docs[:3], 1):  # Top 3 docs
+                for i, doc in enumerate(retrieved_docs[:5], 1):  # Top 5 docs
                     airline_info = doc.get('airline', 'Bilinmiyor' if language == 'tr' else 'Unknown')
                     source = doc.get('source', 'Bilinmiyor' if language == 'tr' else 'Unknown')
-                    content = doc.get('content', '')[:600]  # More content for Claude
+                    content = doc.get('content', '')[:600]
                     
                     if language == 'tr':
                         context_parts.append(f"""
-Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
-{content}...
-""")
+                                                 Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
+                                                 {content}...
+                                            """)
                     else:
                         context_parts.append(f"""
-Document {i} (Source: {source} - Airline: {airline_info}):
-{content}...
-""")
+                                                 Document {i} (Source: {source} - Airline: {airline_info}):
+                                                 {content}...
+                                            """)
                         
                 context = "\n".join(context_parts)
                 context_used = True
@@ -139,13 +139,10 @@ Document {i} (Source: {source} - Airline: {airline_info}):
             
             # Create user prompt
             user_prompt = f"""{lang_config['context_prefix']}
-{context}
-
-{lang_config['question_prefix']} {question}
-
-{lang_config['instruction']}"""
+                            {context}
+                            {lang_config['question_prefix']} {question}
+                            {lang_config['instruction']}"""
             
-            # FIXED: Use correct Claude API
             response = self.client.messages.create(
                 model=model_to_use,
                 max_tokens=self.max_tokens,
@@ -166,7 +163,7 @@ Document {i} (Source: {source} - Airline: {airline_info}):
             
             return {
                 "success": True,
-                "answer": response.content[0].text,  # FIXED: Correct Claude response format
+                "answer": response.content[0].text,
                 "model_used": model_to_use,
                 "language": language,
                 "context_used": context_used,
@@ -182,10 +179,7 @@ Document {i} (Source: {source} - Airline: {airline_info}):
         return [
             "claude-3-haiku-20240307",      # Claude Haiku 3 - Confirmed working
             "claude-3-5-haiku-20241022",    # Claude Haiku 3.5 - Fastest  
-            "claude-3-7-sonnet-20250219",   # Claude Sonnet 3.7 - High performance
             "claude-sonnet-4-20250514",     # Claude Sonnet 4 - High performance
-            "claude-opus-4-20250514",       # Claude Opus 4 - Previous flagship
-            "claude-opus-4-1-20250805"      # Claude Opus 4.1 - Most capable
         ]
 
     def _estimate_cost(self, usage, model: str) -> float:
@@ -193,18 +187,15 @@ Document {i} (Source: {source} - Airline: {airline_info}):
         
         # Updated Claude pricing (2025 models)
         pricing = {
-            "claude-opus-4-1-20250805": {"input": 18.00, "output": 90.00},   # Most expensive
-            "claude-opus-4-20250514": {"input": 15.00, "output": 75.00},
-            "claude-sonnet-4-20250514": {"input": 4.00, "output": 20.00},
-            "claude-3-7-sonnet-20250219": {"input": 3.50, "output": 17.50},
+            "claude-sonnet-4-20250514": {"input": 4.00, "output": 20.00},     # More expensive
             "claude-3-5-haiku-20241022": {"input": 1.00, "output": 5.00},
             "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25}        # Cheapest
         }
         
         # Use default pricing if model not found
         if model not in pricing:
-            logger.warning(f"No pricing info for model {model}, using Haiku 3 pricing")
-            model = "claude-3-haiku-20240307"  # Cheapest as fallback
+            logger.warning(f"No pricing info for model {model}, using Haiku 3-5 pricing")
+            model = "claude-3-5-haiku-20241022"  # Middle as fallback
         
         input_cost = (usage.input_tokens / 1000000) * pricing[model]["input"]
         output_cost = (usage.output_tokens / 1000000) * pricing[model]["output"]
