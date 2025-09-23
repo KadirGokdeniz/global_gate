@@ -32,7 +32,7 @@ This intelligent RAG (Retrieval-Augmented Generation) system streamlines the pro
 |------------|---------|------------|
 | **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
 | **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
-| **Sentence Transformers (paraphrase-multilingual-MiniLM-L12-v2)** | Natural Language Processing | Open source semantic understanding for searching |
+| **Sentence Transformers (gte-multilingual-base)** | Natural Language Processing | Open source semantic understanding for searching |
 | **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
 | **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
 | **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
