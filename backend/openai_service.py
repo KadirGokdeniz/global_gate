@@ -3,8 +3,10 @@ from typing import List, Dict, Optional
 import logging
 from dotenv import load_dotenv
 import os
+from secrets_loader import SecretsLoader
 
-load_dotenv()
+loader = SecretsLoader()
+
 logger = logging.getLogger(__name__)
 
 class OpenAIService:
@@ -12,7 +14,7 @@ class OpenAIService:
     
     def __init__(self):
         """Initialize OpenAI client"""
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = loader.get_secret('openai_api_key', 'OPENAI_API_KEY')
         if not api_key:
             logger.warning("OPENAI_API_KEY not found - OpenAI features will be limited")
             self.client = None

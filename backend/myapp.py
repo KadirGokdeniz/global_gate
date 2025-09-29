@@ -18,6 +18,9 @@ from typing import Dict, Optional
 import uuid
 from datetime import datetime, timedelta
 import hashlib
+from secrets_loader import SecretsLoader
+
+loader = SecretsLoader()
 
 # UNIFIED METRICS SYSTEM - Inline definitions (like original working code)
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
@@ -346,9 +349,11 @@ class DatabaseSettings(BaseSettings):
     # Database connection parameters
     host: str = Field(default="localhost")
     port: int = Field(default=5432, ge=1, le=65535)
-    database: str = Field(..., description="Database name (required)")
-    user: str = Field(..., description="Database user (required)")
-    password: str = Field(..., description="Database password (required)")
+    database: str = Field(default="global_gate")
+    user: str = Field(default="postgres")
+    password: str = Field(
+        default_factory=lambda: loader.get_secret('postgres_password', 'DB_PASSWORD') or 'postgres'
+    )
     
     # Connection pool settings
     min_pool_size: int = Field(default=5, ge=1, le=20)
@@ -359,8 +364,9 @@ class DatabaseSettings(BaseSettings):
     ssl: bool = Field(default=False, description="Enable SSL connection")
     echo: bool = Field(default=False, description="Echo SQL queries (debug)")
     
-    openai_api_key: str = Field(default_factory=lambda: os.getenv('OPENAI_API_KEY', 'dummy'))
-    
+    openai_api_key: str = Field(
+        default_factory=lambda: loader.get_secret('openai_api_key', 'OPENAI_API_KEY') or 'dummy'
+    )
     class Config:
         env_prefix = "DB_"
         env_file = ".env"
@@ -1522,8 +1528,12 @@ async def speech_health_check():
             polly_status = "failed"
             polly_info = str(e)
         
-        # AssemblyAI test (STT)
-        assemblyai_status = "ready" if os.getenv("ASSEMBLYAI_API_KEY") else "not_configured"
+        assemblyai_status = (
+                        "ready" 
+                        if loader.get_secret('assemblyai_api_key', 'ASSEMBLYAI_API_KEY') 
+                        else "not_configured"
+                    )
+
         
         # Overall status
         overall_status = "healthy" if polly_status == "ready" and assemblyai_status == "ready" else "partial"

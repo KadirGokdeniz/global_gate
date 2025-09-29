@@ -25,11 +25,15 @@ import asyncpg
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+from secrets_loader import SecretsLoader
+
+loader = SecretsLoader()
+# PostgreSQL Configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'db'),
     'database': os.getenv('DB_DATABASE', 'global_gate'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD')  # Default yok!
+    'password': loader.get_secret('postgres_password', 'DB_PASSWORD')
 }
 
 # Validation ekle

@@ -5,6 +5,9 @@ import logging
 import tempfile
 from typing import Dict, Optional
 import asyncio
+from secrets_loader import SecretsLoader
+
+loader = SecretsLoader()
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ class AssemblyAIService:
     def __init__(self):
         """Initialize AssemblyAI client"""
         try:
-            self.api_key = os.getenv("ASSEMBLYAI_API_KEY")
+            self.api_key = loader.get_secret('assemblyai_api_key', 'ASSEMBLYAI_API_KEY')
             if not self.api_key:
                 raise ValueError("ASSEMBLYAI_API_KEY environment variable not set")
             

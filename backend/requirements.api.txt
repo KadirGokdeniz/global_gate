@@ -3,8 +3,8 @@
 # ===============================================
 
 # FastAPI Core
-fastapi==0.108.0
-uvicorn[standard]==0.25.0
+uvicorn[standard]==0.24.0
+fastapi==0.104.1
 
 # Database
 asyncpg==0.29.0

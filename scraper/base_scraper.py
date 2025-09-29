@@ -19,13 +19,15 @@ from airline_configs import get_airline_config, get_all_airlines
 import sys
 
 logger = logging.getLogger(__name__)
+from secrets_loader import SecretsLoader
 
+loader = SecretsLoader()
 # PostgreSQL Configuration
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'db'),
     'database': os.getenv('DB_DATABASE', 'global_gate'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD')  # Default yok!
+    'password': loader.get_secret('postgres_password', 'DB_PASSWORD')
 }
 
 # Validation ekle

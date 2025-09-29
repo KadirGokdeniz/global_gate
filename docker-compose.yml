@@ -1,12 +1,14 @@
-# docker-compose.yml - FIXED VERSION
+# docker-compose.yml - SECRETS SECURED VERSION
 services:
   db:
     image: pgvector/pgvector:pg15
     container_name: global-gate-db
+    secrets:
+      - postgres_password
     environment:
       POSTGRES_DB: ${DB_DATABASE:-global_gate}
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-qeqe}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -30,12 +32,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    secrets:
+      - postgres_password
+      - openai_api_key
+      - anthropic_api_key
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-global_gate}
       DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-qeqe}
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
+      OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+      ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
     command: python scraper_only.py
     restart: "no"
     networks:
@@ -53,25 +61,32 @@ services:
         condition: service_healthy
       scraper:
         condition: service_completed_successfully
+    secrets:
+      - postgres_password
+      - openai_api_key
+      - anthropic_api_key
+      - aws_access_key_id
+      - aws_secret_access_key
+      - assemblyai_api_key
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-global_gate}
       DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-qeqe}
+      DB_PASSWORD_FILE: /run/secrets/postgres_password
       DB_MIN_POOL_SIZE: 5
       DB_MAX_POOL_SIZE: 20
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
+      OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+      ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
+      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key_id
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_access_key
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
       PYTHONUNBUFFERED: 1
       PYTHONPATH: /app
     ports:
       - "8000:8000"
-    command: uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
+    command: python -m uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -93,17 +108,16 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.react  # ✅ React için doğru dockerfile
+      dockerfile: docker/Dockerfile.react
     container_name: global-gate-frontend
     depends_on:
       api:
-        condition: service_healthy  # ✅ API hazır olana kadar bekler
+        condition: service_healthy
     environment:
-      # React için environment variables (build time)
       REACT_APP_API_URL: http://localhost:8000
-      VITE_API_URL: http://localhost:8000  # Vite için
+      VITE_API_URL: http://localhost:8000
     ports:
-      - "8501:3000"  # ✅ React için doğru port
+      - "8501:3000"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -190,3 +204,20 @@ networks:
       driver: default
       config:
         - subnet: 172.20.0.0/16
+
+# ============================================
+# SECRETS CONFIGURATION
+# ============================================
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  openai_api_key:
+    file: ./secrets/openai_api_key
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key
+  aws_access_key_id:
+    file: ./secrets/aws_access_key_id
+  aws_secret_access_key:
+    file: ./secrets/aws_secret_access_key
+  assemblyai_api_key:
+    file: ./secrets/assemblyai_api_key

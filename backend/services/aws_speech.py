@@ -7,6 +7,9 @@ import json
 import time
 from typing import Dict, Optional
 from botocore.exceptions import ClientError, NoCredentialsError
+from secrets_loader import SecretsLoader
+
+loader = SecretsLoader()
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +25,16 @@ class AWSpeechService:
         try:
             # AWS credentials check
             self.region = os.getenv("AWS_REGION", "eu-north-1")
+
+            aws_access_key_id = loader.get_secret('aws_access_key_id', 'AWS_ACCESS_KEY_ID')
+            aws_secret_access_key = loader.get_secret('aws_secret_access_key', 'AWS_SECRET_ACCESS_KEY')
             
             # Polly client (TTS)
             self.polly_client = boto3.client(
                 'polly',
                 region_name=self.region,
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+                AWS_ACCESS_KEY_ID = aws_access_key_id,
+                AWS_SECRET_ACCESS_KEY = aws_secret_access_key
             )
             # Test connections
             self._test_connections()

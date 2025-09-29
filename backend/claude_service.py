@@ -4,9 +4,9 @@ import anthropic
 from typing import List, Dict, Optional
 import logging
 from dotenv import load_dotenv
-import os
+from secrets_loader import SecretsLoader
 
-load_dotenv()
+loader = SecretsLoader()
 logger = logging.getLogger(__name__)
 
 class ClaudeService:
@@ -14,7 +14,7 @@ class ClaudeService:
     
     def __init__(self):
         """Initialize Claude client"""
-        api_key = os.getenv('ANTHROPIC_API_KEY')
+        api_key = loader.get_secret('anthropic_api_key', 'ANTHROPIC_API_KEY')
         if not api_key:
             logger.warning("ANTHROPIC_API_KEY not found - Claude features will be limited")
             self.client = None
