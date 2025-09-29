@@ -110,7 +110,8 @@ graph TD
 - **📱 Responsive Design: Modern UI that works on desktop and mobile**:  Modern UI that works on desktop and mobile
 - **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
-
+- **🔐 Secure Secrets Management**: Docker Secrets integration for safe API key storage and rotation
+  
 ## Supported Languages
 - Turkish (tr- Filiz voice)
 - English (en-US-Joanna voice) (en-GB-Emma voice)
