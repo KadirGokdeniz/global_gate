@@ -51,3 +51,25 @@ docker-secrets/
 *.bak
 *.backup
 *_backup
+
+# Vault & Secrets Management
+.vault-token
+.vault-data/
+secrets/
+vault-config/
+*.secret
+
+# Environment variations
+.env.local
+.env.*.local
+.env.backup
+.env.production
+.env.development
+
+# AWS
+.aws/credentials
+aws-credentials.json
+
+# Security reports
+secrets_audit_report.json
+security_scan_*.json
