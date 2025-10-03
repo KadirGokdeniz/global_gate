@@ -93,7 +93,6 @@ graph TD
 | **Prometheus** | 9090 | http://localhost:9090 | 
 | **PostgreSQL** | 5432 | http://localhost:5432 |
 
-
 ## ✨ Key Features
 
 - **🤖 RAG Pipeline**: Vector-based semantic search for precise information retrieval
@@ -111,10 +110,6 @@ graph TD
 - **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
 - **🔐 Secure Secrets Management**: Docker Secrets integration for safe API key storage and rotation
-  
-## Supported Languages
-- Turkish (tr- Filiz voice)
-- English (en-US-Joanna voice) (en-GB-Emma voice)
 
 ## Installation & Setup
 
@@ -152,20 +147,6 @@ curl http://localhost:8501/_stcore/health
 curl http://localhost:8000/speech/health
 curl http://localhost:8000/speech/assemblyai/info
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -m 'Add feature'`
-4. Push to branch: `git push origin feature-name`
-5. Submit a Pull Request
-
-### Adding New Airlines
-1. Implement scraper in `scrapers/` directory
-2. Update database schema if needed
-3. Add airline configuration to settings
-4. Test data collection and search functionality
 
 ### Performance Metrics
 The system tracks comprehensive metrics including:
