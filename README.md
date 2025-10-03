@@ -50,7 +50,7 @@ The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
-    A[User] --> B[Frontend React]
+    A[User] <--> B[Frontend React]
     B --> C[FastAPI Backend]
     
     %% Audio Input Path  
