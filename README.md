@@ -66,7 +66,7 @@ graph TD
     %% Audio Output Path
     C --> K[AWS Polly TTS]
     K --> L[Audio Output]
-    K --> B
+    L --> B
     
     %% Monitoring
     G[Prometheus] --> H[Grafana]
