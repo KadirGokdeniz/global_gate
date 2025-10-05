@@ -1,22 +1,19 @@
 import openai
 from typing import List, Dict, Optional
 import logging
-from dotenv import load_dotenv
-import os
 from secrets_loader import SecretsLoader
 
 loader = SecretsLoader()
-
 logger = logging.getLogger(__name__)
 
 class OpenAIService:
-    """OpenAI service for RAG responses"""
+    """OpenAI service for RAG responses with Chain of Thought"""
     
     def __init__(self):
         """Initialize OpenAI client"""
         api_key = loader.get_secret('openai_api_key', 'OPENAI_API_KEY')
         if not api_key:
-            logger.warning("OPENAI_API_KEY not found - OpenAI features will be limited")
+            logger.warning("OPENAI_API_KEY not found")
             self.client = None
         else:
             try:
@@ -28,24 +25,62 @@ class OpenAIService:
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
-        self.max_tokens = 500
+        self.max_tokens = 800  # CoT için daha fazla token
         self.temperature = 0.2
 
+        # CoT-Enhanced Prompts
         self.LANGUAGE_PROMPTS = {
             "tr": {
                 "system_instruction": """Sen profesyonel bir havayolu müşteri hizmetleri asistanısın. 
-                Yanıtlarını SADECE Türkçe ver. Havayolu politakaları hakkında doğal, akıcı ve anlaşılır yanıtlar oluştur.
-                Verilen belgeler İngilizce olsa bile, yanıtını Türkçe yap.""",
+                Yanıtlarını SADECE Türkçe ver. Havayolu politikaları hakkında doğal, akıcı ve anlaşılır yanıtlar oluştur.
+                
+                Soruları yanıtlarken adım adım düşün:
+                1. Soruyu anla ve anahtar noktaları belirle
+                2. İlgili politika bilgilerini çıkar
+                3. Bilgileri birleştirerek net bir yanıt oluştur
+                
+                Her adımda mantığını açıkla.""",
+                
                 "context_prefix": "Havayolu Politika Belgeleri:",
                 "question_prefix": "Müşteri Sorusu:",
-                "instruction": "Yukarıdaki politika belgelerine dayanarak soruyu Türkçe yanıtla:"
+                
+                "cot_instruction": """
+                Şu adımları izleyerek yanıt ver:
+                
+                DÜŞÜNCE SÜRECİ:
+                1. Soru Analizi: [Sorunun ne sorduğunu açıkla]
+                2. Belge Taraması: [Hangi belgeler ilgili, anahtar bilgiler neler]
+                3. Yanıt Yapılandırma: [Bilgileri nasıl birleştireceğini açıkla]
+                
+                SON YANITIM:
+                [Kullanıcıya verilecek Türkçe yanıt]
+                """
             },
             "en": {
                 "system_instruction": """You are a professional airline customer service assistant.
-                Answer ONLY in English. Provide clear and helpful responses about airline policies.""",
+                Answer ONLY in English. Provide clear and helpful responses about airline policies.
+                
+                When answering questions, think step by step:
+                1. Understand the question and identify key points
+                2. Extract relevant policy information
+                3. Combine information into a clear response
+                
+                Explain your reasoning at each step.""",
+                
                 "context_prefix": "Airline Policy Documents:",
                 "question_prefix": "Customer Question:",
-                "instruction": "Please answer the question based on the policy documents above:"
+                
+                "cot_instruction": """
+                Answer following these steps:
+                
+                THOUGHT PROCESS:
+                1. Question Analysis: [Explain what the question is asking]
+                2. Document Review: [Which documents are relevant, key information]
+                3. Response Construction: [Explain how you'll combine the information]
+                
+                FINAL ANSWER:
+                [English response for the user]
+                """
             }
         }
 
@@ -58,7 +93,6 @@ class OpenAIService:
             }
         
         try:
-            # Simple test call
             response = self.client.chat.completions.create(
                 model=self.default_model,
                 messages=[{"role": "user", "content": "Hi"}],
@@ -74,6 +108,7 @@ class OpenAIService:
                 "success": False,
                 "message": f"OpenAI API error: {str(e)}"
             }
+    
     def _get_error_response(self, language: str = "en", error_msg: str = "") -> Dict:
         """Get language-specific error response"""
         error_messages = {
@@ -88,36 +123,36 @@ class OpenAIService:
             "model_used": "none",
             "language": language,
             "context_used": False,
-            "usage": {}
+            "usage": {},
+            "reasoning": None
         }
 
     def generate_rag_response(self, retrieved_docs: List[Dict], question: str, 
-                              model: str = None, language:str="en") -> Dict:
-        """Generate RAG response using OpenAI"""
+                              model: str = None, language: str = "en",
+                              use_cot: bool = True) -> Dict:
+        """Generate RAG response using OpenAI with optional Chain of Thought"""
         
         if not self.client:
             return self._get_error_response(language)
         
         try:
-            # Use provided model or default
             model_to_use = model or self.default_model
-
             lang_config = self.LANGUAGE_PROMPTS.get(language, self.LANGUAGE_PROMPTS["en"])
             
             # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
-                for i, doc in enumerate(retrieved_docs[:5], 1):  # Top 5 docs
+                for i, doc in enumerate(retrieved_docs[:5], 1):
                     airline_info = doc.get('airline', 'Bilinmeyen' if language == 'tr' else 'Unknown')
                     source = doc.get('source', 'Bilinmeyen' if language == 'tr' else 'Unknown')
                     content = doc.get('content', '')[:600]
                     
                     if language == 'tr':
                         context_parts.append(f"""Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
-                                                {content}...""")
+                        {content}...""")
                     else:
                         context_parts.append(f"""Document {i} (Source: {source} - Airline: {airline_info}):
-                                                {content}...""")
+                        {content}...""")
                         
                 context = "\n".join(context_parts)
                 context_used = True
@@ -129,10 +164,23 @@ class OpenAIService:
                 context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
+            # Create user prompt - CoT or standard
+            if use_cot:
+                user_prompt = f"""{lang_config['context_prefix']}
+                {context}
+                
+                {lang_config['question_prefix']} {question}
+                
+                {lang_config['cot_instruction']}"""
+            else:
+                # Standard prompt without CoT
+                user_prompt = f"""{lang_config['context_prefix']}
+                {context}
+                
+                {lang_config['question_prefix']} {question}
+                
+                Yukarıdaki politika belgelerine dayanarak soruyu yanıtla:"""
             
-            # Create user prompt
-            user_prompt = f"""{context} {lang_config['question_prefix']} {question} {lang_config['instruction']}"""
-                                        
             # Generate response
             response = self.client.chat.completions.create(
                 model=model_to_use,
@@ -144,6 +192,26 @@ class OpenAIService:
                 temperature=self.temperature
             )
             
+            # Parse response - extract reasoning and answer if CoT used
+            full_response = response.choices[0].message.content
+            reasoning = None
+            final_answer = full_response
+            
+            if use_cot:
+                # Try to separate reasoning from final answer
+                if "DÜŞÜNCE SÜRECİ:" in full_response or "THOUGHT PROCESS:" in full_response:
+                    # Find the reasoning section
+                    reasoning_marker = "DÜŞÜNCE SÜRECİ:" if language == "tr" else "THOUGHT PROCESS:"
+                    answer_marker = "SON YANITIM:" if language == "tr" else "FINAL ANSWER:"
+                    
+                    if reasoning_marker in full_response and answer_marker in full_response:
+                        reasoning_start = full_response.find(reasoning_marker) + len(reasoning_marker)
+                        reasoning_end = full_response.find(answer_marker)
+                        reasoning = full_response[reasoning_start:reasoning_end].strip()
+                        
+                        answer_start = full_response.find(answer_marker) + len(answer_marker)
+                        final_answer = full_response[answer_start:].strip()
+            
             # Extract usage information
             usage_info = {
                 "prompt_tokens": response.usage.prompt_tokens,
@@ -154,10 +222,12 @@ class OpenAIService:
             
             return {
                 "success": True,
-                "answer": response.choices[0].message.content,
+                "answer": final_answer,
+                "reasoning": reasoning if use_cot else None,  # CoT düşünce süreci
                 "model_used": model_to_use,
-                "language" : language,
+                "language": language,
                 "context_used": context_used,
+                "cot_enabled": use_cot,
                 "usage": usage_info
             }
             
@@ -167,8 +237,6 @@ class OpenAIService:
     
     def _estimate_cost(self, usage, model: str) -> float:
         """Estimate cost based on token usage"""
-        
-        # Pricing per 1K tokens
         pricing = {
             "gpt-3.5-turbo": {"input": 0.001, "output": 0.002},
             "gpt-4": {"input": 0.03, "output": 0.06},
@@ -176,8 +244,8 @@ class OpenAIService:
         }
         
         if model not in pricing:
-            logger.warning(f"No pricing info for model {model}, using gpt-4-turbo pricing")
-            model = "gpt-4-turbo"  # Default pricing
+            logger.warning(f"No pricing info for model {model}")
+            model = "gpt-4-turbo"
         
         input_cost = (usage.prompt_tokens / 1000) * pricing[model]["input"]
         output_cost = (usage.completion_tokens / 1000) * pricing[model]["output"]
