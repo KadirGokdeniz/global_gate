@@ -25,7 +25,7 @@ class OpenAIService:
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
-        self.max_tokens = 800  # CoT için daha fazla token
+        self.max_tokens = 500  
         self.temperature = 0.2
 
         # CoT-Enhanced Prompts

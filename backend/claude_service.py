@@ -26,7 +26,7 @@ class ClaudeService:
                 self.client = None
         
         self.default_model = 'claude-3-haiku-20240307'
-        self.max_tokens = 800
+        self.max_tokens = 500
         self.temperature = 0.2
 
         # CoT-Enhanced Prompts (OpenAI benzeri)
