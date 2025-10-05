@@ -572,7 +572,7 @@ class ChatRequest(BaseModel):
     similarity_threshold: float = Field(default=0.3, description="Similarity threshold", ge=0.1, le=0.9)
     model: Optional[str] = Field(default=None, description="Model to use")
     language: str = Field(default="en", description="Response language (en/tr)")
-    use_cot: bool = Field(default=True, description="Enable Chain of Thought reasoning")
+    use_cot: bool = Field(default=False, description="Enable Chain of Thought reasoning")
 
 class FeedbackRequest(BaseModel):
     question: str
@@ -725,7 +725,7 @@ def enhance_query_simple(question: str, airline_preference: Optional[str]) -> st
 # ENHANCED OPENAI CHAT WITH CoT SUPPORT
 async def _chat_with_openai_logic(question: str, max_results: int, similarity_threshold: float,
                                   model: Optional[str], airline_preference: Optional[str] = None,
-                                  language: str = "en", use_cot: bool = True):
+                                  language: str = "en", use_cot: bool = False):
     """Enhanced OpenAI chat logic with CoT support"""
     if not openai_service:
         raise HTTPException(status_code=503, detail="OpenAI service not available")
@@ -834,7 +834,7 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
 # ENHANCED CLAUDE CHAT WITH CoT SUPPORT
 async def _chat_with_claude_logic(question: str, max_results: int, similarity_threshold: float,
                                   model: Optional[str], airline_preference: Optional[str] = None,
-                                  language: str = "en", use_cot: bool = True):
+                                  language: str = "en", use_cot: bool = False):
     """Enhanced Claude chat logic with CoT support"""
     if not claude_service:
         raise HTTPException(status_code=503, detail="Claude service not available")
@@ -1181,7 +1181,7 @@ async def openai_chat_post(
     similarity_threshold: Optional[float] = Query(None),
     model: Optional[str] = Query(None),
     language: Optional[str] = Query("en"),
-    use_cot: Optional[bool] = Query(True)
+    use_cot: Optional[bool] = Query(False)
 ):
     """RAG Chat with OpenAI (POST) - CoT Support"""
     if chat_request:
@@ -1223,7 +1223,7 @@ async def claude_chat_post(
     similarity_threshold: Optional[float] = Query(None),
     model: Optional[str] = Query(None),
     language: str = Query("en"),
-    use_cot: bool = Query(True)
+    use_cot: bool = Query(False)
 ):
     """RAG Chat with Claude (POST) - CoT Support"""
     if chat_request:
@@ -1248,7 +1248,7 @@ async def claude_chat_get(
     similarity_threshold: float = Query(0.3),
     model: Optional[str] = Query(None),
     language: str = Query("en"),
-    use_cot: bool = Query(True)
+    use_cot: bool = Query(False)
 ):
     """RAG Chat with Claude (GET) - CoT Support"""
     return await _chat_with_claude_logic(

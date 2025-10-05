@@ -130,7 +130,7 @@ class ClaudeService:
 
     def generate_rag_response(self, retrieved_docs: List[Dict], question: str,
                               model: str = None, language: str = "en", 
-                              use_cot: bool = True) -> Dict:
+                              use_cot: bool = False) -> Dict:
         """Generate RAG response using Claude with optional Chain of Thought"""
         
         if not self.client:
