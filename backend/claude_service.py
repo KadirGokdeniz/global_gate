@@ -1,4 +1,4 @@
-# claude_service.py - CoT Enhanced Version
+# claude_service.py 
 
 import anthropic
 from typing import List, Dict, Optional
@@ -25,94 +25,90 @@ class ClaudeService:
                 logger.error(f"❌ Claude initialization failed: {e}")
                 self.client = None
         
-        # Configuration
         self.default_model = 'claude-3-haiku-20240307'
-        self.max_tokens = 800  # CoT için daha fazla token
+        self.max_tokens = 800
         self.temperature = 0.2
 
-        # CoT-Enhanced Prompts
+        # CoT-Enhanced Prompts (OpenAI benzeri)
         self.LANGUAGE_PROMPTS = {
             "tr": {
-                "system_instruction": """Sen uzman bir havayolu müşteri hizmetleri asistanısın. 
-                MUTLAKA Türkçe yanıt ver. Doğal, akıcı ve anlaşılır Türkçe kullan.
+                "system_instruction": """Sen profesyonel bir havayolu müşteri hizmetleri asistanısın. 
+                Yanıtlarını SADECE Türkçe ver. Havayolu politikaları hakkında doğal, akıcı ve anlaşılır yanıtlar oluştur.
                 
-                Soruları yanıtlarken şu adımları izle:
-                1. Soruyu analiz et ve anahtar kavramları belirle
-                2. Verilen politika belgelerinden ilgili bilgileri çıkar
-                3. Bilgileri sentezleyerek tutarlı bir yanıt oluştur
-                4. Yanıtını kullanıcıya sun
+                Soruları yanıtlarken adım adım düşün:
+                1. Soruyu anla ve anahtar noktaları belirle
+                2. İlgili politika bilgilerini çıkar
+                3. Bilgileri birleştirerek net bir yanıt oluştur
                 
-                Her adımda düşüncelerini açıkça belirt.""",
+                Her adımda mantığını açıkla.""",
                 
                 "context_prefix": "Havayolu Politika Belgeleri:",
                 "question_prefix": "Müşteri Sorusu:",
                 
                 "cot_instruction": """
-                Lütfen aşağıdaki adımları izleyerek yanıt ver:
+                Şu adımları izleyerek yanıt ver:
                 
-                <thinking>
-                Adım 1: Soru Analizi
-                - Sorunun ana konusu nedir?
-                - Hangi politika alanıyla ilgili?
-                - Hangi bilgilere ihtiyaç var?
+                DÜŞÜNCE SÜRECİ:
+                1. Soru Analizi: [Sorunun ne sorduğunu açıkla]
+                2. Belge Taraması: [Hangi belgeler ilgili, anahtar bilgiler neler]
+                3. Yanıt Yapılandırma: [Bilgileri nasıl birleştireceğini açıkla]
                 
-                Adım 2: Belge İncelemesi
-                - Hangi belgeler soruyla ilgili?
-                - Belgelerden çıkarılacak anahtar bilgiler neler?
-                - Çelişkili bilgiler var mı?
-                
-                Adım 3: Yanıt Sentezi
-                - Bilgileri nasıl birleştireceğim?
-                - Eksik bilgi var mı?
-                - Kullanıcı için en faydalı format nedir?
-                </thinking>
-                
-                <answer>
-                [Buraya Türkçe yanıtını yaz]
-                </answer>
+                SON YANITIM:
+                [Kullanıcıya verilecek Türkçe yanıt]
                 """
             },
             "en": {
                 "system_instruction": """You are a professional airline customer service assistant.
                 Answer ONLY in English. Provide clear and helpful responses about airline policies.
                 
-                Follow these steps when answering:
-                1. Analyze the question and identify key concepts
-                2. Extract relevant information from policy documents
-                3. Synthesize information into a coherent response
-                4. Present your answer to the user
+                When answering questions, think step by step:
+                1. Understand the question and identify key points
+                2. Extract relevant policy information
+                3. Combine information into a clear response
                 
-                Think through each step explicitly.""",
+                Explain your reasoning at each step.""",
                 
                 "context_prefix": "Airline Policy Documents:",
                 "question_prefix": "Customer Question:",
                 
                 "cot_instruction": """
-                Please answer following these steps:
+                Answer following these steps:
                 
-                <thinking>
-                Step 1: Question Analysis
-                - What is the main topic of the question?
-                - Which policy area is it related to?
-                - What information is needed?
+                THOUGHT PROCESS:
+                1. Question Analysis: [Explain what the question is asking]
+                2. Document Review: [Which documents are relevant, key information]
+                3. Response Construction: [Explain how you'll combine the information]
                 
-                Step 2: Document Review
-                - Which documents are relevant to the question?
-                - What are the key facts to extract from documents?
-                - Are there any conflicting information?
-                
-                Step 3: Response Synthesis
-                - How should I combine the information?
-                - Is any information missing?
-                - What's the most helpful format for the user?
-                </thinking>
-                
-                <answer>
-                [Write your English response here]
-                </answer>
+                FINAL ANSWER:
+                [English response for the user]
                 """
             }
         }
+    
+    def test_connection(self) -> Dict:
+        """Test Claude API connection"""
+        if not self.client:
+            return {
+                "success": False,
+                "message": "Claude client not initialized (missing API key)"
+            }
+        
+        try:
+            response = self.client.messages.create(
+                model=self.default_model,
+                max_tokens=5,
+                messages=[{"role": "user", "content": "Hi"}]
+            )
+            return {
+                "success": True,
+                "message": "Claude API connection successful",
+                "model": self.default_model
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Claude API error: {str(e)}"
+            }
     
     def _get_error_response(self, language: str = "en", error_msg: str = "") -> Dict:
         """Get language-specific error response"""
@@ -153,15 +149,11 @@ class ClaudeService:
                     content = doc.get('content', '')[:600]
                     
                     if language == 'tr':
-                        context_parts.append(f"""
-                        Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
-                        {content}...
-                        """)
+                        context_parts.append(f"""Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):
+                        {content}...""")
                     else:
-                        context_parts.append(f"""
-                        Document {i} (Source: {source} - Airline: {airline_info}):
-                        {content}...
-                        """)
+                        context_parts.append(f"""Document {i} (Source: {source} - Airline: {airline_info}):
+                        {content}...""")
                         
                 context = "\n".join(context_parts)
                 context_used = True
@@ -200,23 +192,25 @@ class ClaudeService:
                 ]
             )
             
-            # Parse response - extract thinking and answer if CoT used
+            # Parse response - extract reasoning and answer if CoT used
             full_response = response.content[0].text
             reasoning = None
             final_answer = full_response
             
             if use_cot:
-                # Extract thinking section if present
-                if "<thinking>" in full_response and "</thinking>" in full_response:
-                    start = full_response.find("<thinking>") + len("<thinking>")
-                    end = full_response.find("</thinking>")
-                    reasoning = full_response[start:end].strip()
-                
-                # Extract answer section if present
-                if "<answer>" in full_response and "</answer>" in full_response:
-                    start = full_response.find("<answer>") + len("<answer>")
-                    end = full_response.find("</answer>")
-                    final_answer = full_response[start:end].strip()
+                # Try to separate reasoning from final answer (OpenAI gibi)
+                if "DÜŞÜNCE SÜRECİ:" in full_response or "THOUGHT PROCESS:" in full_response:
+                    # Find the reasoning section
+                    reasoning_marker = "DÜŞÜNCE SÜRECİ:" if language == "tr" else "THOUGHT PROCESS:"
+                    answer_marker = "SON YANITIM:" if language == "tr" else "FINAL ANSWER:"
+                    
+                    if reasoning_marker in full_response and answer_marker in full_response:
+                        reasoning_start = full_response.find(reasoning_marker) + len(reasoning_marker)
+                        reasoning_end = full_response.find(answer_marker)
+                        reasoning = full_response[reasoning_start:reasoning_end].strip()
+                        
+                        answer_start = full_response.find(answer_marker) + len(answer_marker)
+                        final_answer = full_response[answer_start:].strip()
             
             # Extract usage information
             usage_info = {
@@ -229,7 +223,7 @@ class ClaudeService:
             return {
                 "success": True,
                 "answer": final_answer,
-                "reasoning": reasoning if use_cot else None,  # CoT düşünce süreci
+                "reasoning": reasoning if use_cot else None,  # CoT düşünce süreci (OpenAI gibi)
                 "model_used": model_to_use,
                 "language": language,
                 "context_used": context_used,
