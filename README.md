@@ -50,7 +50,7 @@ The system follows a moduler architecture with orchestrated startup sequence:
 
 ```mermaid
 graph TD
-    A[User] --> B[Frontend React]
+    A[User] <--> B[Frontend React]
     B --> C[FastAPI Backend]
     
     %% Audio Input Path  
@@ -66,7 +66,7 @@ graph TD
     %% Audio Output Path
     C --> K[AWS Polly TTS]
     K --> L[Audio Output]
-    K --> B
+    L --> B
     
     %% Monitoring
     G[Prometheus] --> H[Grafana]
@@ -93,7 +93,6 @@ graph TD
 | **Prometheus** | 9090 | http://localhost:9090 | 
 | **PostgreSQL** | 5432 | http://localhost:5432 |
 
-
 ## ✨ Key Features
 
 - **🤖 RAG Pipeline**: Vector-based semantic search for precise information retrieval
@@ -110,10 +109,7 @@ graph TD
 - **📱 Responsive Design: Modern UI that works on desktop and mobile**:  Modern UI that works on desktop and mobile
 - **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
-
-## Supported Languages
-- Turkish (tr- Filiz voice)
-- English (en-US-Joanna voice) (en-GB-Emma voice)
+- **🔐 Secure Secrets Management**: Docker Secrets integration for safe API key storage and rotation
 
 ## Installation & Setup
 
@@ -152,20 +148,6 @@ curl http://localhost:8000/speech/health
 curl http://localhost:8000/speech/assemblyai/info
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -m 'Add feature'`
-4. Push to branch: `git push origin feature-name`
-5. Submit a Pull Request
-
-### Adding New Airlines
-1. Implement scraper in `scrapers/` directory
-2. Update database schema if needed
-3. Add airline configuration to settings
-4. Test data collection and search functionality
-
 ### Performance Metrics
 The system tracks comprehensive metrics including:
 - Speech Processing Time: STT/TTS latency monitoring
@@ -179,10 +161,5 @@ Access metrics and graphs at: http://localhost:3000 (Grafana Dashboard)
 
 This AI-powered airline policy assistant represents a modern approach to information retrieval in the travel industry. By combining web scraping, vector databases, large language models, and advanced speech processing capabilities, we've created a comprehensive system that transforms how travelers access airline policy information. The solution addresses real pain points in travel planning while demonstrating practical applications of RAG architecture with multimodal interaction in production environments.
 
-## Conclusion
-
-Built with modern AI, microservices principles, and cutting-edge speech technology, this system showcases how intelligent automation combined with natural voice interaction can significantly improve user experience in complex information domains. The project serves both as a practical travel tool and a reference implementation for RAG-based information systems with integrated speech capabilities.
-
 ---
-
 **Ready to streamline your travel planning? Start asking questions through text or voice and experience the future of airline policy assistance with full speech integration.**
