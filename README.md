@@ -1,5 +1,12 @@
 # AI-Powered Multi-Airline Policy Assistant
 
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![FastAPI](https://img.shields.io/badge/Framework-FastAPI-009688?logo=fastapi)
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql)
+![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 ## Problem & Solution
 
 **Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
