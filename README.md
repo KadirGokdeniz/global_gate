@@ -123,7 +123,7 @@ graph TD
 - **🐳 Docker-Native**: Fully containerized microservices
 - **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
 - **🚀 Intelligent Caching**: Multi-layered LRU cache with performance tracking and batch optimization
-- **📱 Responsive Design: Modern UI that works on desktop and mobile**:  Modern UI that works on desktop and mobile
+- **📱 Responsive Design:**:  Modern UI that works on desktop and mobile
 - **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
 - **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
 - **🔐 Secure Secrets Management**: Docker Secrets integration for safe API key storage and rotation
