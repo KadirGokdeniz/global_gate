@@ -16,7 +16,6 @@
 ![Status](https://img.shields.io/badge/Deployment-Operational-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Coverage](https://img.shields.io/badge/Test_Coverage-90%25-success)
-![Contributors](https://img.shields.io/github/contributors/USER/REPO)
 
 ## Problem & Solution
 
