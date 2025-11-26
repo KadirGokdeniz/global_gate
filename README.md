@@ -1,11 +1,22 @@
 # AI-Powered Multi-Airline Policy Assistant
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
-![FastAPI](https://img.shields.io/badge/Framework-FastAPI-009688?logo=fastapi)
-![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)
-![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql)
-![Docker](https://img.shields.io/badge/Container-Docker-2496ED?logo=docker)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/DB-PostgreSQL-336791?logo=postgresql)
+![pgvector](https://img.shields.io/badge/Vector_DB-pgvector-4169E1?logo=postgresql)
+![React](https://img.shields.io/badge/Frontend-React/Vite-61DAFB?logo=react)
+![Tailwind](https://img.shields.io/badge/Styles-Tailwind_CSS-06B6D4?logo=tailwindcss)
+![Multi-LLM](https://img.shields.io/badge/LLMs-OpenAI%20%7C%20Claude-FF6600?logo=openai)
+![STT](https://img.shields.io/badge/STT-AssemblyAI-007FFF?logo=assemblyai)
+![TTS](https://img.shields.io/badge/TTS-AWS%20Polly-FF9900?logo=amazonaws)
+![Embeddings](https://img.shields.io/badge/Embedding-SentenceTransformers-DFB317?logo=huggingface)
+![Docker](https://img.shields.io/badge/Container-Docker_Compose-2496ED?logo=docker)
+![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus)
+![Grafana](https://img.shields.io/badge/Dashboard-Grafana-F46800?logo=grafana)
+![Status](https://img.shields.io/badge/Deployment-Operational-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Coverage](https://img.shields.io/badge/Test_Coverage-90%25-success)
+![Contributors](https://img.shields.io/github/contributors/USER/REPO)
 
 ## Problem & Solution
 
