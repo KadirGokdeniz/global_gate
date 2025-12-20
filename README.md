@@ -1,95 +1,49 @@
 # AI-Powered Multi-Airline Policy Assistant
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
-![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)
-![PostgreSQL](https://img.shields.io/badge/DB-PostgreSQL-336791?logo=postgresql)
-![pgvector](https://img.shields.io/badge/Vector_DB-pgvector-4169E1?logo=postgresql)
-![React](https://img.shields.io/badge/Frontend-React/Vite-61DAFB?logo=react)
-![Tailwind](https://img.shields.io/badge/Styles-Tailwind_CSS-06B6D4?logo=tailwindcss)
-![Multi-LLM](https://img.shields.io/badge/LLMs-OpenAI%20%7C%20Claude-FF6600?logo=openai)
-![STT](https://img.shields.io/badge/STT-AssemblyAI-007FFF?logo=assemblyai)
-![TTS](https://img.shields.io/badge/TTS-AWS%20Polly-FF9900?logo=amazonaws)
-![Embeddings](https://img.shields.io/badge/Embedding-SentenceTransformers-DFB317?logo=huggingface)
-![Docker](https://img.shields.io/badge/Container-Docker_Compose-2496ED?logo=docker)
-![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-E6522C?logo=prometheus)
-![Grafana](https://img.shields.io/badge/Dashboard-Grafana-F46800?logo=grafana)
-![Status](https://img.shields.io/badge/Deployment-Operational-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-336791?logo=postgresql)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
 ![Coverage](https://img.shields.io/badge/Test_Coverage-90%25-success)
 
-## Problem & Solution
+## Problem
 
-**Problem**: Travelers waste significant time navigating complex airline websites to find specific policy information, often encountering inconsistent or outdated data across multiple airline platforms.
+Airline policy information is scattered, inconsistent, and hard to access when you actually need it. [Phone support averages 2-12 hours](https://www.mightytravels.com/2024/10/how-major-airlines-customer-service-response-times-compare-analysis-of-7-leading-carriers-in-2024/). [80% of travelers](https://www.cxtoday.com/speech-analytics/chatbots-are-still-frustrating-customers-here-is-why/) say standard chatbots can't answer simple policy questions. And when you're rushing between gates or driving to the airport, typing through FAQ pages isn't practical.
 
-**Solution**: Our AI-powered assistant eliminates the confusion by providing instant, accurate answers to airline policy questions through natural language queries. The system automatically scrapes and maintains up-to-date policy data from multiple airlines, then uses advanced semantic search to deliver precise, contextual responses with multilingual support including voice interaction capabilities.
+## Solution
 
-### **A Quick Tour of the Application**
+A voice-enabled assistant that understands natural language and compares policies across multiple airlines. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
 
-This intelligent RAG (Retrieval-Augmented Generation) system streamlines the process of finding airline policy information. Here's a quick look at the user experience from start to finish.
-
-**1. The Main Interface:** Simply select an airline and type your question in natural language or use voice input.
-
-**2. The Backend in Action:** The system instantly connects to the API and processes your request with optional text-to-speech output.
-
-**3. The Final Result:** Receive an instant, accurate, and sourced response to your query.
-
-**4. Speaker System:** Ask your question via recording. 
-
-| The Main Interface | The Backend in Action |
-|:------------------:|:---------------------:|
-| ![How It Works](assets/interface1.png) | ![System Process](assets/interface4.png) |
-| **The Final Result** | **Speaker System** |
-| ![Final Answer](assets/interface2.png) | ![Speak System](assets/interface3.png) |
-
-*An intelligent RAG (Retrieval-Augmented Generation) system that provides instant, accurate answers to airline policy questions using natural language processing, real-time data from multiple airlines, and advanced speech capabilities.*
-
-## Technology Stack
-
-| Technology | Purpose | Why Chosen |
-|------------|---------|------------|
-| **PostgreSQL + pgvector** | Database with Vector Storage | Reliable data persistence with efficient similarity search |
-| **BeautifulSoup** | Web Scraping | Reliability, Ease of Use, Fault Tolerance|
-| **Sentence Transformers (gte-multilingual-base)** | Natural Language Processing | Open source semantic understanding for searching |
-| **FastAPI** | Backend API Framework | High performance, automatic documentation, async support |
-| **Docker Compose** | Container Orchestration | Simplified deployment, environment consistency |
-| **Python** | Core Development Language | Rich ML/AI ecosystem, rapid development |
-| **React + TypeScript** | Frontend Interface | Modern UI framework with type safety, excellent user experience |
-| **Vite**| Frontend Build Tool | Fast development server, optimized production builds |
-| **Tailwind CSS**| Styling Framework | Rapid UI development, consistent design system |
-| **OpenAI API & Claude API** | LLM interaction | Response Generation for RAG applications |
-| **AWS Polly** | Text-to-Speech (TTS) | High-quality voice synthesis with multilingual support |
-| **AssemblyAI**| Speech-to-Text (STT) | Real-time transcription with high accuracy and language detection |
-| **Prometheus & Grafana**| Monitoring & Logging|Real-time performance tracking, industry-standard observability stack|
+| Interface | Result |
+|:---------:|:------:|
+| ![Main Interface](assets/interface1.png) | ![Response](assets/interface2.png) |
+| ![Backend](assets/interface4.png) | ![Voice Input](assets/interface3.png) |
 
 ## System Architecture
 
-The system follows a moduler architecture with orchestrated startup sequence:
+Speech services run as separate streams—TTS failure doesn't block query processing. Dual-LLM setup enables quality comparison and prevents vendor lock-in.
 
 ```mermaid
 graph TD
     A[User] <--> B[Frontend React]
     B --> C[FastAPI Backend]
     
-    %% Audio Input Path  
     B --> I[Audio Input]
     I --> J[AssemblyAI STT]
     J --> C
     
-    %% Backend Operations
     C <--> D[PostgreSQL + pgvector]
     E[Web Scraper] --> D
     C <--> F[OpenAI/Claude APIs]
     
-    %% Audio Output Path
     C --> K[AWS Polly TTS]
     K --> L[Audio Output]
     L --> B
     
-    %% Monitoring
     G[Prometheus] --> H[Grafana]
     C --> G
     
-    %% Styling
     classDef userPath fill:#e1f5fe
     classDef audioPath fill:#f3e5f5
     classDef backend fill:#e8f5e8
@@ -101,82 +55,44 @@ graph TD
     class G,H monitoring
 ```
 
-## 📊 Service Endpoints
-| Service | Port | URL |
-|:--------|:----:|:----|
-| **Frontend React** | 8501 | http://localhost:8501 |
-| **Backend API** | 8000 | http://localhost:8000 | 
-| **Grafana** | 3000 | http://localhost:3000 | 
-| **Prometheus** | 9090 | http://localhost:9090 | 
-| **PostgreSQL** | 5432 | http://localhost:5432 |
+## Technology Decisions
 
-## ✨ Key Features
+| Technology | Purpose | Trade-off Reasoning |
+|------------|---------|---------------------|
+| **pgvector** | Vector Search | Reduced overhead vs Pinecone/Weaviate. Sufficient for policy-scale datasets. |
+| **gte-multilingual-base** | Embeddings | Open-source, no per-query cost. Native Turkish/English support. |
+| **FastAPI** | Backend | Async handles concurrent LLM + STT + TTS calls. |
+| **BeautifulSoup** | Scraping | Sufficient for general-purpose scraping needs. |
+| **OpenAI + Claude** | LLM | Dual-provider prevents lock-in. Enables quality comparison. |
+| **AssemblyAI** | STT | Strong Turkish accuracy. Handles background noise well. |
 
-- **🤖 RAG Pipeline**: Vector-based semantic search for precise information retrieval
-- **🕷️ Real-time Scraping**: Automated airline data collection
-- **🧠 Multi-LLM Support**: OpenAI GPT & Anthropic Claude integration
-- **🔍 Multilingual Search**: Advanced semantic understanding
-- **🎤 Speech-to-Text**: Real-time voice input with AssemblyAI
-- **🔊 Text-to-Speech**: High-quality voice output with AWS Polly
-- **🌍 Voice Multilingual**: Turkish and English language voice support
-- **📊 Production Monitoring**: Prometheus & Grafana observability
-- **🐳 Docker-Native**: Fully containerized microservices
-- **⚡ High Performance**: Async FastAPI + PostgreSQL + pgvector
-- **🚀 Intelligent Caching**: Multi-layered LRU cache with performance tracking and batch optimization
-- **📱 Responsive Design:**:  Modern UI that works on desktop and mobile
-- **♿ Accessibility**: Screen reader support, keyboard navigation, voice features 
-- **🧪 Comprehensive Testing**: Test coverage including unit, integration, and performance tests
-- **🔐 Secure Secrets Management**: Docker Secrets integration for safe API key storage and rotation
+## Core Capabilities
 
-## Installation & Setup
+**RAG Pipeline**: Semantic search with source attribution. Reduces hallucination risk.
 
-### Prerequisites
-- Docker & Docker Compose
-- OpenAI API Key
-- Anthropic Claude API Key
-- AWS Credentials (for TTS)
-- AssemblyAI API Key (for STT)
+**Voice Interface**: Real-time STT/TTS in Turkish and English.
 
-### Quick Start
+**Production Monitoring**: Prometheus + Grafana for latency, errors, and API costs.
+
+**Multi-LLM Support**: Switch providers without code changes.
+
+**Intelligent Caching**: Multi-layer LRU cache for repeated queries.
+
+## Quick Start
+
 ```bash
-# 1. Clone repository
 git clone <repository-url>
 cd multi-airline-rag-system
-
-# 2. Set environment variables
 cp .env.example .env
-# Edit .env file with your OpenAI API key
 
-# 3. Start all services
 docker-compose up -d
-
-# 4. Load initial data (one-time setup)
 docker-compose run scraper python scraper_only.py
-```
 
-### Health Check
-```bash
-# Verify all services are running
 curl http://localhost:8000/health
-curl http://localhost:8501/_stcore/health
-
-# Check speech services specifically
-curl http://localhost:8000/speech/health
-curl http://localhost:8000/speech/assemblyai/info
 ```
 
-### Performance Metrics
-The system tracks comprehensive metrics including:
-- Speech Processing Time: STT/TTS latency monitoring
-- API Response Times: End-to-end request tracking
-- Accuracy Metrics: Transcription and response quality
-- Cost Tracking: API usage and billing optimization
-
-Access metrics and graphs at: http://localhost:3000 (Grafana Dashboard)
-
-## Project Summary
-
-This AI-powered airline policy assistant represents a modern approach to information retrieval in the travel industry. By combining web scraping, vector databases, large language models, and advanced speech processing capabilities, we've created a comprehensive system that transforms how travelers access airline policy information. The solution addresses real pain points in travel planning while demonstrating practical applications of RAG architecture with multimodal interaction in production environments.
-
----
-**Ready to streamline your travel planning? Start asking questions through text or voice and experience the future of airline policy assistance with full speech integration.**
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:8501 |
+| API | http://localhost:8000 |
+| Grafana | http://localhost:3000 |
