@@ -6,7 +6,7 @@ Bu dosya artık base_scraper.py'ı kullanır ve backward compatibility sağlar
 import os
 import logging
 from base_scraper import MultiAirlineScraper, scrape_all_airlines as base_scrape_all
-from airline_configs import get_all_airlines, get_airline_config
+from scraper.configs.airline_configs import get_all_airlines, get_airline_config
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

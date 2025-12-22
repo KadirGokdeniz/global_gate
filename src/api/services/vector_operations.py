@@ -1,7 +1,7 @@
 import asyncpg
 from typing import List, Dict, Optional, Tuple
 import numpy as np
-from embedding_service import get_embedding_service
+from src.api.services.embedding_service import get_embedding_service
 import logging
 import json
 import asyncio
@@ -53,11 +53,15 @@ class EnhancedVectorOperations:
             start_time = time.time()
             
             # Optimized Dense Semantic Representatives - Concise & Distinctive
+            """
+            These words come form TDF-IDF implementation.
+            The most common representative words between sections are excluded in the examination.
+            """
             CATEGORY_REPRESENTATIVES = {
                 # Baggage Categories - Core Distinctions
-                'checked_baggage': "checked bavul hold compartment 23kg 32kg ecofly business free allowance",
-                'carry_on_baggage': "cabin kabin hand luggage 8kg 55x40x23 overhead personal item", 
-                'excess_baggage': "additional ek fazla overweight fee ücret charge payment extra cost",
+                'checked_baggage': "checked baggage bavul hold luggage allowance free ecofly business",
+                'carry_on_baggage': "cabin kabin carry on hand luggage overhead personal item", 
+                'excess_baggage': "excess fazla overweight ağır kilo additional fee ücret charge payment",
                 
                 # Sports - Distinctive Equipment Terms Only
                 'sports_hockey': "hockey hokey stick sopa puck paten skates ice protective helmet",
@@ -66,11 +70,11 @@ class EnhancedVectorOperations:
                 'sports_skiing': "ski kayak snowboard boots poles bindings snow mountain winter",
                 'sports_diving': "diving dalış scuba regulator tank mask fins underwater equipment",
                 'sports_surfing': "surfing sörf surfboard waves ocean beach water board equipment",
-                'sports_mountaineering': "mountaineering dağcılık climbing rope harness carabiner ice axe boots",
+                'sports_mountaineering': "mountaineering dağcılık alpine climbing rope harness carabiner ice axe crampons",
                 'sports_archery': "archery okçuluk bow yay arrow ok target shooting equipment",
                 'sports_fishing': "fishing balık rod olta reel tackle bait hook angling equipment",
                 'sports_hunting': "hunting avcılık rifle shotgun ammunition scope firearms equipment",
-                'sports_canoeing': "canoe kano kayak paddle kürek river water navigation boat",
+                'sports_canoeing': "canoe kano paddle kürek river water navigation boat",
                 'sports_rafting': "rafting inflatable boat river rapids water adventure equipment",
                 'sports_windsurfing': "windsurfing sail board wind mast boom harness water sports",
                 'sports_water_skiing': "water skiing wakeboard tow rope boat lake sports",
@@ -80,7 +84,7 @@ class EnhancedVectorOperations:
                 
                 # Pets - Size/Location Based Distinction
                 'pets_cargo': "cargo kargo large dog büyük köpek cage kafes kennel hold",
-                'pets_cabin': "cabin kabin small küçük cat kedi bird kuş carrier bag",
+                'pets_cabin': "pets_onboard onboard aircraft rules regulations allowed during flight",
                 'pets_service_animals': "service servis guide dog rehber köpeği trained assistance emotional",
                 'pets_country_rules': "documents evrak vaccination aşı certificate sertifika country ülke import",
                 'pets_terms': "conditions koşullar health sağlık sedative sedatif medication ilaç requirements",
@@ -90,13 +94,13 @@ class EnhancedVectorOperations:
                 'musical_instruments': "instrument enstrüman guitar violin piano fragile kırılgan case protection",
                 'restrictions': "prohibited yasak forbidden dangerous lighter çakmak battery sharp liquid",
                 'sports_equipment': "sports spor equipment ekipman athletic gear general protection",
-                'pets': "pet evcil animal hayvan domestic travel companion veterinary care",
+                'pets': "pet evcil hayvan general information",
                 
                 # Pegasus - Brand Specific Terms
                 'baggage_allowance': "allowance hak package paket light saver comfort included dahil pegasus",
                 'extra_services_pricing': "services hizmet pricing fee ücret TRY EUR SPEQ AVIH charge",
                 'travelling_with_pets': "pets evcil PETC travel seyahat companion regulations pegasus animal",
-                'general_rules': "rules kural terms koşul conditions bolbol points rewards pegasus policy"
+                'general_rules': "pegasus general terms conditions policy information"
             }
             
             # Generate embeddings for all categories
@@ -125,11 +129,9 @@ class EnhancedVectorOperations:
         Get content embedding from cache or generate and cache it
         PERFORMANCE: Eliminates re-embedding of same content
         """
-        # Use first 500 chars for consistency with reranking
-        content_snippet = content[:500]
+        # Use first 750 chars for consistency with reranking
+        content_snippet = content[:750]
         
-        # Generate cache key
-        import hashlib
         content_hash = hashlib.md5(content_snippet.encode()).hexdigest()[:16]
         
         # Check cache first
@@ -149,24 +151,6 @@ class EnhancedVectorOperations:
         self.content_embeddings_cache[content_hash] = embedding.copy()
         
         return embedding
-    
-    def cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
-        """Calculate cosine similarity between two vectors"""
-        dot_product = np.dot(vec1, vec2)
-        norm_product = np.linalg.norm(vec1) * np.linalg.norm(vec2)
-        
-        if norm_product == 0:
-            return 0.0
-            
-        return dot_product / norm_product
-        """Calculate cosine similarity between two vectors"""
-        dot_product = np.dot(vec1, vec2)
-        norm_product = np.linalg.norm(vec1) * np.linalg.norm(vec2)
-        
-        if norm_product == 0:
-            return 0.0
-            
-        return dot_product / norm_product
     
     async def semantic_category_detection(
         self, 
@@ -444,7 +428,7 @@ class EnhancedVectorOperations:
             content_embedding = self._get_cached_content_embedding(candidate['content'])
             
             # Track cache performance
-            content_hash = hashlib.md5(candidate['content'][:500].encode()).hexdigest()[:16]
+            content_hash = hashlib.md5(candidate['content'][:750].encode()).hexdigest()[:16]
             if content_hash in self.content_embeddings_cache:
                 cache_hits += 1
             else:

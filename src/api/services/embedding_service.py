@@ -259,10 +259,10 @@ class OptimizedEmbeddingService:
                 )
                 
                 # Add to results and cache
-                for idx, embedding in zip(uncached_indices, new_embeddings):
+                for i, (idx, embedding) in enumerate(zip(uncached_indices, new_embeddings)):
                     results.append((idx, embedding))
                     
-                    cleaned_text = uncached_texts[uncached_indices.index(idx)]
+                    cleaned_text = uncached_texts[i]  # ← Doğru
                     cache_key = self._optimize_cache_key(cleaned_text)
                     self.cache.put(cache_key, embedding)
                 

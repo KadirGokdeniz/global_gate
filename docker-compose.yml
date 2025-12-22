@@ -1,5 +1,7 @@
-# docker-compose.yml - SECRETS SECURED VERSION
+version: '3.8'
+
 services:
+  # Veritabanı Servisi
   db:
     image: pgvector/pgvector:pg15
     container_name: global-gate-db
@@ -8,6 +10,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-global_gate}
       POSTGRES_USER: ${DB_USER:-postgres}
+      # Docker secret üzerinden şifreyi okur
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -24,10 +27,11 @@ services:
       - turkish_airlines_net
     restart: unless-stopped
 
+  # Veri Toplama ve Embedding Servisi
   scraper:
     build:
       context: .
-      dockerfile: docker/Dockerfile.scraper
+      dockerfile: infrastructure/docker/Dockerfile.scraper
     container_name: global-gate-scraper
     depends_on:
       db:
@@ -41,11 +45,10 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-global_gate}
       DB_USER: ${DB_USER:-postgres}
+      # Secrets dosya yolları
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
-    command: python scraper_only.py
-    restart: "no"
     networks:
       - turkish_airlines_net
     volumes:
@@ -54,13 +57,11 @@ services:
   api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.api
+      dockerfile: infrastructure/docker/Dockerfile.api
     container_name: global-gate-api
     depends_on:
       db:
         condition: service_healthy
-      scraper:
-        condition: service_completed_successfully
     secrets:
       - postgres_password
       - openai_api_key
@@ -69,101 +70,55 @@ services:
       - aws_secret_access_key
       - assemblyai_api_key
     environment:
+      PYTHONPATH: /app/src
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-global_gate}
       DB_USER: ${DB_USER:-postgres}
+      # Secrets dosya yolları
       DB_PASSWORD_FILE: /run/secrets/postgres_password
-      DB_MIN_POOL_SIZE: 5
-      DB_MAX_POOL_SIZE: 20
       OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
       AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key_id
       AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_access_key
-      AWS_REGION: ${AWS_REGION:-us-east-1}
       ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
       PYTHONUNBUFFERED: 1
-      PYTHONPATH: /app
     ports:
       - "8000:8000"
-    command: python -m uvicorn myapp:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 1800s
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+      retries: 3
     networks:
       - turkish_airlines_net
-    volumes:
-      - model_cache:/app/model_cache
+    restart: unless-stopped
 
+  # Frontend Servisi
   frontend:
     build:
       context: .
-      dockerfile: docker/Dockerfile.react
+      dockerfile: infrastructure/docker/Dockerfile.react
     container_name: global-gate-frontend
     depends_on:
       api:
         condition: service_healthy
-    environment:
-      REACT_APP_API_URL: http://localhost:8000
-      VITE_API_URL: http://localhost:8000
     ports:
       - "8501:3000"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: unless-stopped
-    networks:
-      - turkish_airlines_net
-
-  # Node Exporter - System Metrics
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: global-gate-node-exporter
-    ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
     networks:
       - turkish_airlines_net
     restart: unless-stopped
 
-  # Prometheus - Metrics Collection
+  # Monitoring - Prometheus
   prometheus:
     image: prom/prometheus:latest
     container_name: global-gate-prometheus
-    depends_on:
-      - api
-      - node-exporter
-    ports:
-      - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
       - '--storage.tsdb.retention.time=7d'
@@ -171,7 +126,7 @@ services:
       - turkish_airlines_net
     restart: unless-stopped
 
-  # Grafana - Visualization
+  # Monitoring - Grafana
   grafana:
     image: grafana/grafana:latest
     container_name: global-gate-grafana
@@ -182,7 +137,6 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin123
       GF_USERS_ALLOW_SIGN_UP: false
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
@@ -191,22 +145,8 @@ services:
       - turkish_airlines_net
     restart: unless-stopped
 
-volumes:
-  postgres_data:
-  prometheus_data:
-  grafana_data:
-  model_cache:
-
-networks:
-  turkish_airlines_net:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
-
 # ============================================
-# SECRETS CONFIGURATION
+# SECRETS TANIMLAMALARI (DOSYA YOLLARI)
 # ============================================
 secrets:
   postgres_password:
@@ -221,3 +161,16 @@ secrets:
     file: ./secrets/aws_secret_access_key
   assemblyai_api_key:
     file: ./secrets/assemblyai_api_key
+
+# ============================================
+# NETWORK VE VOLUME TANIMLAMALARI
+# ============================================
+networks:
+  turkish_airlines_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  model_cache:

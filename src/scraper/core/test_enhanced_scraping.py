@@ -1,9 +1,14 @@
 # test_enhanced_scraping.py
 import sys
-sys.path.append('.')  # Current directory
+from pathlib import Path
+
+# Add 'src' directory to sys.path to resolve 'api' and 'scraper' packages
+root_dir = Path(__file__).resolve().parent.parent # global_gate/
+src_dir = root_dir / "src"
+sys.path.append(str(src_dir))
 
 from base_scraper import MultiAirlineScraper
-from airline_configs import get_airline_config
+from scraper.configs.airline_configs import get_airline_config
 
 # Test without database - just extraction
 scraper = MultiAirlineScraper()

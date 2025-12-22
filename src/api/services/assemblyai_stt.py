@@ -5,7 +5,7 @@ import logging
 import tempfile
 from typing import Dict, Optional
 import asyncio
-from secrets_loader import SecretsLoader
+from api.core.secrets_loader import SecretsLoader
 
 loader = SecretsLoader()
 
@@ -76,7 +76,7 @@ class AssemblyAIService:
             
             # Transcribe
             transcriber = aai.Transcriber(config=config)
-            transcript = transcriber.transcribe(temp_filepath)
+            transcript = await asyncio.to_thread(transcriber.transcribe, temp_filepath)
             
             # Clean up temp file
             os.unlink(temp_filepath)

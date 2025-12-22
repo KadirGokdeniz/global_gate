@@ -9,17 +9,26 @@ import logging
 from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
-from embedding_service import get_embedding_service
-from vector_operations import EnhancedVectorOperations
-from openai_service import get_openai_service
-from claude_service import get_claude_service
+from src.api.services.embedding_service import get_embedding_service
+from src.api.services.vector_operations import EnhancedVectorOperations
+from src.api.services.openai_service import get_openai_service
+from src.api.services.claude_service import get_claude_service
+from api.core.secrets_loader import SecretsLoader
 import math
 import uuid
 from datetime import datetime, timedelta
 import hashlib
-from secrets_loader import SecretsLoader
+from api.core.secrets_loader import SecretsLoader
 import time
 import asyncio
+
+# FastAPI Prometheus Instrumentator
+from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from fastapi.middleware.cors import CORSMiddleware
+from src.api.services.aws_speech import get_aws_speech_service
+from src.api.services.assemblyai_stt import get_assemblyai_service
 
 loader = SecretsLoader()
 
@@ -313,14 +322,6 @@ def get_metrics_summary() -> Dict:
         "status": "unified_system_with_cot"
     }
 
-# FastAPI Prometheus Instrumentator
-from prometheus_fastapi_instrumentator import Instrumentator
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from fastapi.middleware.cors import CORSMiddleware
-from services.aws_speech import get_aws_speech_service
-from services.assemblyai_stt import get_assemblyai_service
-
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -528,12 +529,12 @@ app = FastAPI(
 )
 
 # CORS Middleware
+
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8501,http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8501",
-        "http://localhost:5173", 
-    ],
+    allow_origins=CORS_ORIGINS, # Sadece bu yeterli
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -1206,7 +1207,7 @@ async def openai_chat_get(
     similarity_threshold: float = Query(0.3),
     model: Optional[str] = Query(None),
     language: str = Query("en"),
-    use_cot: bool = Query(True)
+    use_cot: bool = Query(False)
 ):
     """RAG Chat with OpenAI (GET) - CoT Support"""
     return await _chat_with_openai_logic(
@@ -1486,4 +1487,4 @@ async def get_assemblyai_info():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("myapp:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

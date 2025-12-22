@@ -18,14 +18,14 @@ from web_scraper import (
     get_detailed_stats,
     print_airline_summary
 )
-from vector_operations import EnhancedVectorOperations
+from api.services.vector_operations import EnhancedVectorOperations
 import asyncpg
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-from secrets_loader import SecretsLoader
+from api.core.secrets_loader import SecretsLoader
 
 loader = SecretsLoader()
 # PostgreSQL Configuration

@@ -15,11 +15,11 @@ from psycopg2.extras import RealDictCursor
 import os
 from typing import List, Dict, Optional, Tuple
 import logging
-from airline_configs import get_airline_config, get_all_airlines
+from configs.airline_configs import get_airline_config, get_all_airlines
 import sys
 
 logger = logging.getLogger(__name__)
-from secrets_loader import SecretsLoader
+from api.core.secrets_loader import SecretsLoader
 
 loader = SecretsLoader()
 # PostgreSQL Configuration

@@ -7,7 +7,7 @@ import json
 import time
 from typing import Dict, Optional
 from botocore.exceptions import ClientError, NoCredentialsError
-from secrets_loader import SecretsLoader
+from api.core.secrets_loader import SecretsLoader
 
 loader = SecretsLoader()
 
@@ -20,6 +20,7 @@ class AWSpeechService:
         """Initialize AWS clients"""
         try:
             # AWS credentials check
+            # Check Correct Location carefully
             self.region = os.getenv("AWS_REGION", "eu-north-1")
             
             # Load AWS credentials from secrets
@@ -73,7 +74,8 @@ class AWSpeechService:
                 Engine='standard'
             )
             
-            audio_data = response['AudioStream'].read()
+            with response['AudioStream'] as stream:
+                audio_data = stream.read()
             
             logger.info(f"TTS successful: {len(text)} chars -> {len(audio_data)} bytes")
             

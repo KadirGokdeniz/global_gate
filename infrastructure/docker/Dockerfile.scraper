@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+WORKDIR /app/src/scraper
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/lib/apt/lists/*
+
+# Copy project configuration and all source code
+# This allows the scraper to access shared services like embedding_service
+COPY src/scraper/requirements.scraper.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY setup.py .
+COPY src/ ./src/
+# Install the project in editable mode to resolve cross-module imports
+RUN pip install -e .
+
+# ML dependencies - remains the same as requested
+RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install huggingface_hub==0.19.4 transformers==4.36.2 sentence-transformers==3.0.1
+
+# Create model cache directory
+RUN mkdir -p /app/model_cache
+
+# Run the scraper as a module to handle internal imports correctly
+CMD ["python", "-m", "scraper.scraper_only"]

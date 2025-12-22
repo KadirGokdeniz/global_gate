@@ -1,0 +1,36 @@
+FROM python:3.11-slim
+WORKDIR /app/src/api
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libssl-dev \
+    ca-certificates \
+    libasound2 \
+    wget \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy setup configuration and source code
+# Since setup.py is in root, it helps resolve internal imports
+COPY src/api/requirements.api.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY setup.py .
+COPY src/ ./src/
+COPY infrastructure/db/init.sql .
+
+# Install the project in editable mode to fix import errors automatically
+RUN pip install -e .
+
+# ML dependencies - remains the same
+RUN pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install huggingface_hub==0.19.4 transformers==4.36.2 sentence-transformers==3.0.1
+
+# Create model cache directory
+RUN mkdir -p /app/model_cache
+
+EXPOSE 8000
+
+# Start application using the new module path: api (folder) . main (file)
+CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
