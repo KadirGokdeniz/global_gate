@@ -78,16 +78,41 @@ graph TD
 
 **Intelligent Caching**: Multi-layer LRU cache for repeated queries.
 
-## Quick Start
+## 🚀 Quick Start
 
+### 1. Clone and Setup
 ```bash
 git clone <repository-url>
 cd multi-airline-rag-system
+```
+
+### 2. Configure Environment Variables
+```bash
 cp .env.example .env
+```
 
+Edit the `.env` file and add your API keys:
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+AWS_ACCESS_KEY_ID=your_aws_access_key_here
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
+# ... other required keys
+```
+
+### 3. Start the Application
+```bash
 docker-compose up -d
-docker-compose run scraper python scraper_only.py
+```
 
+> ⏳ **Note:** Initial startup may take **3-5 minutes** as Docker builds the images and downloads ML models.
+
+### 4. Run the Scraper
+```bash
+docker-compose run scraper python scraper_only.py
+```
+
+### 5. Verify Installation
+```bash
 curl http://localhost:8000/health
 ```
 
