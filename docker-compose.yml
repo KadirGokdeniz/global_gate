@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./infrastructure/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -62,6 +62,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      scraper:
+        condition: service_completed_successfully
     secrets:
       - postgres_password
       - openai_api_key
@@ -75,7 +77,6 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-global_gate}
       DB_USER: ${DB_USER:-postgres}
-      # Secrets dosya yolları
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
@@ -90,9 +91,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 1200s
     networks:
       - turkish_airlines_net
-    restart: unless-stopped
+    
 
   # Frontend Servisi
   frontend:

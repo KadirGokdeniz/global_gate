@@ -78,7 +78,9 @@ graph TD
 
 **Intelligent Caching**: Multi-layer LRU cache for repeated queries.
 
-## 🚀 Quick Start
+**Metadata-Aware Routing**: Airline-level metadata prefiltering combined with query routing to the correct policy domain.
+
+## Quick Start
 
 ### 1. Clone and Setup
 ```bash
@@ -104,7 +106,7 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
 docker-compose up -d
 ```
 
-> ⏳ **Note:** Initial startup may take **3-5 minutes** as Docker builds the images and downloads ML models.
+> **Note:** Initial startup may take **3-5 minutes** as Docker builds the images and downloads ML models.
 
 ### 4. Run the Scraper
 ```bash

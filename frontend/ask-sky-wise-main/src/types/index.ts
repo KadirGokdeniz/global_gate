@@ -1,3 +1,5 @@
+// ✅ Güncellenmiş types/index.ts
+
 export interface Message {
   id: string;
   question: string;
@@ -11,6 +13,8 @@ export interface Message {
   performance?: PerformanceStats;
   airline_preference?: string;
   language: string;
+  cot_enabled?: boolean;   // ✅ Yeni alan
+  reasoning?: string;      // ✅ Yeni alan - CoT düşünme süreci
 }
 
 export interface Source {
@@ -55,6 +59,8 @@ export interface APIResponse {
   airline_preference?: string;
   language?: string;
   error?: string;
+  cot_enabled?: boolean;   // ✅ Yeni alan
+  reasoning?: string;      // ✅ Yeni alan
 }
 
 export interface APIConnection {
@@ -66,7 +72,10 @@ export interface APIConnection {
 
 export type Language = 'en' | 'tr';
 export type Provider = 'OpenAI' | 'Claude';
-export type AirlinePreference = 'all' | 'thy' | 'pegasus';
+
+// ✅ "all" seçeneği kaldırıldı - Sadece thy ve pegasus
+export type AirlinePreference = 'thy' | 'pegasus';
+
 export type FeedbackType = 'helpful' | 'not_helpful' | 'too_slow' | 'incorrect';
 
 export interface VoiceRecordingState {

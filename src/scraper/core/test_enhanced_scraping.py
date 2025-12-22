@@ -7,7 +7,7 @@ root_dir = Path(__file__).resolve().parent.parent # global_gate/
 src_dir = root_dir / "src"
 sys.path.append(str(src_dir))
 
-from base_scraper import MultiAirlineScraper
+from scraper.core.base_scraper import MultiAirlineScraper
 from scraper.configs.airline_configs import get_airline_config
 
 # Test without database - just extraction

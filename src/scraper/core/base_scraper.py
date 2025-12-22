@@ -15,7 +15,10 @@ from psycopg2.extras import RealDictCursor
 import os
 from typing import List, Dict, Optional, Tuple
 import logging
-from configs.airline_configs import get_airline_config, get_all_airlines
+from scraper.configs.airline_configs import (
+    get_airline_config,
+    get_all_airlines
+)
 import sys
 
 logger = logging.getLogger(__name__)

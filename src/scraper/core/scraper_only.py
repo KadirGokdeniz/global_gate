@@ -8,7 +8,7 @@ import os
 import sys
 import asyncio
 import logging
-from web_scraper import (
+from scraper.core.web_scraper import (
     setup_database, 
     clear_old_data, 
     get_database_stats,

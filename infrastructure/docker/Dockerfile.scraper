@@ -1,6 +1,6 @@
 FROM python:3.11-slim
-WORKDIR /app/src/scraper
-
+WORKDIR /app
+ENV PYTHONPATH=/app/src
 # Install system dependencies
 RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/lib/apt/lists/*
 
@@ -22,4 +22,4 @@ RUN pip install huggingface_hub==0.19.4 transformers==4.36.2 sentence-transforme
 RUN mkdir -p /app/model_cache
 
 # Run the scraper as a module to handle internal imports correctly
-CMD ["python", "-m", "scraper.scraper_only"]
+CMD ["python", "-m", "scraper.core.scraper_only"]

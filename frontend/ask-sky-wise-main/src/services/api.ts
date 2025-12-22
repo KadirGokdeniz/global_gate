@@ -51,12 +51,14 @@ class APIService {
     };
   }
 
+  // ✅ CoT (Chain of Thought) parametresi eklendi
   async queryAirlinePolicy(
     question: string,
     provider: Provider,
     model: string,
     airlinePreference: AirlinePreference,
-    language: Language
+    language: Language,
+    enableCoT: boolean = false  // ✅ Yeni parametre
   ): Promise<APIResponse> {
     if (!this.baseUrl) {
       return { success: false, error: 'API not connected' };
@@ -70,17 +72,16 @@ class APIService {
         model,
         language,
         max_results: '3',
-        similarity_threshold: '0.3'
+        similarity_threshold: '0.3',
+        enable_cot: enableCoT.toString()  // ✅ CoT parametresi
       });
 
-      // ✅ DÜZELTILMIŞ: Backend'in beklediği airline codes
-      if (airlinePreference !== 'all') {
-        const airlineMap: Record<string, string> = {
-          'thy': 'turkish_airlines',  // ✅ Backend'deki doğru kod
-          'pegasus': 'pegasus'
-        };
-        params.append('airline_preference', airlineMap[airlinePreference] || airlinePreference);
-      }
+      // ✅ "all" seçeneği artık kullanılmıyor - her zaman belirli havayolu
+      const airlineMap: Record<string, string> = {
+        'thy': 'turkish_airlines',
+        'pegasus': 'pegasus'
+      };
+      params.append('airline_preference', airlineMap[airlinePreference] || airlinePreference);
 
       const response = await fetch(`${this.baseUrl}${endpoint}?${params}`, {
         method: 'GET',
@@ -102,7 +103,9 @@ class APIService {
             stats: data.stats || {},
             performance: data.performance || {},
             airline_preference: data.airline_preference,
-            language: data.language || language
+            language: data.language || language,
+            cot_enabled: enableCoT,  // ✅ CoT durumunu response'a ekle
+            reasoning: data.reasoning  // ✅ CoT reasoning (varsa)
           };
         } else {
           return { success: false, error: data.error || 'Processing failed' };
@@ -121,7 +124,6 @@ class APIService {
     }
   }
 
-  // ✅ DÜZELTILMIŞ: Enhanced feedback with detailed debugging
   async sendFeedback(
     question: string,
     answer: string,
@@ -190,7 +192,6 @@ class APIService {
     }
   }
 
-  // ✅ DÜZELTILMIŞ: TTS için URL params kullan (FormData yerine)
   async convertTextToSpeech(text: string, language: Language): Promise<string | null> {
     console.log('🔊 API: TTS request started', { textLength: text.length, language });
     
@@ -205,7 +206,6 @@ class APIService {
         'tr': 'tr-TR'
       };
 
-      // ✅ DÜZELTILMIŞ: URL params kullan (FormData yerine)
       const params = new URLSearchParams({
         text: text.trim(),
         language: languageMap[language] || 'tr-TR'
@@ -241,7 +241,6 @@ class APIService {
     }
   }
 
-  // ✅ DÜZELTILDI: Gereksiz FormData parametresi kaldırıldı
   async convertSpeechToText(audioBlob: Blob, language: Language): Promise<string | null> {
     if (!this.baseUrl) {
       return null;

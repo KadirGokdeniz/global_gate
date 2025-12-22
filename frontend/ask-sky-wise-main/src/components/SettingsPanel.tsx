@@ -1,4 +1,4 @@
-// ✅ SettingsPanel.tsx - Genişlik düzeltmeleri
+// ✅ SettingsPanel.tsx - CoT toggle SearchBox'a taşındı
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -66,12 +66,8 @@ export const SettingsPanel = ({
     Claude: ['claude-3-haiku-20240307', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514']
   };
 
+  // ✅ "All Airlines" seçeneği kaldırıldı
   const airlineOptions = [
-    { 
-      value: 'all' as const, 
-      label: language === 'en' ? 'All Airlines' : 'Tüm Havayolları',
-      icon: '🌐'
-    },
     { 
       value: 'thy' as const, 
       label: language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları',
@@ -85,9 +81,8 @@ export const SettingsPanel = ({
   ];
 
   return (
-    // ✅ FIX 1: Container genişliği artırıldı ve padding optimize edildi
     <div className="space-y-6 w-full min-w-0 max-w-screen px-2">
-      {/* Enhanced Header */}
+      {/* Header */}
       <div className="text-center pb-6 border-b border-border/20">
         <h2 className="text-2xl font-bold text-foreground mb-2">
           {language === 'en' ? 'Settings Panel' : 'Ayarlar Paneli'}
@@ -97,7 +92,7 @@ export const SettingsPanel = ({
         </p>
       </div>
 
-      {/* ✅ FIX 2: Current Configuration - Grid genişletildi */}
+      {/* Current Configuration */}
       <Card className="border-border/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2 text-blue-700 dark:text-blue-300">
@@ -106,7 +101,6 @@ export const SettingsPanel = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* ✅ FIX 3: Grid'i tek column yaparak daha fazla yer veriyoruz */}
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-5 border border-white/20">
               <div className="text-sm font-medium text-muted-foreground mb-3">
@@ -117,7 +111,6 @@ export const SettingsPanel = ({
                   {provider}
                 </Badge>
                 <span className="text-sm text-muted-foreground">→</span>
-                {/* ✅ FIX 4: Model ismi için daha fazla yer */}
                 <span className="text-sm font-medium break-all">{model}</span>
               </div>
             </div>
@@ -128,13 +121,12 @@ export const SettingsPanel = ({
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-lg">
-                  {selectedAirline === 'all' ? '🌐' : 
-                   selectedAirline === 'thy' ? '🇹🇷' : '✈️'}
+                  {selectedAirline === 'thy' ? '🇹🇷' : '✈️'}
                 </span>
                 <span className="text-sm font-medium">
-                  {selectedAirline === 'all' ? (language === 'en' ? 'All Airlines' : 'Tüm Havayolları') :
-                   selectedAirline === 'thy' ? (language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları') :
-                   (language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları')}
+                  {selectedAirline === 'thy' 
+                    ? (language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları')
+                    : (language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları')}
                 </span>
               </div>
             </div>
@@ -142,7 +134,7 @@ export const SettingsPanel = ({
         </CardContent>
       </Card>
 
-      {/* ✅ FIX 5: Airline Preference - Select genişletildi */}
+      {/* Airline Preference */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -151,13 +143,12 @@ export const SettingsPanel = ({
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
             {language === 'en' ? 
-              'Choose which airline policies to focus on during searches' : 
-              'Aramalarda hangi havayolu politikalarına odaklanılacağını seçin'}
+              'Each airline has its own separate conversation history' : 
+              'Her havayolunun kendi ayrı konuşma geçmişi vardır'}
           </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* ✅ FIX 6: Select height artırıldı ve padding optimize edildi */}
             <Select value={selectedAirline} onValueChange={onAirlineChange}>
               <SelectTrigger className="h-14 w-full">
                 <SelectValue />
@@ -174,7 +165,6 @@ export const SettingsPanel = ({
               </SelectContent>
             </Select>
             
-            {/* Selection Info */}
             <div className="bg-muted/30 rounded-lg p-4">
               <div className="text-xs font-medium text-muted-foreground mb-2">
                 {language === 'en' ? 'SELECTED AIRLINE' : 'SEÇİLİ HAVAYOLU'}
@@ -192,7 +182,7 @@ export const SettingsPanel = ({
         </CardContent>
       </Card>
 
-      {/* ✅ FIX 7: AI Model Settings - Genişletildi */}
+      {/* AI Model Settings */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -241,12 +231,10 @@ export const SettingsPanel = ({
               <SelectTrigger className="h-14 w-full">
                 <SelectValue />
               </SelectTrigger>
-              {/* ✅ FIX 8: SelectContent genişletildi uzun model isimleri için */}
               <SelectContent className="min-w-[350px]">
                 {modelOptions[provider].map((modelOption) => (
                   <SelectItem key={modelOption} value={modelOption} className="py-4">
                     <div className="flex flex-col items-start w-full">
-                      {/* ✅ FIX 9: Model isimlerini daha readable yaptık */}
                       <span className="font-medium text-left break-all">{modelOption}</span>
                       <span className="text-xs text-muted-foreground text-left">
                         {provider} Model
@@ -258,7 +246,6 @@ export const SettingsPanel = ({
             </Select>
           </div>
 
-          {/* ✅ FIX 10: Model Info genişletildi */}
           <div className="bg-muted/30 rounded-lg p-4">
             <div className="text-xs font-medium text-muted-foreground mb-2">
               {language === 'en' ? 'CURRENT SELECTION' : 'MEVCUT SEÇİM'}
@@ -295,7 +282,7 @@ export const SettingsPanel = ({
         </CardContent>
       </Card>
 
-      {/* ✅ FIX 11: Session Statistics - Grid optimize edildi */}
+      {/* Session Statistics */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">📊 {t('sessionStats')}</CardTitle>
@@ -306,7 +293,6 @@ export const SettingsPanel = ({
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* ✅ FIX 12: Grid'i tek column yaparak mobil uyumlu hale getirdik */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="text-center p-6 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
               <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">

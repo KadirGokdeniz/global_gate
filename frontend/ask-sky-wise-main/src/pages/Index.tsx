@@ -8,7 +8,7 @@ import { QuickQuestions } from '@/components/QuickQuestions';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { Sheet, SheetContent, SheetTrigger, SheetOverlay } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Settings, Plane } from 'lucide-react';
+import { Settings, Plane, Brain } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -21,12 +21,22 @@ import {
   SessionStats 
 } from '@/types';
 
+// ✅ Her havayolu için ayrı mesaj geçmişi tipi
+type AirlineMessages = {
+  thy: Message[];
+  pegasus: Message[];
+};
+
 const Index = () => {
   const { language, t, switchLanguage } = useLanguage();
   const { toast } = useToast();
   
-  // State management
-  const [messages, setMessages] = useState<Message[]>([]);
+  // ✅ Her havayolu için ayrı mesaj geçmişi
+  const [airlineMessages, setAirlineMessages] = useState<AirlineMessages>({
+    thy: [],
+    pegasus: []
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [apiConnection, setApiConnection] = useState<APIConnection>({ success: false });
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, FeedbackType>>({});
@@ -37,6 +47,18 @@ const Index = () => {
     helpfulCount: 0,
     totalFeedback: 0
   });
+
+  // ✅ Default havayolu artık 'thy' ("all" kaldırıldı)
+  const [selectedAirline, setSelectedAirline] = useState<AirlinePreference>('thy');
+  const [provider, setProvider] = useState<Provider>('OpenAI');
+  const [model, setModel] = useState('gpt-4o-mini');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // ✅ CoT (Chain of Thought) state
+  const [enableCoT, setEnableCoT] = useState(false);
+
+  // ✅ Seçili havayolunun mesajları
+  const messages = airlineMessages[selectedAirline as 'thy' | 'pegasus'] || [];
 
   // Initialize API connection
   useEffect(() => {
@@ -58,7 +80,7 @@ const Index = () => {
 
   // Update session stats when messages or feedback changes
   useEffect(() => {
-    const totalQueries = messages.length;
+    const totalQueries = airlineMessages.thy.length + airlineMessages.pegasus.length;
     const totalFeedback = Object.keys(feedbackGiven).length;
     const helpfulCount = Object.values(feedbackGiven).filter(f => f === 'helpful').length;
     const satisfactionRate = totalFeedback > 0 ? (helpfulCount / totalFeedback) * 100 : 0;
@@ -69,7 +91,7 @@ const Index = () => {
       helpfulCount,
       totalFeedback
     });
-  }, [messages, feedbackGiven]);
+  }, [airlineMessages, feedbackGiven]);
 
   const handleSendMessage = useCallback(async (
     question: string,
@@ -89,12 +111,14 @@ const Index = () => {
     setIsLoading(true);
     
     try {
+      // ✅ CoT parametresi eklendi
       const response = await apiService.queryAirlinePolicy(
         question,
         provider,
         model,
         airline,
-        language
+        language,
+        enableCoT
       );
 
       if (response.success && response.answer) {
@@ -110,10 +134,15 @@ const Index = () => {
           stats: response.stats,
           performance: response.performance,
           airline_preference: response.airline_preference,
-          language
+          language,
+          cot_enabled: enableCoT,
+          reasoning: response.reasoning
         };
 
-        setMessages(prev => [...prev, newMessage]);
+        setAirlineMessages(prev => ({
+          ...prev,
+          [airline]: [...prev[airline as 'thy' | 'pegasus'], newMessage]
+        }));
         
         toast({
           title: t('analysisComplete'),
@@ -137,16 +166,15 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [apiConnection.success, language, t, toast]);
+  }, [apiConnection.success, language, t, toast, enableCoT]);
 
   const handleFeedback = useCallback(async (messageId: string, feedback: FeedbackType) => {
-    const message = messages.find(m => m.id === messageId);
+    const allMessages = [...airlineMessages.thy, ...airlineMessages.pegasus];
+    const message = allMessages.find(m => m.id === messageId);
     if (!message) return;
 
-    // Update local feedback state immediately
     setFeedbackGiven(prev => ({ ...prev, [messageId]: feedback }));
 
-    // Send feedback to API
     try {
       await apiService.sendFeedback(
         message.question,
@@ -170,20 +198,15 @@ const Index = () => {
     } catch (error) {
       console.error('Failed to send feedback:', error);
     }
-  }, [messages, language, toast]);
+  }, [airlineMessages, language, toast]);
 
   const handlePlayAudio = useCallback(async (text: string): Promise<string | null> => {
-    console.log('🔊 Index: handlePlayAudio called with text length:', text.length);
-    
     try {
-      console.log('🔊 Index: Requesting TTS from API...');
       const audioUrl = await apiService.convertTextToSpeech(text, language);
       
       if (audioUrl) {
-        console.log('✅ Index: TTS URL received:', audioUrl.substring(0, 50) + '...');
         return audioUrl;
       } else {
-        console.error('❌ Index: TTS API returned null');
         toast({
           title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
           description: language === 'en' ? 
@@ -194,7 +217,6 @@ const Index = () => {
         return null;
       }
     } catch (error) {
-      console.error('❌ Index: TTS error:', error);
       toast({
         title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
         description: language === 'en' ? 
@@ -225,30 +247,35 @@ const Index = () => {
   }, [t, language, toast]);
 
   const handleClearHistory = useCallback(() => {
-    setMessages([]);
-    setFeedbackGiven({});
+    setAirlineMessages(prev => ({
+      ...prev,
+      [selectedAirline]: []
+    }));
+    
+    const currentMessages = airlineMessages[selectedAirline as 'thy' | 'pegasus'];
+    const messageIds = currentMessages.map(m => m.id);
+    setFeedbackGiven(prev => {
+      const newFeedback = { ...prev };
+      messageIds.forEach(id => delete newFeedback[id]);
+      return newFeedback;
+    });
+
     toast({
       title: language === 'en' ? 'History Cleared' : 'Geçmiş Temizlendi',
       description: language === 'en' ? 
-        'All conversation history has been cleared.' : 
-        'Tüm konuşma geçmişi temizlendi.'
+        `${selectedAirline === 'thy' ? 'Turkish Airlines' : 'Pegasus'} conversation history cleared.` : 
+        `${selectedAirline === 'thy' ? 'THY' : 'Pegasus'} konuşma geçmişi temizlendi.`
     });
-  }, [language, toast]);
+  }, [language, toast, selectedAirline, airlineMessages]);
 
   const handleQuestionSelect = useCallback((question: string) => {
     setCurrentQuestion(question);
   }, []);
 
-  const [selectedAirline, setSelectedAirline] = useState<AirlinePreference>('all');
-  const [provider, setProvider] = useState<Provider>('OpenAI');
-  const [model, setModel] = useState('gpt-4o-mini');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
-  useEffect(() => {
-    console.log('🌍 Default airline state:', selectedAirline);
-  }, []);
-
   const handleAirlineSelect = (airline: AirlinePreference) => {
+    if (airline === 'all') {
+      airline = 'thy';
+    }
     setSelectedAirline(airline);
   };
 
@@ -261,7 +288,6 @@ const Index = () => {
     Claude: ['claude-3-haiku-20240307', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514']
   };
 
-  // Update model when provider changes
   useEffect(() => {
     setModel(modelOptions[provider][0]);
   }, [provider]);
@@ -272,7 +298,7 @@ const Index = () => {
       <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/20 shadow-lg shadow-slate-200/20 dark:shadow-slate-900/20">
         <div className="container mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
-            {/* Enhanced Logo & Title */}
+            {/* Logo & Title */}
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur-lg opacity-30 animate-pulse"></div>
@@ -290,9 +316,9 @@ const Index = () => {
               </div>
             </div>
             
-            {/* Enhanced Controls */}
+            {/* Controls */}
             <div className="flex items-center gap-4">
-              {/* API Status Indicator */}
+              {/* API Status */}
               <div className="hidden md:flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${apiConnection.success ? 'bg-green-500' : 'bg-red-500'} shadow-lg`}>
                   <div className={`w-full h-full rounded-full ${apiConnection.success ? 'bg-green-400' : 'bg-red-400'} animate-ping opacity-75`}></div>
@@ -302,51 +328,44 @@ const Index = () => {
                 </span>
               </div>
 
-              {/* Current Configuration Status */}
+              {/* Status Bar */}
               <div className="hidden lg:flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20 shadow-lg">
-                {/* Airline Status */}
+                {/* Airline */}
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">
-                    {selectedAirline === 'thy' ? '🇹🇷' : 
-                     selectedAirline === 'pegasus' ? '✈️' : '🌍'}
-                  </span>
+                  <span className="text-lg">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {selectedAirline === 'thy' ? 'THY' : 
-                     selectedAirline === 'pegasus' ? 'Pegasus' : 'All Airlines'}
+                    {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
                   </span>
                 </div>
                 
-                {/* Divider */}
                 <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
                 
-                {/* AI Provider Status */}
+                {/* Provider */}
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'
-                  }`}></div>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {provider}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {model.includes('gpt') ? model.replace('gpt-', 'GPT-') : 
-                     model.includes('claude') ? model.split('-')[1] + '-' + model.split('-')[2] : 
-                     model}
-                  </span>
+                  <div className={`w-2 h-2 rounded-full ${provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{provider}</span>
                 </div>
+
+                {/* ✅ CoT Status */}
+                {enableCoT && (
+                  <>
+                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
+                    <div className="flex items-center gap-1">
+                      <Brain className="w-3 h-3 text-purple-500" />
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">CoT</span>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Mobile: Enhanced Compact Status */}
+              {/* Mobile Status */}
               <div className="lg:hidden flex items-center gap-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20">
-                <span className="text-sm">
-                  {selectedAirline === 'thy' ? '🇹🇷' : 
-                   selectedAirline === 'pegasus' ? '✈️' : '🌍'}
-                </span>
+                <span className="text-sm">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
                 <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                  {selectedAirline === 'all' ? 'All' : selectedAirline.toUpperCase()}
+                  {selectedAirline === 'thy' ? 'THY' : 'PGS'}
                 </span>
-                <div className={`w-1.5 h-1.5 rounded-full ${
-                  provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'
-                }`}></div>
+                <div className={`w-1.5 h-1.5 rounded-full ${provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                {enableCoT && <Brain className="w-3 h-3 text-purple-500" />}
               </div>
 
               <LanguageSelector language={language} onLanguageChange={switchLanguage} />
@@ -386,18 +405,18 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Main Content with Modern Styling */}
+      {/* Main Content */}
       <div className="container mx-auto px-6 relative">
         {messages.length === 0 ? (
-          /* Enhanced Landing Page */
+          /* Landing Page */
           <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center px-4 py-20">
-            {/* Animated Background Elements */}
+            {/* Background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
               <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-violet-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
             </div>
 
-            {/* Enhanced Title Section */}
+            {/* Title */}
             <div className="text-center space-y-8 mb-20 max-w-4xl relative z-10">
               <div className="space-y-4">
                 <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-slate-800 via-blue-800 to-indigo-800 dark:from-slate-100 dark:via-blue-100 dark:to-indigo-100 bg-clip-text text-transparent leading-tight tracking-tight">
@@ -420,19 +439,19 @@ const Index = () => {
                 <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                   <span className="text-slate-700 dark:text-slate-200 font-medium">
-                    {language === 'en' ? 'Multiple airlines' : 'Çoklu havayolu'}
+                    {language === 'en' ? 'Separate histories' : 'Ayrı geçmişler'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
                   <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                   <span className="text-slate-700 dark:text-slate-200 font-medium">
-                    {language === 'en' ? 'Voice support' : 'Ses desteği'}
+                    {language === 'en' ? 'CoT Reasoning' : 'CoT Akıl Yürütme'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Airline Selector Landing Page'de */}
+            {/* Airline Selector */}
             <div className="w-full max-w-4xl mb-12 relative z-10">
               <AirlineSelector
                 selectedAirline={selectedAirline}
@@ -441,7 +460,7 @@ const Index = () => {
               />
             </div>
 
-            {/* Enhanced Search Box */}
+            {/* ✅ Search Box with CoT Toggle */}
             <div className="w-full max-w-3xl mb-16 relative z-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-3xl blur-xl"></div>
@@ -451,12 +470,14 @@ const Index = () => {
                     t={t}
                     onSearch={handleSearch}
                     isLoading={isLoading}
+                    enableCoT={enableCoT}
+                    onCoTChange={setEnableCoT}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Enhanced Quick Questions */}
+            {/* Quick Questions */}
             <div className="w-full max-w-5xl relative z-10">
               <QuickQuestions
                 language={language}
@@ -465,9 +486,24 @@ const Index = () => {
             </div>
           </div>
         ) : (
-          /* Enhanced Results Page */
+          /* Results Page */
           <div className="py-8 space-y-8">
-            {/* Compact Search Bar */}
+            {/* Airline Badge */}
+            <div className="max-w-3xl mx-auto px-4">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <span className="text-2xl">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
+                <span className="font-semibold text-lg text-slate-700 dark:text-slate-200">
+                  {selectedAirline === 'thy' 
+                    ? (language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları')
+                    : (language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları')}
+                </span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  ({messages.length} {language === 'en' ? 'messages' : 'mesaj'})
+                </span>
+              </div>
+            </div>
+
+            {/* ✅ Search Box with CoT Toggle */}
             <div className="max-w-3xl mx-auto px-4 relative z-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-2xl blur-lg"></div>
@@ -477,12 +513,14 @@ const Index = () => {
                     t={t}
                     onSearch={handleSearch}
                     isLoading={isLoading}
+                    enableCoT={enableCoT}
+                    onCoTChange={setEnableCoT}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Messages - En yeni mesajlar üstte */}
+            {/* Messages */}
             <div className="space-y-8 px-4 relative z-10">
               {messages.slice().reverse().map((message, index) => (
                 <div key={message.id} className="animate-fade-in-up" style={{animationDelay: `${index * 0.1}s`}}>

@@ -7,15 +7,8 @@ interface AirlineSelectorProps {
 }
 
 export const AirlineSelector = ({ selectedAirline, onAirlineSelect, language }: AirlineSelectorProps) => {
+  // ✅ "All Airlines" seçeneği kaldırıldı - Sadece THY ve Pegasus
   const airlines = [
-    {
-      id: 'all' as AirlinePreference,
-      icon: '🌍',
-      name: language === 'en' ? 'All Airlines' : 'Tüm Havayolları',
-      description: language === 'en' ? 'Search all airline policies' : 'Tüm havayolu politikalarında ara',
-      gradient: 'from-slate-600 to-slate-700',
-      bgColor: 'bg-slate-50 dark:bg-slate-900/20'
-    },
     {
       id: 'thy' as AirlinePreference,
       icon: '🇹🇷',
@@ -42,12 +35,14 @@ export const AirlineSelector = ({ selectedAirline, onAirlineSelect, language }: 
           {language === 'en' ? 'Select Airline' : 'Havayolu Seçin'}
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          {language === 'en' ? 'Choose your preferred airline for policy search' : 'Politika araması için tercih ettiğiniz havayolunu seçin'}
+          {language === 'en' 
+            ? 'Each airline has its own conversation history' 
+            : 'Her havayolunun kendi konuşma geçmişi vardır'}
         </p>
       </div>
 
-      {/* Airline Cards - 3 Column Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Airline Cards - 2 Column Grid (All Airlines kaldırıldı) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
         {airlines.map((airline) => (
           <button
             key={airline.id}
