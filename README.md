@@ -125,3 +125,5 @@ curl http://localhost:8000/health
 | Frontend | http://localhost:8501 |
 | API | http://localhost:8000 |
 | Grafana | http://localhost:3000 |
+
+Feedback and collaboration are welcome! Contact me at kadirqokdeniz@hotmail.com for live access or project inquiries.
