@@ -17,9 +17,7 @@ A voice-enabled assistant that understands natural language and compares policie
 
 ## Demo Video
 
-
-https://github.com/user-attachments/assets/f0805029-e7e1-42e8-b24a-a0877d889a67
-
+https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
 
 
 ## System Architecture
