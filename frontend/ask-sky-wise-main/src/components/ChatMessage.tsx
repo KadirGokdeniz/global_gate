@@ -114,8 +114,8 @@ export const ChatMessage = ({
           </Badge>
           {message.airline_preference && (
             <Badge variant="outline">
-              {message.airline_preference === 'thy' ? '🇹🇷 THY' : 
-               message.airline_preference === 'pegasus' ? '✈️ Pegasus' : 
+              {message.airline_preference === 'thy' ? 'THY' : 
+               message.airline_preference === 'pegasus' ? 'Pegasus' : 
                '🌍 All Airlines'}
             </Badge>
           )}

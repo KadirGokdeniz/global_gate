@@ -24,6 +24,7 @@ export interface Source {
   updated_date?: string;
   url?: string;
   similarity_score: number;
+  content_full?: string;
 }
 
 export interface ResponseStats {

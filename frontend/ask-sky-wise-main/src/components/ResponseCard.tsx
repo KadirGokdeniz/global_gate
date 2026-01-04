@@ -26,7 +26,14 @@ export const ResponseCard = ({
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [feedbackLoading, setFeedbackLoading] = useState<FeedbackType | null>(null);
-  
+  const [expandedSources, setExpandedSources] = useState<number[]>([]);
+  const toggleSource = (index: number) => {
+    setExpandedSources(prev =>
+      prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
   // ✅ FIX 2: Audio element referansı saklanıyor
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -530,7 +537,7 @@ export const ResponseCard = ({
               {language === 'en' ? `Sources (${message.sources.length})` : `Kaynaklar (${message.sources.length})`}
             </h4>
             <div className="grid gap-3">
-              {message.sources.slice(0, 5).map((source, index) => (
+              {message.sources.map((source, index) => (
                 <div key={index} className="p-3 bg-muted/20 rounded-lg border-l-4 border-primary/50">
                   <div className="flex justify-between items-start gap-2 mb-1">
                     <span className="font-medium text-sm">{source.source}</span>
@@ -540,6 +547,21 @@ export const ResponseCard = ({
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {source.airline}
+                    <button
+                      onClick={() => toggleSource(index)}
+                      className="mt-2 text-xs text-primary underline"
+                    >
+                      {expandedSources.includes(index)
+                        ? 'Hide source text'
+                        : 'Show source text'}
+                    </button>
+                    {expandedSources.includes(index) && (
+                    <div className="mt-3 p-3 text-sm bg-slate-100 dark:bg-slate-800 rounded-md whitespace-pre-wrap">
+                      {source.content_full ||
+                        source.content_preview ||
+                        'No source text available.'}
+                    </div>
+                      )}
                   </div>
                 </div>
               ))}

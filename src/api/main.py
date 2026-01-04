@@ -574,6 +574,10 @@ class ChatRequest(BaseModel):
     model: Optional[str] = Field(default=None, description="Model to use")
     language: str = Field(default="en", description="Response language (en/tr)")
     use_cot: bool = Field(default=False, description="Enable Chain of Thought reasoning")
+    include_full_content: bool = Field(
+        default=False,
+        description="Expose full retrieved chunk content to frontend"
+    )
 
 class FeedbackRequest(BaseModel):
     question: str
@@ -664,18 +668,32 @@ def calculate_retrieval_stats(retrieved_docs: List[Dict]) -> Dict[str, Any]:
         )
     }
 
-def prepare_retrieved_docs_preview(retrieved_docs: List[Dict]) -> List[Dict]:
-    return [
-        {
-            "airline": doc.get("airline", "Unknown"),
-            "source": doc["source"], 
-            "content_preview": doc["content"][:300] + "..." if len(doc["content"]) > 300 else doc["content"],
-            "updated_date": doc.get("updated_at") or doc.get("created_at"),
-            "url": doc.get("url"),
-            "similarity_score": round(doc["similarity_score"], 3)
-        }
-        for doc in retrieved_docs
-    ]
+def prepare_retrieved_docs_preview(
+        retrieved_docs: List[Dict],
+        include_full_content: bool = False
+    ) -> List[Dict]:
+        results = []
+
+        for doc in retrieved_docs:
+            item = {
+                "airline": doc.get("airline", "Unknown"),
+                "source": doc.get("source"),
+                "similarity_score": round(doc.get("similarity_score", 0.0), 3),
+                "content_preview": (
+                    doc["content"][:300] + "..."
+                    if len(doc.get("content", "")) > 300
+                    else doc.get("content", "")
+                )
+            }
+
+            # Conditional full content exposure
+            if include_full_content:
+                item["content_full"] = doc.get("content", "")
+
+            results.append(item)
+
+        return results
+
 
 def fix_float_values(obj):
     if isinstance(obj, dict):
@@ -726,7 +744,7 @@ def enhance_query_simple(question: str, airline_preference: Optional[str]) -> st
 # ENHANCED OPENAI CHAT WITH CoT SUPPORT
 async def _chat_with_openai_logic(question: str, max_results: int, similarity_threshold: float,
                                   model: Optional[str], airline_preference: Optional[str] = None,
-                                  language: str = "en", use_cot: bool = False):
+                                  language: str = "en", use_cot: bool = False, include_full_content: bool = False):
     """Enhanced OpenAI chat logic with CoT support"""
     if not openai_service:
         raise HTTPException(status_code=503, detail="OpenAI service not available")
@@ -802,7 +820,10 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
             "cot_enabled": use_cot,
             "model_used": openai_response["model_used"],
             "airline_preference": airline_preference,
-            "sources": prepare_retrieved_docs_preview(retrieved_docs),
+            "sources": prepare_retrieved_docs_preview(
+                retrieved_docs,
+                include_full_content=include_full_content
+            ),
             "stats": calculate_retrieval_stats(retrieved_docs),
             "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
@@ -835,7 +856,7 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
 # ENHANCED CLAUDE CHAT WITH CoT SUPPORT
 async def _chat_with_claude_logic(question: str, max_results: int, similarity_threshold: float,
                                   model: Optional[str], airline_preference: Optional[str] = None,
-                                  language: str = "en", use_cot: bool = False):
+                                  language: str = "en", use_cot: bool = False, include_full_content: bool = False):
     """Enhanced Claude chat logic with CoT support"""
     if not claude_service:
         raise HTTPException(status_code=503, detail="Claude service not available")
@@ -911,7 +932,9 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
             "cot_enabled": use_cot,
             "model_used": claude_response["model_used"],
             "airline_preference": airline_preference,
-            "sources": prepare_retrieved_docs_preview(retrieved_docs),
+            "sources": prepare_retrieved_docs_preview(
+                retrieved_docs,
+                include_full_content=include_full_content),
             "stats": calculate_retrieval_stats(retrieved_docs),
             "preference_stats": calculate_preference_stats(retrieved_docs, airline_preference),
             "performance": {
@@ -1189,7 +1212,7 @@ async def openai_chat_post(
         return await _chat_with_openai_logic(
             chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
             chat_request.model, chat_request.airline_preference, chat_request.language,
-            chat_request.use_cot
+            chat_request.use_cot, chat_request.include_full_content
         )
     elif question:
         return await _chat_with_openai_logic(
@@ -1231,7 +1254,7 @@ async def claude_chat_post(
         return await _chat_with_claude_logic(
             chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
             chat_request.model, chat_request.airline_preference, chat_request.language,
-            chat_request.use_cot
+            chat_request.use_cot, chat_request.include_full_content
         )
     elif question:
         return await _chat_with_claude_logic(
