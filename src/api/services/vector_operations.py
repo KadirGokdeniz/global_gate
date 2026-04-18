@@ -41,88 +41,68 @@ class EnhancedVectorOperations:
         return dot_product / norm_product
     
     async def _initialize_category_embeddings(self):
-        """Pre-compute category representative embeddings for semantic detection"""
+        """Compute category centroids from actual DB embeddings"""
         if self.category_embeddings_loaded:
             return
             
         async with self._embedding_lock:
-            if self.category_embeddings_loaded:  # Double check
+            if self.category_embeddings_loaded:
                 return
                 
-            logger.info("🚀 Pre-computing category embeddings for semantic detection...")
+            logger.info("🚀 Computing category centroids from DB...")
             start_time = time.time()
             
-            # Optimized Dense Semantic Representatives - Concise & Distinctive
-            """
-            These words come form TDF-IDF implementation.
-            The most common representative words between sections are excluded in the examination.
-            """
-            CATEGORY_REPRESENTATIVES = {
-                # Baggage Categories - Core Distinctions
-                'checked_baggage': "checked baggage bavul hold luggage allowance free ecofly business",
-                'carry_on_baggage': "cabin kabin carry on hand luggage overhead personal item", 
-                'excess_baggage': "excess fazla overweight ağır kilo additional fee ücret charge payment",
-                
-                # Sports - Distinctive Equipment Terms Only
-                'sports_hockey': "hockey hokey stick sopa puck paten skates ice protective helmet",
-                'sports_golf': "golf clubs balls tees putters drivers irons cart bag equipment",
-                'sports_bicycle': "bicycle bisiklet bike helmet pedals wheels chain handlebar saddle",
-                'sports_skiing': "ski kayak snowboard boots poles bindings snow mountain winter",
-                'sports_diving': "diving dalış scuba regulator tank mask fins underwater equipment",
-                'sports_surfing': "surfing sörf surfboard waves ocean beach water board equipment",
-                'sports_mountaineering': "mountaineering dağcılık alpine climbing rope harness carabiner ice axe crampons",
-                'sports_archery': "archery okçuluk bow yay arrow ok target shooting equipment",
-                'sports_fishing': "fishing balık rod olta reel tackle bait hook angling equipment",
-                'sports_hunting': "hunting avcılık rifle shotgun ammunition scope firearms equipment",
-                'sports_canoeing': "canoe kano paddle kürek river water navigation boat",
-                'sports_rafting': "rafting inflatable boat river rapids water adventure equipment",
-                'sports_windsurfing': "windsurfing sail board wind mast boom harness water sports",
-                'sports_water_skiing': "water skiing wakeboard tow rope boat lake sports",
-                'sports_bowling': "bowling ball pins lane shoes strike spare game equipment",
-                'sports_tenting': "camping kamp tent çadır sleeping bag backpack hiking outdoor",
-                'sports_parachuting': "parachuting paraşüt skydiving jump altitude safety gear equipment",
-                
-                # Pets - Size/Location Based Distinction
-                'pets_cargo': "cargo kargo large dog büyük köpek cage kafes kennel hold",
-                'pets_cabin': "pets_onboard onboard aircraft rules regulations allowed during flight",
-                'pets_service_animals': "service servis guide dog rehber köpeği trained assistance emotional",
-                'pets_country_rules': "documents evrak vaccination aşı certificate sertifika country ülke import",
-                'pets_terms': "conditions koşullar health sağlık sedative sedatif medication ilaç requirements",
-                'pets_onboard': "onboard uçak allowed izinli regulations size weight limits cabin",
-                
-                # Other Categories - Core Distinctive Terms
-                'musical_instruments': "instrument enstrüman guitar violin piano fragile kırılgan case protection",
-                'restrictions': "prohibited yasak forbidden dangerous lighter çakmak battery sharp liquid",
-                'sports_equipment': "sports spor equipment ekipman athletic gear general protection",
-                'pets': "pet evcil hayvan general information",
-                
-                # Pegasus - Brand Specific Terms
-                'baggage_allowance': "allowance hak package paket light saver comfort included dahil pegasus",
-                'extra_services_pricing': "services hizmet pricing fee ücret TRY EUR SPEQ AVIH charge",
-                'travelling_with_pets': "pets evcil PETC travel seyahat companion regulations pegasus animal",
-                'general_rules': "pegasus general terms conditions policy information"
-            }
+            async with self.db_pool.acquire() as conn:
+                # Her source için tüm embedding'leri çek
+                rows = await conn.fetch("""
+                    SELECT source, embedding
+                    FROM policy
+                    WHERE embedding IS NOT NULL
+                    ORDER BY source
+                """)
             
-            # Generate embeddings for all categories
-            category_texts = list(CATEGORY_REPRESENTATIVES.values())
-            category_names = list(CATEGORY_REPRESENTATIVES.keys())
+            if not rows:
+                logger.warning("No embeddings found in DB, category routing disabled")
+                self.category_embeddings_loaded = True
+                return
             
-            # Batch generate embeddings
-            category_embeddings = self.embedding_service.generate_embeddings_batch(
-                category_texts, 
-                batch_size=16
-            )
+            # Source'a göre grupla
+            from collections import defaultdict
+            source_embeddings = defaultdict(list)
             
-            # Store in cache
-            self.category_embeddings_cache = {
-                name: embedding 
-                for name, embedding in zip(category_names, category_embeddings)
-            }
+            for row in rows:
+                source = row['source']
+                # pgvector string'ini numpy array'e çevir
+                embedding_str = row['embedding']
+                if isinstance(embedding_str, str):
+                    # "[0.1, 0.2, ...]" formatından array'e
+                    embedding_array = np.array(
+                        [float(x) for x in embedding_str.strip('[]').split(',')]
+                    )
+                else:
+                    embedding_array = np.array(embedding_str)
+                
+                source_embeddings[source].append(embedding_array)
+            
+            # Her source için centroid hesapla
+            self.category_embeddings_cache = {}
+            for source, embeddings in source_embeddings.items():
+                if embeddings:
+                    centroid = np.mean(embeddings, axis=0)
+                    # Normalize et
+                    norm = np.linalg.norm(centroid)
+                    if norm > 0:
+                        centroid = centroid / norm
+                    self.category_embeddings_cache[source] = centroid
             
             self.category_embeddings_loaded = True
             
             load_time = time.time() - start_time
-            logger.info(f"✅ Category embeddings loaded: {len(self.category_embeddings_cache)} categories in {load_time:.2f}s")
+            logger.info(
+                f"✅ Category centroids computed: "
+                f"{len(self.category_embeddings_cache)} categories from "
+                f"{len(rows)} embeddings in {load_time:.2f}s"
+            )
     
     def _get_cached_content_embedding(self, content: str) -> np.ndarray:
         """
