@@ -27,8 +27,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
-from api.services.aws_speech import get_aws_speech_service
 from api.services.assemblyai_stt import get_assemblyai_service
+from api.services.elevenlabs_tts import get_elevenlabs_service
 
 loader = SecretsLoader()
 
@@ -468,10 +468,10 @@ async def lifespan(app: FastAPI):
             vector_ops = None
         
         try:
-            aws_speech_service = get_aws_speech_service()
-            logger.info("AWS Speech Service loaded")
+            aws_speech_service = get_elevenlabs_service()
+            logger.info("ElevenLabs TTS Service loaded")
         except Exception as e:
-            logger.error(f"AWS Speech Service load failed: {e}")
+            logger.error(f"ElevenLabs TTS load failed: {e}")
             aws_speech_service = None
         
         try:
@@ -491,7 +491,7 @@ async def lifespan(app: FastAPI):
             "vector_ops": "ready" if vector_ops else "failed",
             "unified_metrics": "ready",
             "cot_support": "enabled",
-            "aws_tts": "ready" if aws_speech_service else "failed",
+            "elevenlabs_tts": "ready" if aws_speech_service else "failed",
             "assemblyai_stt": "ready" if assemblyai_service else "failed"
         }
         
@@ -516,7 +516,6 @@ async def lifespan(app: FastAPI):
     openai_service = None
     claude_service = None
     vector_ops = None
-    aws_speech_service = None
     assemblyai_service = None
     logger.info("Shutdown completed")
 

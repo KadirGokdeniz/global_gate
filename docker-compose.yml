@@ -66,9 +66,8 @@ services:
       - postgres_password
       - openai_api_key
       - anthropic_api_key
-      - aws_access_key_id
-      - aws_secret_access_key
       - assemblyai_api_key
+      - elevenlabs_api_key
     environment:
       PYTHONPATH: /app/src
       DB_HOST: db
@@ -78,10 +77,9 @@ services:
       DB_PASSWORD_FILE: /run/secrets/postgres_password
       OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
       ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
-      AWS_ACCESS_KEY_ID_FILE: /run/secrets/aws_access_key_id
-      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_access_key
       ASSEMBLYAI_API_KEY_FILE: /run/secrets/assemblyai_api_key
       PYTHONUNBUFFERED: 1
+      ELEVENLABS_API_KEY_FILE: /run/secrets/elevenlabs_api_key
     ports:
       - "8000:8000"
     healthcheck:
@@ -155,13 +153,10 @@ secrets:
     file: ./secrets/openai_api_key
   anthropic_api_key:
     file: ./secrets/anthropic_api_key
-  aws_access_key_id:
-    file: ./secrets/aws_access_key_id
-  aws_secret_access_key:
-    file: ./secrets/aws_secret_access_key
   assemblyai_api_key:
     file: ./secrets/assemblyai_api_key
-
+  elevenlabs_api_key:
+    file: ./secrets/elevenlabs_api_key
 # ============================================
 # NETWORK VE VOLUME TANIMLAMALARI
 # ============================================

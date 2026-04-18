@@ -19,10 +19,6 @@ services:
       # AI Services
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      # AWS
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION:-eu-central-1}
       # AssemblyAI
       ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
       # CORS — frontend URL'ini buraya yaz
@@ -30,6 +26,7 @@ services:
       # Model cache
       MODEL_CACHE_DIR: /app/model_cache
       PYTHONUNBUFFERED: 1
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
     ports:
       - "8000:8000"
     healthcheck:
