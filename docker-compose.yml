@@ -62,8 +62,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      scraper:
-        condition: service_completed_successfully
     secrets:
       - postgres_password
       - openai_api_key

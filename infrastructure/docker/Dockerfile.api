@@ -26,6 +26,15 @@ WORKDIR /app
 RUN pip install -e .
 RUN mkdir -p /app/model_cache
 
+# Model'i build sırasında indir — runtime cold start'ı önler
+ENV SENTENCE_TRANSFORMERS_HOME=/app/model_cache
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+model = SentenceTransformer('Alibaba-NLP/gte-multilingual-base', \
+    trust_remote_code=True, \
+    cache_folder='/app/model_cache'); \
+print('Model cached successfully:', model.get_sentence_embedding_dimension(), 'dims')"
+
 EXPOSE 8000
 
 CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -9,10 +9,10 @@ import logging
 from pydantic import BaseModel, Field
 from functools import lru_cache
 from pydantic_settings import BaseSettings
-from src.api.services.embedding_service import get_embedding_service
-from src.api.services.vector_operations import EnhancedVectorOperations
-from src.api.services.openai_service import get_openai_service
-from src.api.services.claude_service import get_claude_service
+from api.services.embedding_service import get_embedding_service
+from api.services.vector_operations import EnhancedVectorOperations
+from api.services.openai_service import get_openai_service
+from api.services.claude_service import get_claude_service
 from api.core.secrets_loader import SecretsLoader
 import math
 import uuid
@@ -27,8 +27,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
-from src.api.services.aws_speech import get_aws_speech_service
-from src.api.services.assemblyai_stt import get_assemblyai_service
+from api.services.aws_speech import get_aws_speech_service
+from api.services.assemblyai_stt import get_assemblyai_service
 
 loader = SecretsLoader()
 

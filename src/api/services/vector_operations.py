@@ -1,7 +1,7 @@
 import asyncpg
 from typing import List, Dict, Optional, Tuple
 import numpy as np
-from src.api.services.embedding_service import get_embedding_service
+from api.services.embedding_service import get_embedding_service
 import logging
 import json
 import asyncio

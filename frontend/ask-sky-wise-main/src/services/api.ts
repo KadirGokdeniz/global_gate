@@ -1,11 +1,17 @@
 import { APIResponse, APIConnection, Provider, AirlinePreference, FeedbackType, Language } from '@/types';
 
-const API_ENDPOINTS = [
-  'http://localhost:8000',
-  'http://127.0.0.1:8000',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080'
-];
+// Production: VITE_API_URL env var'ından oku
+// Development: localhost fallback'leri dene
+const PRODUCTION_URL = import.meta.env.VITE_API_URL;
+
+const API_ENDPOINTS = PRODUCTION_URL
+  ? [PRODUCTION_URL]
+  : [
+      'http://localhost:8000',
+      'http://127.0.0.1:8000',
+      'http://localhost:8080',
+      'http://127.0.0.1:8080'
+    ];
 
 class APIService {
   private baseUrl: string | null = null;
@@ -51,14 +57,13 @@ class APIService {
     };
   }
 
-  // ✅ CoT (Chain of Thought) parametresi eklendi
   async queryAirlinePolicy(
     question: string,
     provider: Provider,
     model: string,
     airlinePreference: AirlinePreference,
     language: Language,
-    enableCoT: boolean = false  // ✅ Yeni parametre
+    enableCoT: boolean = false
   ): Promise<APIResponse> {
     if (!this.baseUrl) {
       return { success: false, error: 'API not connected' };
@@ -73,10 +78,9 @@ class APIService {
         language,
         max_results: '3',
         similarity_threshold: '0.3',
-        enable_cot: enableCoT.toString()  // ✅ CoT parametresi
+        enable_cot: enableCoT.toString()
       });
 
-      // ✅ "all" seçeneği artık kullanılmıyor - her zaman belirli havayolu
       const airlineMap: Record<string, string> = {
         'thy': 'turkish_airlines',
         'pegasus': 'pegasus'
@@ -104,8 +108,8 @@ class APIService {
             performance: data.performance || {},
             airline_preference: data.airline_preference,
             language: data.language || language,
-            cot_enabled: enableCoT,  // ✅ CoT durumunu response'a ekle
-            reasoning: data.reasoning  // ✅ CoT reasoning (varsa)
+            cot_enabled: enableCoT,
+            reasoning: data.reasoning
           };
         } else {
           return { success: false, error: data.error || 'Processing failed' };
@@ -131,149 +135,71 @@ class APIService {
     provider: string,
     model: string
   ): Promise<boolean> {
-    console.log('🚀 sendFeedback called with:', {
-      baseUrl: this.baseUrl,
-      feedbackType,
-      provider,
-      model,
-      questionLength: question.length,
-      answerLength: answer.length
-    });
-
-    if (!this.baseUrl) {
-      console.error('❌ Feedback failed: API not connected');
-      return false;
-    }
+    if (!this.baseUrl) return false;
 
     try {
-      const feedbackData = {
-        question,
-        answer,
-        feedback_type: feedbackType,
-        provider,
-        model
-      };
-
-      console.log('📤 Sending feedback request:', feedbackData);
-
       const response = await fetch(`${this.baseUrl}/feedback`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedbackData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          answer,
+          feedback_type: feedbackType,
+          provider,
+          model
+        })
       });
-
-      console.log('📥 Feedback response status:', response.status, response.statusText);
-
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log('✅ Feedback success:', responseData);
-        return true;
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Feedback HTTP error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
-        return false;
-      }
+      return response.ok;
     } catch (error) {
-      console.error('❌ Feedback network error:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-      }
+      console.error('Feedback error:', error);
       return false;
     }
   }
 
   async convertTextToSpeech(text: string, language: Language): Promise<string | null> {
-    console.log('🔊 API: TTS request started', { textLength: text.length, language });
-    
-    if (!this.baseUrl) {
-      console.error('❌ API: No base URL for TTS');
-      return null;
-    }
+    if (!this.baseUrl) return null;
 
     try {
-      const languageMap = {
-        'en': 'en-US',
-        'tr': 'tr-TR'
-      };
-
+      const languageMap = { 'en': 'en-US', 'tr': 'tr-TR' };
       const params = new URLSearchParams({
         text: text.trim(),
         language: languageMap[language] || 'tr-TR'
       });
 
-      console.log('📤 API: Sending TTS request with params:', Object.fromEntries(params));
-
       const response = await fetch(`${this.baseUrl}/speech/synthesize?${params}`, {
         method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg, audio/wav, audio/*'
-        }
+        headers: { 'Accept': 'audio/mpeg, audio/wav, audio/*' }
       });
-
-      console.log('📥 API: TTS response status:', response.status, response.statusText);
 
       if (response.ok) {
         const blob = await response.blob();
-        console.log('✅ API: TTS blob received:', blob.size, 'bytes');
         return URL.createObjectURL(blob);
-      } else {
-        const errorText = await response.text();
-        console.error('❌ API: TTS HTTP error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText.substring(0, 200)
-        });
-        return null;
       }
+      return null;
     } catch (error) {
-      console.error('❌ API: TTS network error:', error);
+      console.error('TTS error:', error);
       return null;
     }
   }
 
   async convertSpeechToText(audioBlob: Blob, language: Language): Promise<string | null> {
-    if (!this.baseUrl) {
-      return null;
-    }
+    if (!this.baseUrl) return null;
 
     try {
       const formData = new FormData();
       formData.append('audio_file', audioBlob, 'recording.webm');
       
-      const languageMap = {
-        'en': 'en',
-        'tr': 'tr'
-      };
-
-      const response = await fetch(`${this.baseUrl}/speech/transcribe?language=${languageMap[language] || 'tr'}`, {
-        method: 'POST',
-        body: formData
-      });
+      const languageMap = { 'en': 'en', 'tr': 'tr' };
+      const response = await fetch(
+        `${this.baseUrl}/speech/transcribe?language=${languageMap[language] || 'tr'}`,
+        { method: 'POST', body: formData }
+      );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('STT Response:', data);
-        
-        if (data.success && data.transcript) {
-          return data.transcript;
-        } else {
-          console.error('STT failed:', data.error || 'No transcript');
-          return null;
-        }
-      } else {
-        console.error('STT HTTP Error:', response.status, response.statusText);
-        return null;
+        return data.success && data.transcript ? data.transcript : null;
       }
+      return null;
     } catch (error) {
       console.error('STT error:', error);
       return null;
@@ -281,9 +207,7 @@ class APIService {
   }
 
   async checkSpeechHealth(): Promise<{ tts: boolean, stt: boolean, details?: any }> {
-    if (!this.baseUrl) {
-      return { tts: false, stt: false };
-    }
+    if (!this.baseUrl) return { tts: false, stt: false };
 
     try {
       const response = await fetch(`${this.baseUrl}/speech/health`);
@@ -297,7 +221,6 @@ class APIService {
       }
       return { tts: false, stt: false };
     } catch (error) {
-      console.error('Speech health check error:', error);
       return { tts: false, stt: false };
     }
   }

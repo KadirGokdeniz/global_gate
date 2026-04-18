@@ -1,0 +1,59 @@
+version: '3.8'
+
+# Production compose — Prometheus/Grafana/Scraper çıkarıldı
+# Secrets: dosya değil, env var tabanlı (Railway/Render uyumlu)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    environment:
+      PYTHONPATH: /app/src
+      # Database
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-global_gate}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # AI Services
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # AWS
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION:-eu-central-1}
+      # AssemblyAI
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY}
+      # CORS — frontend URL'ini buraya yaz
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # Model cache
+      MODEL_CACHE_DIR: /app/model_cache
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.react
+      args:
+        # Build sırasında API URL'i inject et
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  model_cache:

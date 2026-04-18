@@ -15,10 +15,10 @@ Airline policy information is scattered, inconsistent, and hard to access when y
 
 A voice-enabled assistant that understands natural language and compares policies across multiple airlines. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
 
-| Interface | Result |
-|:---------:|:------:|
-| ![Main Interface](assets/interface1.png) | ![Response](assets/interface2.png) |
-| ![Backend](assets/interface4.png) | ![Voice Input](assets/interface3.png) |
+## Demo Video
+
+https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
+
 
 ## System Architecture
 
@@ -123,3 +123,5 @@ curl http://localhost:8000/health
 | Frontend | http://localhost:8501 |
 | API | http://localhost:8000 |
 | Grafana | http://localhost:3000 |
+
+Feedback and collaboration are welcome! Contact me at kadirqokdeniz@hotmail.com for live access or project inquiries.
