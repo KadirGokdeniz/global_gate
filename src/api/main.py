@@ -1423,25 +1423,8 @@ async def health_check():
 
 @app.get("/speech/health")
 async def speech_health_check():
-    """Speech Services health check - TTS + STT"""
     try:
-        if not aws_speech_service:
-            return {
-                "status": "unhealthy", 
-                "error": "TTS Service not initialized",
-                "services": {
-                    "polly": "unavailable",
-                    "assemblyai": "not_loaded"
-                }
-            }
-        
-        try:
-            voices = aws_speech_service.polly_client.describe_voices(LanguageCode='tr-TR')
-            polly_status = "ready"
-            polly_info = f"{len(voices.get('Voices', []))} Turkish voices available"
-        except Exception as e:
-            polly_status = "failed"
-            polly_info = str(e)
+        tts_status = "ready" if aws_speech_service is not None else "unavailable"
         
         assemblyai_status = (
             "ready" 
@@ -1449,15 +1432,15 @@ async def speech_health_check():
             else "not_configured"
         )
         
-        overall_status = "healthy" if polly_status == "ready" and assemblyai_status == "ready" else "partial"
+        overall_status = "healthy" if aws_speech_service and assemblyai_status == "ready" else "partial"
         
         return {
             "status": overall_status,
             "service": "Speech Services (TTS + STT)",
             "services": {
-                "polly": {
-                    "status": polly_status,
-                    "info": polly_info,
+                "elevenlabs": {
+                    "status": tts_status,
+                    "info": "Text-to-Speech via ElevenLabs",
                     "purpose": "Text-to-Speech"
                 },
                 "assemblyai": {
@@ -1467,7 +1450,7 @@ async def speech_health_check():
                 }
             },
             "features": {
-                "tts_enabled": polly_status == "ready",
+                "tts_enabled": aws_speech_service is not None,
                 "stt_enabled": assemblyai_status == "ready",
                 "supported_languages": ["tr-TR", "en-US", "en-GB"]
             }
