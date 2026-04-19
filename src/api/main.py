@@ -524,7 +524,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown completed")
 
 limiter = Limiter(key_func=get_remote_address)
-
+app.state.limiter = limiter
 # FastAPI instance
 app = FastAPI(
     title="Airlines Policy API - Unified Metrics + CoT",
@@ -532,7 +532,7 @@ app = FastAPI(
     version="8.0.0-cot",
     lifespan=lifespan
 )
-app.state.limiter = limiter
+
 # CORS Middleware
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8501,http://localhost:5173").split(",")
@@ -1204,6 +1204,7 @@ async def get_stats(db = Depends(get_db_connection)):
 @app.post("/chat/openai")
 @limiter.limit("10/minute")
 async def openai_chat_post(
+    request: Request,
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
     airline_preference: Optional[str] = Query(None),
@@ -1230,7 +1231,6 @@ async def openai_chat_post(
 
 @app.get("/chat/openai") 
 async def openai_chat_get(
-    request: Request,
     question: str = Query(...),
     airline_preference: Optional[str] = Query(None),
     max_results: int = Query(5),
@@ -1248,7 +1248,6 @@ async def openai_chat_get(
 @app.post("/chat/claude")
 @limiter.limit("10/minute")
 async def claude_chat_post(
-    request: Request,
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
     airline_preference: Optional[str] = Query(None),
@@ -1318,7 +1317,6 @@ async def collect_user_feedback(feedback: FeedbackRequest):
 @app.post("/speech/synthesize")
 @limiter.limit("10/minute")
 async def text_to_speech(
-    request: Request,
     text: str,
     language: str = "tr-TR"
 ):
@@ -1351,6 +1349,7 @@ async def text_to_speech(
 @app.post("/speech/transcribe")
 @limiter.limit("10/minute")
 async def speech_to_text_realtime(
+    request: Request,
     audio_file: UploadFile = File(...),
     language: str = Query("tr", description="Language code (tr, en, etc.)")
 ):
