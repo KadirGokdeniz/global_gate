@@ -1250,6 +1250,7 @@ async def openai_chat_get(
 @app.post("/chat/claude")
 @limiter.limit("10/minute")
 async def claude_chat_post(
+    request: Request,
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
     airline_preference: Optional[str] = Query(None),
