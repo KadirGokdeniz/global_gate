@@ -30,6 +30,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.services.assemblyai_stt import get_assemblyai_service
 from api.services.elevenlabs_tts import get_elevenlabs_service
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 loader = SecretsLoader()
 
 # UNIFIED METRICS SYSTEM
@@ -519,6 +523,8 @@ async def lifespan(app: FastAPI):
     assemblyai_service = None
     logger.info("Shutdown completed")
 
+limiter = Limiter(key_func=get_remote_address)
+
 # FastAPI instance
 app = FastAPI(
     title="Airlines Policy API - Unified Metrics + CoT",
@@ -526,7 +532,7 @@ app = FastAPI(
     version="8.0.0-cot",
     lifespan=lifespan
 )
-
+app.state.limiter = limiter
 # CORS Middleware
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8501,http://localhost:5173").split(",")
@@ -1196,6 +1202,7 @@ async def get_stats(db = Depends(get_db_connection)):
 # =============================================================================
 
 @app.post("/chat/openai")
+@limiter.limit("10/minute")
 async def openai_chat_post(
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
@@ -1238,6 +1245,7 @@ async def openai_chat_get(
     )
 
 @app.post("/chat/claude")
+@limiter.limit("10/minute")
 async def claude_chat_post(
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
@@ -1306,6 +1314,7 @@ async def collect_user_feedback(feedback: FeedbackRequest):
 # =============================================================================
 
 @app.post("/speech/synthesize")
+@limiter.limit("10/minute")
 async def text_to_speech(
     text: str,
     language: str = "tr-TR"
@@ -1337,6 +1346,7 @@ async def text_to_speech(
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 @app.post("/speech/transcribe")
+@limiter.limit("10/minute")
 async def speech_to_text_realtime(
     audio_file: UploadFile = File(...),
     language: str = Query("tr", description="Language code (tr, en, etc.)")
