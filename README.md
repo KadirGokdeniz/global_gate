@@ -15,16 +15,9 @@ Airline policy information is scattered, inconsistent, and hard to access when y
 
 A voice-enabled assistant that understands natural language and compares policies across multiple airlines. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
 
-<<<<<<< HEAD
 ## Demo Video
 
 https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
-=======
-## Demo
-
-https://github.com/user-attachments/assets/bb1bd08f-782c-4bdc-a2d2-7a19a4099c3f
-
->>>>>>> 0c9e24a159687d12636e028ca7eac2c5b1c831c6
 
 
 ## System Architecture
