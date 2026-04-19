@@ -1230,6 +1230,7 @@ async def openai_chat_post(
 
 @app.get("/chat/openai") 
 async def openai_chat_get(
+    request: Request,
     question: str = Query(...),
     airline_preference: Optional[str] = Query(None),
     max_results: int = Query(5),
@@ -1247,6 +1248,7 @@ async def openai_chat_get(
 @app.post("/chat/claude")
 @limiter.limit("10/minute")
 async def claude_chat_post(
+    request: Request,
     chat_request: Optional[ChatRequest] = None,
     question: Optional[str] = Query(None),
     airline_preference: Optional[str] = Query(None),
@@ -1316,6 +1318,7 @@ async def collect_user_feedback(feedback: FeedbackRequest):
 @app.post("/speech/synthesize")
 @limiter.limit("10/minute")
 async def text_to_speech(
+    request: Request,
     text: str,
     language: str = "tr-TR"
 ):
