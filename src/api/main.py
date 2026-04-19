@@ -524,7 +524,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown completed")
 
 limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
+
 # FastAPI instance
 app = FastAPI(
     title="Airlines Policy API - Unified Metrics + CoT",
@@ -532,6 +532,8 @@ app = FastAPI(
     version="8.0.0-cot",
     lifespan=lifespan
 )
+
+app.state.limiter = limiter
 
 # CORS Middleware
 
