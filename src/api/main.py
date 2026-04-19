@@ -1401,37 +1401,25 @@ async def get_metrics():
     return Response(content=metrics_text, media_type=CONTENT_TYPE_LATEST)
 
 @app.get("/health")
-async def health_check(db = Depends(get_db_connection)):
-    """Health check endpoint with unified metrics status"""
-    try:
-        total_count = await db.fetchval("SELECT COUNT(*) FROM policy")
-        
-        ai_status = {
-            "embedding_service": embedding_service is not None,
-            "openai_service": openai_service is not None,
-            "claude_service": claude_service is not None,
-            "vector_operations": vector_ops is not None
+async def health_check():
+    """Simple health check - no DB dependency for Railway"""
+    ai_status = {
+        "embedding_service": embedding_service is not None,
+        "openai_service": openai_service is not None,
+        "claude_service": claude_service is not None,
+        "vector_operations": vector_ops is not None
+    }
+    
+    return {
+        "status": "healthy",
+        "models_ready": all(ai_status.values()),
+        "cot_support": "enabled",
+        "ai_services": ai_status,
+        "speech_services": {
+            "tts": aws_speech_service is not None,
+            "stt": assemblyai_service is not None
         }
-        
-        return {
-            "status": "healthy",
-            "models_ready": all(ai_status.values()),
-            "cot_support": "enabled",
-            "database": {"connected": True, "policies_count": total_count},
-            "ai_services": ai_status,
-            "speech_services": {
-                "tts": aws_speech_service is not None,
-                "stt": assemblyai_service is not None
-            },
-            "metrics": {
-                "unified_system": "active",
-                "prometheus_instrumentator": "active",
-                "business_intelligence": "enabled",
-                "cot_metrics": "enabled"
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Health check failed: {str(e)}")
+    }
 
 @app.get("/speech/health")
 async def speech_health_check():
