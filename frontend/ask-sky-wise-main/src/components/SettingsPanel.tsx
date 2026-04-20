@@ -1,10 +1,77 @@
-// ✅ SettingsPanel.tsx - CoT toggle SearchBox'a taşındı
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Trash2, Zap, AlertCircle, Settings, Plane } from 'lucide-react';
-import { Language, Provider, AirlinePreference, APIConnection, SessionStats } from '@/types';
+import {
+  RefreshCw,
+  Trash2,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  Plane,
+  Cpu,
+  BarChart3,
+} from 'lucide-react';
+import { ReactNode } from 'react';
+import {
+  Language,
+  Provider,
+  AirlinePreference,
+  APIConnection,
+  SessionStats,
+} from '@/types';
+
+// ═══════════════════════════════════════════════════════════════════
+// Reusable card primitives — tüm settings tek tip görünsün diye
+// ═══════════════════════════════════════════════════════════════════
+
+interface SectionProps {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}
+
+const Section = ({ icon, title, description, children }: SectionProps) => (
+  <section className="py-5 border-b border-slate-200 dark:border-slate-800 last:border-0">
+    <header className="mb-3">
+      <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+        <span className="text-slate-500 dark:text-slate-400" aria-hidden="true">
+          {icon}
+        </span>
+        <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+      </div>
+      {description && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-6">
+          {description}
+        </p>
+      )}
+    </header>
+    <div className="ml-6">{children}</div>
+  </section>
+);
+
+interface FieldProps {
+  label: string;
+  children: ReactNode;
+}
+
+const Field = ({ label, children }: FieldProps) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════════════════
 
 interface SettingsPanelProps {
   language: Language;
@@ -21,9 +88,17 @@ interface SettingsPanelProps {
   onClearHistory: () => void;
 }
 
+const MODEL_OPTIONS: Record<Provider, string[]> = {
+  OpenAI: ['gpt-3.5-turbo', 'gpt-4o-mini', 'gpt-4'],
+  Claude: [
+    'claude-3-haiku-20240307',
+    'claude-3-5-haiku-20241022',
+    'claude-sonnet-4-20250514',
+  ],
+};
+
 export const SettingsPanel = ({
   language,
-  t,
   provider,
   model,
   selectedAirline,
@@ -33,307 +108,210 @@ export const SettingsPanel = ({
   apiConnection,
   sessionStats,
   onReconnect,
-  onClearHistory
+  onClearHistory,
 }: SettingsPanelProps) => {
+  const isEn = language === 'en';
 
-  const getConnectionStatus = () => {
+  // ─── Connection Status UI helper ─────────────────────────────────
+  const connectionBadge = () => {
     if (apiConnection.success) {
-      return apiConnection.models_ready ? (
-        <div className="status-success rounded-lg p-4 flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-          <Zap className="w-5 h-5 text-green-600 dark:text-green-400" />
-          <span className="text-sm font-medium text-green-800 dark:text-green-200">{t('apiConnected')}</span>
-        </div>
-      ) : (
-        <div className="status-warning rounded-lg p-4 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-          <RefreshCw className="w-5 h-5 animate-spin text-yellow-600 dark:text-yellow-400" />
-          <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">{t('apiConnected')} (Loading...)</span>
+      return (
+        <div className="flex items-center gap-2 text-sm">
+          <Wifi className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+          <span className="text-slate-900 dark:text-slate-100 font-medium">
+            {isEn ? 'Connected' : 'Bağlı'}
+          </span>
+          {!apiConnection.models_ready && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              · {isEn ? 'Loading models' : 'Modeller yükleniyor'}
+            </span>
+          )}
         </div>
       );
     }
-    
     return (
-      <div className="status-error rounded-lg p-4 flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-        <span className="text-sm font-medium text-red-800 dark:text-red-200">
-          {t('apiFailed')}: {apiConnection.error}
-        </span>
+      <div className="flex items-start gap-2 text-sm">
+        <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-500 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-slate-900 dark:text-slate-100 font-medium">
+            {isEn ? 'Disconnected' : 'Bağlantı yok'}
+          </div>
+          {apiConnection.error && (
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
+              {apiConnection.error}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
-  const modelOptions = {
-    OpenAI: ['gpt-3.5-turbo', 'gpt-4o-mini', 'gpt-4'],
-    Claude: ['claude-3-haiku-20240307', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514']
-  };
-
-  // ✅ "All Airlines" seçeneği kaldırıldı
-  const airlineOptions = [
-    { 
-      value: 'thy' as const, 
-      label: language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları',
-      icon: '🇹🇷'
-    },
-    { 
-      value: 'pegasus' as const, 
-      label: language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları',
-      icon: '✈️'
-    }
-  ];
-
   return (
-    <div className="space-y-6 w-full min-w-0 max-w-screen px-2">
-      {/* Header */}
-      <div className="text-center pb-6 border-b border-border/20">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          {language === 'en' ? 'Settings Panel' : 'Ayarlar Paneli'}
+    <div className="flex flex-col h-full">
+      {/* ─── Header ──────────────────────────────────────────────── */}
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-10">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          {isEn ? 'Settings' : 'Ayarlar'}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {language === 'en' ? 'Configure your AI assistant preferences' : 'AI asistan tercihlerinizi yapılandırın'}
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          {isEn
+            ? 'Configure your assistant preferences'
+            : 'Asistan tercihlerinizi yapılandırın'}
         </p>
       </div>
 
-      {/* Current Configuration */}
-      <Card className="border-border/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2 text-blue-700 dark:text-blue-300">
-            <Settings className="w-5 h-5" />
-            {language === 'en' ? 'Current Configuration' : 'Mevcut Yapılandırma'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-5 border border-white/20">
-              <div className="text-sm font-medium text-muted-foreground mb-3">
-                {language === 'en' ? 'AI Provider & Model' : 'AI Sağlayıcı & Model'}
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge variant="secondary" className="text-sm px-3 py-1">
-                  {provider}
-                </Badge>
-                <span className="text-sm text-muted-foreground">→</span>
-                <span className="text-sm font-medium break-all">{model}</span>
-              </div>
-            </div>
-            
-            <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-5 border border-white/20">
-              <div className="text-sm font-medium text-muted-foreground mb-3">
-                {language === 'en' ? 'Selected Airline' : 'Seçili Havayolu'}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-lg">
-                  {selectedAirline === 'thy' ? '🇹🇷' : '✈️'}
-                </span>
-                <span className="text-sm font-medium">
-                  {selectedAirline === 'thy' 
-                    ? (language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları')
-                    : (language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları')}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ─── Body ────────────────────────────────────────────────── */}
+      <div className="flex-1 px-6 overflow-y-auto">
+        {/* Airline Preference */}
+        <Section
+          icon={<Plane className="w-4 h-4" />}
+          title={isEn ? 'Airline' : 'Havayolu'}
+          description={
+            isEn
+              ? 'Each airline has its own conversation history'
+              : 'Her havayolunun kendi konuşma geçmişi vardır'
+          }
+        >
+          <Select value={selectedAirline} onValueChange={onAirlineChange}>
+            <SelectTrigger className="h-9 text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="thy">
+                {isEn ? 'Turkish Airlines' : 'Türk Hava Yolları'}
+              </SelectItem>
+              <SelectItem value="pegasus">
+                {isEn ? 'Pegasus Airlines' : 'Pegasus Hava Yolları'}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </Section>
 
-      {/* Airline Preference */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Plane className="w-5 h-5" />
-            {language === 'en' ? 'Airline Preference' : 'Havayolu Tercihi'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            {language === 'en' ? 
-              'Each airline has its own separate conversation history' : 
-              'Her havayolunun kendi ayrı konuşma geçmişi vardır'}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Select value={selectedAirline} onValueChange={onAirlineChange}>
-              <SelectTrigger className="h-14 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="min-w-[300px]">
-                {airlineOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="py-4">
-                    <div className="flex items-center gap-3 w-full">
-                      <span className="text-lg">{option.icon}</span>
-                      <span className="font-medium text-left flex-1">{option.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <div className="bg-muted/30 rounded-lg p-4">
-              <div className="text-xs font-medium text-muted-foreground mb-2">
-                {language === 'en' ? 'SELECTED AIRLINE' : 'SEÇİLİ HAVAYOLU'}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xl">
-                  {airlineOptions.find(a => a.value === selectedAirline)?.icon}
-                </span>
-                <span className="font-medium text-lg">
-                  {airlineOptions.find(a => a.value === selectedAirline)?.label}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* AI Model */}
+        <Section
+          icon={<Cpu className="w-4 h-4" />}
+          title={isEn ? 'AI Model' : 'AI Modeli'}
+          description={
+            isEn
+              ? 'Provider and model used to generate responses'
+              : 'Yanıtlar için kullanılacak sağlayıcı ve model'
+          }
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={isEn ? 'Provider' : 'Sağlayıcı'}>
+              <Select value={provider} onValueChange={onProviderChange}>
+                <SelectTrigger className="h-9 text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OpenAI">OpenAI</SelectItem>
+                  <SelectItem value="Claude">Claude</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
 
-      {/* AI Model Settings */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            {language === 'en' ? 'AI Model Settings' : 'AI Model Ayarları'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            {language === 'en' ? 
-              'Configure which AI provider and model to use for responses' : 
-              'Yanıtlar için hangi AI sağlayıcı ve modelinin kullanılacağını yapılandırın'}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Provider Selection */}
+            <Field label={isEn ? 'Model' : 'Model'}>
+              <Select value={model} onValueChange={onModelChange}>
+                <SelectTrigger className="h-9 text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODEL_OPTIONS[provider].map((m) => (
+                    <SelectItem key={m} value={m} className="text-xs font-mono">
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+        </Section>
+
+        {/* Connection */}
+        <Section
+          icon={
+            apiConnection.success ? (
+              <Wifi className="w-4 h-4" />
+            ) : (
+              <WifiOff className="w-4 h-4" />
+            )
+          }
+          title={isEn ? 'Connection' : 'Bağlantı'}
+        >
           <div className="space-y-3">
-            <label className="text-sm font-medium block">{t('chooseProvider')}</label>
-            <Select value={provider} onValueChange={onProviderChange}>
-              <SelectTrigger className="h-14 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="min-w-[250px]">
-                <SelectItem value="OpenAI" className="py-4">
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-8 h-8 rounded bg-green-500 flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">AI</span>
-                    </div>
-                    <span className="font-medium text-left">OpenAI</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="Claude" className="py-4">
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-8 h-8 rounded bg-orange-500 flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">C</span>
-                    </div>
-                    <span className="font-medium text-left">Claude</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            {connectionBadge()}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onReconnect}
+              className="h-8 text-xs border-slate-200 dark:border-slate-800"
+            >
+              <RefreshCw className="w-3 h-3 mr-1.5" />
+              {isEn ? 'Reconnect' : 'Yeniden bağlan'}
+            </Button>
           </div>
+        </Section>
 
-          {/* Model Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium block">{t('chooseModel')}</label>
-            <Select value={model} onValueChange={onModelChange}>
-              <SelectTrigger className="h-14 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="min-w-[350px]">
-                {modelOptions[provider].map((modelOption) => (
-                  <SelectItem key={modelOption} value={modelOption} className="py-4">
-                    <div className="flex flex-col items-start w-full">
-                      <span className="font-medium text-left break-all">{modelOption}</span>
-                      <span className="text-xs text-muted-foreground text-left">
-                        {provider} Model
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="bg-muted/30 rounded-lg p-4">
-            <div className="text-xs font-medium text-muted-foreground mb-2">
-              {language === 'en' ? 'CURRENT SELECTION' : 'MEVCUT SEÇİM'}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant="outline" className="text-sm px-3 py-1">
-                {provider}
-              </Badge>
-              <span className="text-sm">→</span>
-              <span className="text-sm font-medium break-all flex-1">{model}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Connection Status */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            🔗 {language === 'en' ? 'Connection Status' : 'Bağlantı Durumu'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {getConnectionStatus()}
-          <Button 
-            variant="outline" 
-            onClick={onReconnect}
-            className="w-full h-12 text-base"
-            size="sm"
-          >
-            <RefreshCw className="w-5 h-5 mr-3" />
-            {t('reconnect')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Session Statistics */}
-      <Card className="border-border/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg">📊 {t('sessionStats')}</CardTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            {language === 'en' ? 
-              'Your current session performance metrics' : 
-              'Mevcut oturum performans metrikleri'}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="text-center p-6 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-              <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+        {/* Session Stats */}
+        <Section
+          icon={<BarChart3 className="w-4 h-4" />}
+          title={isEn ? 'Session' : 'Oturum'}
+          description={
+            isEn
+              ? 'Your activity in this session'
+              : 'Bu oturumdaki etkinliğiniz'
+          }
+        >
+          <dl className="space-y-2.5">
+            <div className="flex items-baseline justify-between">
+              <dt className="text-sm text-slate-600 dark:text-slate-400">
+                {isEn ? 'Total queries' : 'Toplam sorgu'}
+              </dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
                 {sessionStats.totalQueries}
-              </div>
-              <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                {t('totalQueries')}
-              </div>
+              </dd>
             </div>
-            <div className="text-center p-6 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-800/50">
-              <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
-                {sessionStats.totalFeedback > 0 
+            <div className="flex items-baseline justify-between">
+              <dt className="text-sm text-slate-600 dark:text-slate-400">
+                {isEn ? 'Satisfaction' : 'Memnuniyet'}
+              </dt>
+              <dd className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                {sessionStats.totalFeedback > 0
                   ? `${sessionStats.satisfactionRate.toFixed(0)}%`
-                  : (language === 'en' ? 'N/A' : 'Yok')
-                }
-              </div>
-              <div className="text-sm text-green-700 dark:text-green-300 font-medium">
-                {t('satisfaction')}
-              </div>
+                  : '—'}
+              </dd>
             </div>
-          </div>
-          
-          {sessionStats.totalFeedback > 0 && (
-            <div className="text-center bg-muted/30 rounded-lg p-4">
-              <Badge variant="outline" className="text-sm px-4 py-2">
-                {sessionStats.helpfulCount} / {sessionStats.totalFeedback} {language === 'en' ? 'helpful responses' : 'yardımcı yanıt'}
-              </Badge>
-            </div>
-          )}
+            {sessionStats.totalFeedback > 0 && (
+              <div className="flex items-baseline justify-between">
+                <dt className="text-sm text-slate-600 dark:text-slate-400">
+                  {isEn ? 'Helpful responses' : 'Yardımcı yanıtlar'}
+                </dt>
+                <dd className="text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                  {sessionStats.helpfulCount} / {sessionStats.totalFeedback}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </Section>
 
-          <Button 
-            variant="outline" 
-            onClick={onClearHistory}
-            className="w-full text-destructive hover:text-destructive h-12 text-base"
+        {/* Danger Zone */}
+        <Section
+          icon={<Trash2 className="w-4 h-4" />}
+          title={isEn ? 'Data' : 'Veri'}
+        >
+          <Button
+            variant="outline"
             size="sm"
+            onClick={onClearHistory}
+            className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-500 dark:hover:text-red-400 dark:hover:bg-red-950/30 border-slate-200 dark:border-slate-800"
           >
-            <Trash2 className="w-5 h-5 mr-3" />
-            {t('clearHistory')}
+            <Trash2 className="w-3 h-3 mr-1.5" />
+            {isEn
+              ? `Clear ${selectedAirline === 'thy' ? 'THY' : 'Pegasus'} history`
+              : `${selectedAirline === 'thy' ? 'THY' : 'Pegasus'} geçmişini temizle`}
           </Button>
-        </CardContent>
-      </Card>
+        </Section>
+      </div>
     </div>
   );
 };

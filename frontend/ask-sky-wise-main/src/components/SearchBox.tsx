@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VoiceInput } from './VoiceInput';
-import { Loader2, Search, Mic, MicOff, Brain } from 'lucide-react';
+import { Loader2, ArrowUp, Mic, MicOff, Brain } from 'lucide-react';
 import { Language } from '@/types';
 
 interface SearchBoxProps {
@@ -10,142 +10,141 @@ interface SearchBoxProps {
   t: (key: string) => string;
   onSearch: (question: string) => void;
   isLoading: boolean;
-  enableCoT?: boolean;  // ✅ Yeni prop
-  onCoTChange?: (enabled: boolean) => void;  // ✅ Yeni prop
+  enableCoT?: boolean;
+  onCoTChange?: (enabled: boolean) => void;
 }
 
-export const SearchBox = ({ 
-  language, 
-  t, 
-  onSearch, 
+export const SearchBox = ({
+  language,
+  onSearch,
   isLoading,
   enableCoT = false,
-  onCoTChange
+  onCoTChange,
 }: SearchBoxProps) => {
   const [question, setQuestion] = useState('');
-  const [showVoiceInput, setShowVoiceInput] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const [showVoicePanel, setShowVoicePanel] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isEn = language === 'en';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || isLoading) return;
-    
     onSearch(question.trim());
     setQuestion('');
   };
 
   const handleVoiceTranscript = (transcript: string) => {
     setQuestion(transcript);
-    setShowVoiceInput(false);
-    setIsListening(false);
+    setShowVoicePanel(false);
     if (transcript.trim()) {
       onSearch(transcript.trim());
     }
   };
 
-  const toggleVoiceInput = () => {
-    setShowVoiceInput(!showVoiceInput);
-    setIsListening(!showVoiceInput);
-  };
-
-  const toggleCoT = () => {
-    if (onCoTChange) {
-      onCoTChange(!enableCoT);
-    }
-  };
-
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-3">
-      <form onSubmit={handleSubmit} className="relative">
-        <div className="relative flex items-center group">
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Input
-              ref={inputRef}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={language === 'en' ? 
-                'Ask about airline policies...' : 
-                'Havayolu politikaları hakkında sorun...'}
-              disabled={isLoading}
-              className="h-16 pl-6 pr-44 text-lg border-2 border-border/20 hover:border-primary/30 focus:border-primary shadow-sm hover:shadow-md focus:shadow-lg rounded-full bg-background transition-all duration-200"
-            />
-            
-            {/* CoT, Voice & Search Buttons Inside Input */}
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5">
-              {/* ✅ CoT Toggle Button */}
-              {onCoTChange && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleCoT}
-                  disabled={isLoading}
-                  className={`h-10 px-3 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
-                    enableCoT 
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50' 
-                      : 'hover:bg-muted/50 text-muted-foreground'
-                  }`}
-                  title={language === 'en' ? 'Chain of Thought reasoning' : 'Düşünce Zinciri akıl yürütme'}
-                >
-                  <Brain className={`w-4 h-4 ${enableCoT ? 'text-purple-600 dark:text-purple-400' : ''}`} />
-                  <span className={`text-xs font-medium hidden sm:inline ${enableCoT ? 'text-purple-600 dark:text-purple-400' : ''}`}>
-                    CoT
-                  </span>
-                </Button>
-              )}
+    <div className="w-full space-y-2">
+      <form onSubmit={handleSubmit}>
+        {/* Ana input konteyneri — tek, temiz border; gradient glow yok */}
+        <div className="relative flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-within:border-slate-400 dark:focus-within:border-slate-600 transition-colors">
+          <Input
+            ref={inputRef}
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={
+              isEn
+                ? 'Ask about baggage, pets, delays...'
+                : 'Bagaj, evcil hayvan, gecikme hakkında sor...'
+            }
+            disabled={isLoading}
+            aria-label={isEn ? 'Search query' : 'Arama sorgusu'}
+            className="flex-1 h-12 px-4 bg-transparent border-0 shadow-none text-base placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
 
-              {/* Voice Button */}
-              <Button
+          {/* Actions — subtle, sağ tarafa hizalı */}
+          <div className="flex items-center gap-0.5 pr-1.5">
+            {/* CoT Toggle — sadece ikon + küçük vurgu */}
+            {onCoTChange && (
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                onClick={toggleVoiceInput}
+                onClick={() => onCoTChange(!enableCoT)}
                 disabled={isLoading}
-                className={`h-10 w-10 rounded-full transition-all duration-200 ${
-                  isListening ? 'bg-red-50 dark:bg-red-900/30 text-red-600 hover:bg-red-100' : 'hover:bg-muted/50'
+                aria-pressed={enableCoT}
+                aria-label={
+                  isEn
+                    ? 'Chain of Thought reasoning'
+                    : 'Düşünce Zinciri akıl yürütme'
+                }
+                title={
+                  isEn
+                    ? 'Chain of Thought reasoning'
+                    : 'Düşünce Zinciri akıl yürütme'
+                }
+                className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${
+                  enableCoT
+                    ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
-                title={language === 'en' ? 'Voice input' : 'Sesli giriş'}
               >
-                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-              </Button>
-              
-              {/* Search Button */}
-              <Button 
-                type="submit"
-                size="sm"
-                disabled={!question.trim() || isLoading}
-                className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90 disabled:opacity-50 shadow-sm"
-                title={language === 'en' ? 'Search' : 'Ara'}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Search className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
+                <Brain className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Voice */}
+            <button
+              type="button"
+              onClick={() => setShowVoicePanel(!showVoicePanel)}
+              disabled={isLoading}
+              aria-pressed={showVoicePanel}
+              aria-label={isEn ? 'Voice input' : 'Sesli giriş'}
+              title={isEn ? 'Voice input' : 'Sesli giriş'}
+              className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${
+                showVoicePanel
+                  ? 'text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/40'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {showVoicePanel ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Submit — tek belirgin action */}
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!question.trim() || isLoading}
+              aria-label={isEn ? 'Send' : 'Gönder'}
+              className="h-9 w-9 p-0 rounded-lg ml-0.5"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ArrowUp className="w-4 h-4" />
+              )}
+            </Button>
           </div>
         </div>
       </form>
 
-      {/* ✅ CoT Info Banner - Sadece aktifken göster */}
+      {/* CoT aktif hint — sakin bir ipucu satırı */}
       {enableCoT && (
-        <div className="flex items-center justify-center gap-2 text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-full px-4 py-1.5 mx-auto w-fit animate-fade-in">
-          <Brain className="w-3 h-3" />
+        <div className="flex items-center gap-1.5 px-1 text-xs text-violet-600 dark:text-violet-400">
+          <Brain className="w-3 h-3" aria-hidden="true" />
           <span>
-            {language === 'en' 
-              ? 'Chain of Thought enabled - AI will show reasoning steps' 
-              : 'Düşünce Zinciri aktif - AI akıl yürütme adımlarını gösterecek'}
+            {isEn
+              ? 'Chain of Thought is on — the AI will show its reasoning'
+              : 'Düşünce Zinciri aktif — AI akıl yürütme adımlarını gösterecek'}
           </span>
         </div>
       )}
 
-      {/* Voice Input Panel */}
-      {showVoiceInput && (
-        <div className="bg-background border border-border/50 rounded-xl p-6 shadow-sm animate-fade-in-up">
-          <VoiceInput 
+      {/* Voice Panel */}
+      {showVoicePanel && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <VoiceInput
             onTranscript={handleVoiceTranscript}
             language={language}
           />

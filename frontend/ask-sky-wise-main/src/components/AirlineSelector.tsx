@@ -1,4 +1,5 @@
 import { AirlinePreference, Language } from '@/types';
+import { Check } from 'lucide-react';
 
 interface AirlineSelectorProps {
   selectedAirline: AirlinePreference;
@@ -6,107 +7,102 @@ interface AirlineSelectorProps {
   language: Language;
 }
 
-export const AirlineSelector = ({ selectedAirline, onAirlineSelect, language }: AirlineSelectorProps) => {
-  // ✅ "All Airlines" seçeneği kaldırıldı - Sadece THY ve Pegasus
-  const airlines = [
+interface AirlineOption {
+  id: AirlinePreference;
+  code: string;      // Havayolu kodu — 'TK', 'PC'
+  name: string;
+  description: string;
+  accent: string;    // Sol tarafta ince renkli şerit — kimlik ipucu
+}
+
+export const AirlineSelector = ({
+  selectedAirline,
+  onAirlineSelect,
+  language,
+}: AirlineSelectorProps) => {
+  const isEn = language === 'en';
+
+  const airlines: AirlineOption[] = [
     {
-      id: 'thy' as AirlinePreference,
-      icon: '🇹🇷',
-      name: language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları',
-      description: language === 'en' ? 'THY baggage policies' : 'THY bagaj politikaları',
-      gradient: 'from-red-600 to-red-700',
-      bgColor: 'bg-red-50 dark:bg-red-900/20'
+      id: 'thy',
+      code: 'TK',
+      name: isEn ? 'Turkish Airlines' : 'Türk Hava Yolları',
+      description: isEn
+        ? 'Flag carrier · Full-service'
+        : 'Bayrak taşıyıcı · Tam hizmet',
+      accent: 'bg-red-500',
     },
     {
-      id: 'pegasus' as AirlinePreference,
-      icon: '✈️',
-      name: language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları', 
-      description: language === 'en' ? 'Pegasus baggage policies' : 'Pegasus bagaj politikaları',
-      gradient: 'from-yellow-500 to-orange-600',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20'
-    }
+      id: 'pegasus',
+      code: 'PC',
+      name: isEn ? 'Pegasus Airlines' : 'Pegasus Hava Yolları',
+      description: isEn
+        ? 'Low-cost carrier'
+        : 'Ekonomik havayolu',
+      accent: 'bg-amber-500',
+    },
   ];
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-8">
-      {/* Section Header */}
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
-          {language === 'en' ? 'Select Airline' : 'Havayolu Seçin'}
-        </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {language === 'en' 
-            ? 'Each airline has its own conversation history' 
-            : 'Her havayolunun kendi konuşma geçmişi vardır'}
-        </p>
-      </div>
+    <div
+      role="radiogroup"
+      aria-label={isEn ? 'Select airline' : 'Havayolu seçin'}
+      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+    >
+      {airlines.map((airline) => {
+        const selected = selectedAirline === airline.id;
 
-      {/* Airline Cards - 2 Column Grid (All Airlines kaldırıldı) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-        {airlines.map((airline) => (
+        return (
           <button
             key={airline.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
             onClick={() => onAirlineSelect(airline.id)}
-            className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl ${
-              selectedAirline === airline.id
-                ? 'shadow-2xl ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
-                : 'shadow-lg hover:shadow-xl'
+            className={`group relative flex items-center gap-3 p-4 rounded-lg border text-left transition-colors ${
+              selected
+                ? 'border-slate-900 dark:border-slate-100 bg-white dark:bg-slate-900'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            {/* Background with gradient */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${airline.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
-            
-            {/* Glass morphism background */}
-            <div className={`absolute inset-0 backdrop-blur-sm transition-all duration-300 ${
-              selectedAirline === airline.id
-                ? 'bg-white/90 dark:bg-slate-800/90'
-                : 'bg-white/70 dark:bg-slate-800/70 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80'
-            }`}></div>
+            {/* Sol şerit — airline kimliği (ince, baskın değil) */}
+            <div
+              className={`w-1 self-stretch rounded-full ${airline.accent}`}
+              aria-hidden="true"
+            />
 
-            {/* Content */}
-            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-              {/* Icon with animation */}
-              <div className={`text-5xl transition-transform duration-300 ${
-                selectedAirline === airline.id ? 'scale-110' : 'group-hover:scale-110'
-              }`}>
-                {airline.icon}
-              </div>
-
-              {/* Airline Name */}
-              <div>
-                <div className={`font-bold text-xl transition-colors duration-300 ${
-                  selectedAirline === airline.id
-                    ? 'text-blue-700 dark:text-blue-300'
-                    : 'text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-50'
-                }`}>
-                  {airline.name}
-                </div>
-
-                {/* Description */}
-                <div className={`text-sm font-medium mt-2 transition-colors duration-300 ${
-                  selectedAirline === airline.id
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300'
-                }`}>
-                  {airline.description}
-                </div>
-              </div>
-
-              {/* Selection Indicator */}
-              <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                selectedAirline === airline.id
-                  ? 'bg-blue-500 shadow-lg shadow-blue-500/50'
-                  : 'bg-slate-300 dark:bg-slate-600 group-hover:bg-slate-400 dark:group-hover:bg-slate-500'
-              }`}></div>
+            {/* Kod badge'i — monospace, enterprise havası */}
+            <div
+              className={`flex items-center justify-center w-12 h-12 rounded-md text-sm font-mono font-semibold shrink-0 ${
+                selected
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+              aria-hidden="true"
+            >
+              {airline.code}
             </div>
 
-            {/* Selected border effect */}
-            {selectedAirline === airline.id && (
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 animate-pulse"></div>
+            {/* Label */}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {airline.name}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                {airline.description}
+              </div>
+            </div>
+
+            {/* Seçim göstergesi */}
+            {selected && (
+              <Check
+                className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0"
+                aria-hidden="true"
+              />
             )}
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 };
