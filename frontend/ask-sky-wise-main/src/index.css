@@ -4,20 +4,16 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    Airline Policy Assistant — Design System
-   Kimlik: Deep navy + muted gold (havayolu sektörü zarafeti)
+   Kimlik: Navy chrome + krem body + beyaz kartlar + altın vurgular
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ─── Surface — iki tonlu arka plan sistemi ──────────────
-       - Background: biraz daha belirgin warm gray-cream
-       - Card: saf beyaz
-       Fark: kartlar arka plandan net ayrışır, "yüzen" hissi. */
-    --background: 36 25% 96%;            /* warm cream — kartlara zemin */
-    --background-elevated: 0 0% 100%;    /* kartlar, popover vs. */
+    /* ─── Body + Card iki farklı tabaka ────────────────────── */
+    --background: 36 25% 96%;            /* warm cream body */
     --foreground: 215 45% 12%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                   /* saf beyaz, öne çıksın */
     --card-foreground: 215 45% 12%;
 
     --popover: 0 0% 100%;
@@ -42,12 +38,17 @@
     --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ─── Border — biraz daha görünür
-       Eski border (20% saturation, 90% lightness) arka plan değişince
-       kayboldu. Şimdi biraz daha koyu → kartlar net seçiliyor. */
     --border: 215 20% 88%;
     --input: 215 20% 88%;
     --ring: 215 55% 16%;
+
+    /* ─── Header chrome — navy ────────────────────────────────
+       Bu yeni. Header artık body'den bağımsız bir token kullanıyor
+       ki kolayca navy yapılabilsin. */
+    --chrome: 215 55% 14%;               /* deep navy */
+    --chrome-foreground: 30 20% 98%;
+    --chrome-border: 215 50% 20%;
+    --chrome-muted: 215 25% 72%;         /* subtle text on chrome */
 
     --voice-primary: 215 55% 16%;
     --voice-secondary: 215 12% 42%;
@@ -74,17 +75,21 @@
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* ─── Shadow sistemi — navy tonlu ──────────────────────── */
-    --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.04);
+    /* ─── Shadow sistemi — GÜÇLENDİRİLDİ
+       Eski shadow'lar çok soluk kalmıştı (screenshot'ta kart düz
+       görünüyordu). Şimdi daha belirgin, gerçekten "yüzen" kart. */
+    --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.05);
     --shadow-sm:
-      0 1px 2px 0 hsl(215 50% 10% / 0.05),
-      0 1px 3px 0 hsl(215 50% 10% / 0.04);
+      0 1px 2px 0 hsl(215 50% 10% / 0.06),
+      0 1px 4px 0 hsl(215 50% 10% / 0.04);
     --shadow-md:
-      0 1px 3px 0 hsl(215 50% 10% / 0.06),
-      0 4px 8px 0 hsl(215 50% 10% / 0.04);
+      0 2px 4px -1px hsl(215 50% 10% / 0.08),
+      0 4px 8px -2px hsl(215 50% 10% / 0.06),
+      0 8px 16px -4px hsl(215 50% 10% / 0.04);
     --shadow-lg:
-      0 4px 12px 0 hsl(215 50% 10% / 0.08),
-      0 8px 24px 0 hsl(215 50% 10% / 0.06);
+      0 4px 8px -2px hsl(215 50% 10% / 0.1),
+      0 12px 24px -6px hsl(215 50% 10% / 0.08),
+      0 24px 48px -12px hsl(215 50% 10% / 0.06);
 
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
@@ -93,7 +98,6 @@
 
   .dark {
     --background: 215 40% 7%;
-    --background-elevated: 215 40% 10%;
     --foreground: 30 20% 96%;
 
     --card: 215 40% 10%;
@@ -121,6 +125,12 @@
     --input: 215 30% 18%;
     --ring: 38 55% 62%;
 
+    /* Dark mode'da chrome zaten koyu — body ile yakın renk tercih */
+    --chrome: 215 40% 5%;
+    --chrome-foreground: 30 20% 96%;
+    --chrome-border: 215 30% 15%;
+    --chrome-muted: 215 15% 55%;
+
     --sidebar-background: 215 40% 9%;
     --sidebar-foreground: 30 20% 96%;
     --sidebar-primary: 38 55% 62%;
@@ -144,29 +154,9 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
 
-    /* ─── Subtle ambient gradient ─────────────────────────────
-       Sayfanın tepesinden aşağı çok ince bir navy ambient glow.
-       Kullanıcı gözle fark etmez ama "düz beyaz" hissini kırar,
-       kimlik rengini arka planda hissettirir. */
-    background:
-      radial-gradient(
-        ellipse 80% 50% at 50% -10%,
-        hsl(var(--primary) / 0.04) 0%,
-        transparent 60%
-      ),
-      hsl(var(--background));
-    background-attachment: fixed;
-  }
-
-  .dark body {
-    background:
-      radial-gradient(
-        ellipse 80% 50% at 50% -10%,
-        hsl(var(--accent) / 0.06) 0%,
-        transparent 60%
-      ),
-      hsl(var(--background));
-    background-attachment: fixed;
+    /* Solid krem — ambient glow kaldırıldı.
+       Header artık navy olduğu için glow gereksiz, kafa karıştırıcı. */
+    background-color: hsl(var(--background));
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -177,12 +167,31 @@
     line-height: 1.6;
   }
 
+  /* ─── Focus ring — details element'i için özelleştir
+     Native browser focus outline görünüyordu (mavi border). Biz custom
+     veriyoruz ama bazı elementler override ediyor. Global bir reset. */
   :focus-visible {
     @apply outline-none;
     box-shadow:
       0 0 0 2px hsl(var(--background)),
-      0 0 0 4px hsl(var(--ring) / 0.5);
+      0 0 0 4px hsl(var(--ring) / 0.4);
     transition: box-shadow 150ms var(--ease-out-quart);
+  }
+
+  /* Details/summary — focus ring'i summary içine uygula, details'e değil.
+     Eski kodda <details>'in kendisi focus alıyordu ve mavi border ekranda
+     kalıyordu. summary'e daraltıyoruz. */
+  details:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  details summary:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.4);
+    border-radius: var(--radius);
   }
 
   input:focus-visible,
@@ -224,9 +233,6 @@
 }
 
 @layer components {
-  /* ─── Card — artık daha net ayrışıyor ──────────────────────
-     Background warm cream olduğu için card beyaz + shadow ile
-     "lifted" görünür. Subtle shadow otomatik ekleniyor. */
   .glass-card {
     @apply bg-card border border-border rounded-lg;
     box-shadow: var(--shadow-sm);
@@ -292,8 +298,6 @@
     border-color: hsl(var(--accent));
   }
 
-  /* ─── Subtle gold stripe — dekoratif eleman ──────────────
-     Header altına veya bölüm ayırıcısına eklenebilir. */
   .accent-stripe {
     background: linear-gradient(
       90deg,
@@ -304,8 +308,6 @@
     height: 1px;
   }
 
-  /* ─── Surface elevation — kartlara ek katman hissi ──────
-     Gerekirse kartın daha "ayrı" görünmesi için. */
   .surface-elevated {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
@@ -353,4 +355,28 @@
   .shadow-layer-sm { box-shadow: var(--shadow-sm); }
   .shadow-layer-md { box-shadow: var(--shadow-md); }
   .shadow-layer-lg { box-shadow: var(--shadow-lg); }
+
+  /* ─── Chrome utilities ──────────────────────────────────────
+     Header/navigation için navy zemin + açık metin. */
+  .bg-chrome {
+    background-color: hsl(var(--chrome));
+  }
+
+  .text-chrome-foreground {
+    color: hsl(var(--chrome-foreground));
+  }
+
+  .border-chrome-border {
+    border-color: hsl(var(--chrome-border));
+  }
+
+  .text-chrome-muted {
+    color: hsl(var(--chrome-muted));
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tailwind'in tailwind.config.ts'inde chrome renklerini tanımlamaya
+   gerek yok — utility class'ları burada custom olarak oluşturduk.
+   bg-chrome, text-chrome-foreground gibi class'lar artık kullanılabilir.
+   ═══════════════════════════════════════════════════════════════════ */

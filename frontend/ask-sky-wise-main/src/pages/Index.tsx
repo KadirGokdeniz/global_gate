@@ -345,23 +345,26 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* ─── Minimalist Header ─── */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+      {/* Navy chrome header — beyaz/altın text, koyu background */}
+      <header className="sticky top-0 z-40 bg-chrome border-b border-chrome-border">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Left: Logo + Title */}
             <div className="flex items-center gap-3">
-              {/* Navy kare + altın uçak — havayolu kimlik */}
-              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary shadow-sm">
+              {/* Altın uçak artık navy kare içinde değil — chrome zaten navy.
+                  Logo'yu subtle tone-on-tone yapıyoruz (koyu navy kutu içinde).
+                  Ya da sadece altın bir uçak icon yeter. */}
+              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-white/10 border border-white/10">
                 <Plane
                   className="w-4 h-4 text-accent"
                   aria-hidden="true"
                 />
               </div>
               <div className="flex items-baseline gap-2">
-                <h1 className="text-sm font-semibold text-foreground tracking-tight">
+                <h1 className="text-sm font-semibold text-chrome-foreground tracking-tight">
                   {language === 'en' ? 'Airline Assistant' : 'Havayolu Asistanı'}
                 </h1>
-                <span className="hidden sm:inline text-xs text-muted-foreground">
+                <span className="hidden sm:inline text-xs text-chrome-muted">
                   {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
                 </span>
               </div>
@@ -377,12 +380,12 @@ const Index = () => {
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     apiConnection.success
-                      ? 'bg-emerald-500'
-                      : 'bg-slate-300 dark:bg-slate-600'
+                      ? 'bg-emerald-400'
+                      : 'bg-slate-500'
                   }`}
                   aria-hidden="true"
                 />
-                <span className="text-slate-500 dark:text-slate-400">
+                <span className="text-chrome-muted">
                   {apiConnection.success
                     ? language === 'en'
                       ? 'Connected'
@@ -395,7 +398,7 @@ const Index = () => {
 
               {/* Divider (desktop only) */}
               <div
-                className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-800"
+                className="hidden sm:block w-px h-5 bg-chrome-border"
                 aria-hidden="true"
               />
 
@@ -412,7 +415,7 @@ const Index = () => {
                     aria-label={
                       language === 'en' ? 'Open settings' : 'Ayarları aç'
                     }
-                    className="h-8 w-8 p-0 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="h-8 w-8 p-0 text-chrome-muted hover:text-chrome-foreground hover:bg-white/10"
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
