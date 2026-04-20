@@ -4,62 +4,56 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    Airline Policy Assistant — Design System
-   Kimlik: Havayolu sektörü zarafeti.
-   - Deep navy primary (boarding pass klasiği)
-   - Muted amber accent (gold card, uzun menzil lüks)
-   - Warm neutrals (pure cold gray değil)
+   Kimlik: Deep navy + muted gold (havayolu sektörü zarafeti)
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ─── Surface ──────────────────────────────────────────────
-       Warm off-white — pure beyaz daha soğuk, navy ile çelişir. */
-    --background: 30 20% 99%;            /* very warm off-white */
-    --foreground: 215 45% 12%;           /* deep navy-black text */
+    /* ─── Surface — iki tonlu arka plan sistemi ──────────────
+       - Background: biraz daha belirgin warm gray-cream
+       - Card: saf beyaz
+       Fark: kartlar arka plandan net ayrışır, "yüzen" hissi. */
+    --background: 36 25% 96%;            /* warm cream — kartlara zemin */
+    --background-elevated: 0 0% 100%;    /* kartlar, popover vs. */
+    --foreground: 215 45% 12%;
 
-    /* ─── Card ─── */
     --card: 0 0% 100%;
     --card-foreground: 215 45% 12%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 45% 12%;
 
-    /* ─── Primary — deep navy ──────────────────────────────────
-       HSL: 215° hue (hafif mavi-yeşil navy, pure mavi değil)
-       Doğru tercih: saf #001F3F gibi değil, biraz yumuşatılmış. */
-    --primary: 215 55% 16%;              /* #13233B civarı — boarding pass navy */
+    /* ─── Primary — deep navy ─── */
+    --primary: 215 55% 16%;
     --primary-foreground: 30 20% 98%;
     --primary-hover: 215 55% 22%;
 
-    --secondary: 215 15% 95%;
+    --secondary: 215 15% 94%;
     --secondary-foreground: 215 45% 12%;
 
-    /* ─── Muted text ─── */
-    --muted: 215 15% 95%;
-    --muted-foreground: 215 12% 45%;     /* navy-tinted gray */
+    --muted: 215 15% 94%;
+    --muted-foreground: 215 12% 42%;
 
-    /* ─── Accent — muted amber/gold ────────────────────────────
-       HSL: 38° hue (golden amber, turuncu değil).
-       Saturation düşük tutuldu — neon değil, klasik altın. */
-    --accent: 38 55% 52%;                /* #C89A4A civarı — muted gold */
+    /* ─── Accent — muted gold ─── */
+    --accent: 38 55% 52%;
     --accent-foreground: 215 55% 16%;
     --accent-hover: 38 55% 46%;
 
     --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ─── Border ─── */
-    --border: 215 20% 90%;
-    --input: 215 20% 90%;
+    /* ─── Border — biraz daha görünür
+       Eski border (20% saturation, 90% lightness) arka plan değişince
+       kayboldu. Şimdi biraz daha koyu → kartlar net seçiliyor. */
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
     --ring: 215 55% 16%;
 
-    /* Voice colors — navy tonunda */
     --voice-primary: 215 55% 16%;
-    --voice-secondary: 215 12% 45%;
+    --voice-secondary: 215 12% 42%;
     --voice-active: 142 65% 38%;
     --voice-inactive: 215 15% 70%;
 
-    /* Status colors */
     --status-success: 142 65% 38%;
     --status-warning: 38 85% 50%;
     --status-error: 0 65% 48%;
@@ -68,50 +62,47 @@
     --radius: 0.5rem;
     --radius-large: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 30 20% 98%;
+    --sidebar-background: 36 25% 96%;
     --sidebar-foreground: 215 30% 26%;
     --sidebar-primary: 215 55% 16%;
     --sidebar-primary-foreground: 30 20% 98%;
-    --sidebar-accent: 215 15% 95%;
+    --sidebar-accent: 215 15% 94%;
     --sidebar-accent-foreground: 215 55% 16%;
-    --sidebar-border: 215 20% 90%;
+    --sidebar-border: 215 20% 88%;
     --sidebar-ring: 215 55% 16%;
 
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* ─── Shadow sistemi — navy tonlu ────────────────────────── */
-    --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.05);
+    /* ─── Shadow sistemi — navy tonlu ──────────────────────── */
+    --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.04);
     --shadow-sm:
       0 1px 2px 0 hsl(215 50% 10% / 0.05),
-      0 2px 4px 0 hsl(215 50% 10% / 0.03);
+      0 1px 3px 0 hsl(215 50% 10% / 0.04);
     --shadow-md:
-      0 1px 2px 0 hsl(215 50% 10% / 0.05),
-      0 2px 4px 0 hsl(215 50% 10% / 0.04),
+      0 1px 3px 0 hsl(215 50% 10% / 0.06),
       0 4px 8px 0 hsl(215 50% 10% / 0.04);
     --shadow-lg:
-      0 2px 4px 0 hsl(215 50% 10% / 0.05),
-      0 4px 8px 0 hsl(215 50% 10% / 0.05),
-      0 8px 16px 0 hsl(215 50% 10% / 0.05);
+      0 4px 12px 0 hsl(215 50% 10% / 0.08),
+      0 8px 24px 0 hsl(215 50% 10% / 0.06);
 
-    /* ─── Easing ─── */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .dark {
-    --background: 215 40% 7%;            /* deep navy-black */
+    --background: 215 40% 7%;
+    --background-elevated: 215 40% 10%;
     --foreground: 30 20% 96%;
 
-    --card: 215 40% 9%;
+    --card: 215 40% 10%;
     --card-foreground: 30 20% 96%;
 
-    --popover: 215 40% 9%;
+    --popover: 215 40% 10%;
     --popover-foreground: 30 20% 96%;
 
-    --primary: 38 55% 62%;               /* dark modda accent primary'e geçer */
+    --primary: 38 55% 62%;
     --primary-foreground: 215 55% 12%;
 
     --secondary: 215 35% 14%;
@@ -147,11 +138,35 @@
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply text-foreground font-body antialiased;
     min-height: 100vh;
     font-feature-settings: 'ss01', 'cv11';
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+
+    /* ─── Subtle ambient gradient ─────────────────────────────
+       Sayfanın tepesinden aşağı çok ince bir navy ambient glow.
+       Kullanıcı gözle fark etmez ama "düz beyaz" hissini kırar,
+       kimlik rengini arka planda hissettirir. */
+    background:
+      radial-gradient(
+        ellipse 80% 50% at 50% -10%,
+        hsl(var(--primary) / 0.04) 0%,
+        transparent 60%
+      ),
+      hsl(var(--background));
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background:
+      radial-gradient(
+        ellipse 80% 50% at 50% -10%,
+        hsl(var(--accent) / 0.06) 0%,
+        transparent 60%
+      ),
+      hsl(var(--background));
+    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -209,6 +224,9 @@
 }
 
 @layer components {
+  /* ─── Card — artık daha net ayrışıyor ──────────────────────
+     Background warm cream olduğu için card beyaz + shadow ile
+     "lifted" görünür. Subtle shadow otomatik ekleniyor. */
   .glass-card {
     @apply bg-card border border-border rounded-lg;
     box-shadow: var(--shadow-sm);
@@ -266,10 +284,6 @@
     transition: transform 80ms var(--ease-out-quart);
   }
 
-  /* ─── Havayolu kimlik utilities ─────────────────────────────
-     Amber vurgularını belli yerlerde kullanmak için hazır class'lar.
-     "Connected" badge, CTA button'ları vs. için. */
-
   .accent-text {
     color: hsl(var(--accent));
   }
@@ -278,15 +292,24 @@
     border-color: hsl(var(--accent));
   }
 
-  /* Ince amber şerit — dekoratif element */
+  /* ─── Subtle gold stripe — dekoratif eleman ──────────────
+     Header altına veya bölüm ayırıcısına eklenebilir. */
   .accent-stripe {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      hsl(var(--accent) / 0.8) 50%,
+      hsl(var(--accent) / 0.6) 50%,
       transparent 100%
     );
     height: 1px;
+  }
+
+  /* ─── Surface elevation — kartlara ek katman hissi ──────
+     Gerekirse kartın daha "ayrı" görünmesi için. */
+  .surface-elevated {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-md);
   }
 }
 

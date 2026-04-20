@@ -46,7 +46,7 @@ export const SearchBox = ({
     <div className="w-full space-y-2">
       <form onSubmit={handleSubmit}>
         {/* Ana input konteyneri — tek, temiz border; gradient glow yok */}
-        <div className="relative flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-within:border-slate-400 dark:focus-within:border-slate-600 transition-colors">
+        <div className="relative flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-layer-sm focus-within:border-slate-400 dark:focus-within:border-slate-600 focus-within:shadow-layer-md transition-all">
           <Input
             ref={inputRef}
             value={question}
