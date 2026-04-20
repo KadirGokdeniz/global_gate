@@ -343,30 +343,25 @@ const Index = () => {
   );
 
   return (
-    // ✅ Solid, nötr arka plan — klişe gradient yok.
-    // slate-50 açık modda, slate-950 koyu modda.
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* ✅ Minimalist Header
-          - Gradient + blur + pulse'lı logo yerine solid + subtle
-          - shadow-lg yerine border-b (daha pro his)
-          - Tek status indicator (detay settings'te)
-          - LanguageSelector artık header içine entegre */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+    <div className="min-h-screen bg-background">
+      {/* ─── Minimalist Header ─── */}
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Left: Logo + Title */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-900 dark:bg-slate-100">
+              {/* Navy kare + altın uçak — havayolu kimlik */}
+              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary shadow-sm">
                 <Plane
-                  className="w-4 h-4 text-white dark:text-slate-900"
+                  className="w-4 h-4 text-accent"
                   aria-hidden="true"
                 />
               </div>
               <div className="flex items-baseline gap-2">
-                <h1 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h1 className="text-sm font-semibold text-foreground tracking-tight">
                   {language === 'en' ? 'Airline Assistant' : 'Havayolu Asistanı'}
                 </h1>
-                <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500">
+                <span className="hidden sm:inline text-xs text-muted-foreground">
                   {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
                 </span>
               </div>
@@ -454,13 +449,19 @@ const Index = () => {
              ✅ Feature badge'leri minimalize edildi. */
           <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center py-12 sm:py-20">
             {/* Title */}
-            <div className="text-center space-y-4 mb-12 max-w-2xl">
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            <div className="text-center space-y-5 mb-12 max-w-2xl">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground">
                 {language === 'en'
                   ? 'Airline Assistant'
                   : 'Havayolu Asistanı'}
               </h2>
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+
+              {/* Dekoratif altın şerit — havayolu zarafeti dokunuşu */}
+              <div className="flex justify-center" aria-hidden="true">
+                <div className="h-px w-16 bg-accent" />
+              </div>
+
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
                 {language === 'en'
                   ? 'Smart search in airline policies with AI'
                   : 'Yapay zeka destekli havayolu politikaları arama'}

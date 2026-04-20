@@ -4,137 +4,140 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    Airline Policy Assistant — Design System
-   Linear/Stripe/Arc tarzı premium sakınlık. Detaylar:
-   - Muted palette: saf siyah/beyaz yerine yumuşak tonlar
-   - Tighter letter-spacing başlıklarda
-   - Layered shadows (tek büyük yerine 3 ince)
-   - Custom easing curves ile akıcı etkileşimler
+   Kimlik: Havayolu sektörü zarafeti.
+   - Deep navy primary (boarding pass klasiği)
+   - Muted amber accent (gold card, uzun menzil lüks)
+   - Warm neutrals (pure cold gray değil)
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ─── Surface — saf beyaz DEĞİL, çok hafif off-white ──────────
-       Pure white göze sert gelir. %98 açıklık premium standart. */
-    --background: 0 0% 99%;
-    --foreground: 222 20% 11%;          /* slate-900'dan biraz yumuşak */
+    /* ─── Surface ──────────────────────────────────────────────
+       Warm off-white — pure beyaz daha soğuk, navy ile çelişir. */
+    --background: 30 20% 99%;            /* very warm off-white */
+    --foreground: 215 45% 12%;           /* deep navy-black text */
 
-    /* ─── Card — düz beyaz, background'dan ayrışsın ──────────── */
+    /* ─── Card ─── */
     --card: 0 0% 100%;
-    --card-foreground: 222 20% 11%;
+    --card-foreground: 215 45% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 20% 11%;
+    --popover-foreground: 215 45% 12%;
 
-    /* ─── Primary — pure siyah değil, hafif mavi tonlu siyah ───
-       Mavi tonu dijital ürünlerde "teknik" ama "sıcak" hissi verir. */
-    --primary: 222 25% 13%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 222 25% 20%;
+    /* ─── Primary — deep navy ──────────────────────────────────
+       HSL: 215° hue (hafif mavi-yeşil navy, pure mavi değil)
+       Doğru tercih: saf #001F3F gibi değil, biraz yumuşatılmış. */
+    --primary: 215 55% 16%;              /* #13233B civarı — boarding pass navy */
+    --primary-foreground: 30 20% 98%;
+    --primary-hover: 215 55% 22%;
 
-    --secondary: 210 40% 96.5%;
-    --secondary-foreground: 222 20% 11%;
+    --secondary: 215 15% 95%;
+    --secondary-foreground: 215 45% 12%;
 
-    /* ─── Muted text — eski slate-500'den biraz daha soluk ─── */
-    --muted: 210 40% 96.5%;
-    --muted-foreground: 215 14% 50%;
+    /* ─── Muted text ─── */
+    --muted: 215 15% 95%;
+    --muted-foreground: 215 12% 45%;     /* navy-tinted gray */
 
-    --accent: 222 25% 13%;
-    --accent-foreground: 0 0% 100%;
+    /* ─── Accent — muted amber/gold ────────────────────────────
+       HSL: 38° hue (golden amber, turuncu değil).
+       Saturation düşük tutuldu — neon değil, klasik altın. */
+    --accent: 38 55% 52%;                /* #C89A4A civarı — muted gold */
+    --accent-foreground: 215 55% 16%;
+    --accent-hover: 38 55% 46%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ─── Border — neredeyse görünmez, kağıt kenarı gibi ────── */
-    --border: 214 25% 91%;
-    --input: 214 25% 91%;
-    --ring: 222 25% 13%;
+    /* ─── Border ─── */
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 215 55% 16%;
 
-    /* Voice colors */
-    --voice-primary: 222 25% 13%;
-    --voice-secondary: 215 14% 50%;
-    --voice-active: 142 72% 36%;
-    --voice-inactive: 215 16% 65%;
+    /* Voice colors — navy tonunda */
+    --voice-primary: 215 55% 16%;
+    --voice-secondary: 215 12% 45%;
+    --voice-active: 142 65% 38%;
+    --voice-inactive: 215 15% 70%;
 
-    --status-success: 142 72% 36%;
-    --status-warning: 38 92% 50%;
-    --status-error: 0 72% 51%;
-    --status-info: 222 25% 13%;
+    /* Status colors */
+    --status-success: 142 65% 38%;
+    --status-warning: 38 85% 50%;
+    --status-error: 0 65% 48%;
+    --status-info: 215 55% 16%;
 
     --radius: 0.5rem;
     --radius-large: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 240 6% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar */
+    --sidebar-background: 30 20% 98%;
+    --sidebar-foreground: 215 30% 26%;
+    --sidebar-primary: 215 55% 16%;
+    --sidebar-primary-foreground: 30 20% 98%;
+    --sidebar-accent: 215 15% 95%;
+    --sidebar-accent-foreground: 215 55% 16%;
+    --sidebar-border: 215 20% 90%;
+    --sidebar-ring: 215 55% 16%;
 
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* ─── Shadow sistemi — layered, mavi tonlu siyah ──────────
-       Tek büyük shadow yerine 3 ince katman. Arc/Linear pattern'i. */
-    --shadow-xs:
-      0 1px 2px 0 hsl(220 40% 4% / 0.04);
+    /* ─── Shadow sistemi — navy tonlu ────────────────────────── */
+    --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.05);
     --shadow-sm:
-      0 1px 2px 0 hsl(220 40% 4% / 0.04),
-      0 2px 4px 0 hsl(220 40% 4% / 0.02);
+      0 1px 2px 0 hsl(215 50% 10% / 0.05),
+      0 2px 4px 0 hsl(215 50% 10% / 0.03);
     --shadow-md:
-      0 1px 2px 0 hsl(220 40% 4% / 0.04),
-      0 2px 4px 0 hsl(220 40% 4% / 0.03),
-      0 4px 8px 0 hsl(220 40% 4% / 0.03);
+      0 1px 2px 0 hsl(215 50% 10% / 0.05),
+      0 2px 4px 0 hsl(215 50% 10% / 0.04),
+      0 4px 8px 0 hsl(215 50% 10% / 0.04);
     --shadow-lg:
-      0 2px 4px 0 hsl(220 40% 4% / 0.04),
-      0 4px 8px 0 hsl(220 40% 4% / 0.04),
-      0 8px 16px 0 hsl(220 40% 4% / 0.04);
+      0 2px 4px 0 hsl(215 50% 10% / 0.05),
+      0 4px 8px 0 hsl(215 50% 10% / 0.05),
+      0 8px 16px 0 hsl(215 50% 10% / 0.05);
 
-    /* ─── Easing curves — premium etkileşimler ───────────────
-       Default 'ease' ucuz hissedilir. Bunlar özenle seçilmiş. */
+    /* ─── Easing ─── */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
     --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .dark {
-    --background: 222 30% 6%;
-    --foreground: 210 30% 96%;
+    --background: 215 40% 7%;            /* deep navy-black */
+    --foreground: 30 20% 96%;
 
-    --card: 222 25% 8%;
-    --card-foreground: 210 30% 96%;
+    --card: 215 40% 9%;
+    --card-foreground: 30 20% 96%;
 
-    --popover: 222 25% 8%;
-    --popover-foreground: 210 30% 96%;
+    --popover: 215 40% 9%;
+    --popover-foreground: 30 20% 96%;
 
-    --primary: 210 30% 96%;
-    --primary-foreground: 222 25% 13%;
+    --primary: 38 55% 62%;               /* dark modda accent primary'e geçer */
+    --primary-foreground: 215 55% 12%;
 
-    --secondary: 217 25% 15%;
-    --secondary-foreground: 210 30% 96%;
+    --secondary: 215 35% 14%;
+    --secondary-foreground: 30 20% 96%;
 
-    --muted: 217 25% 15%;
-    --muted-foreground: 215 16% 62%;
+    --muted: 215 35% 14%;
+    --muted-foreground: 215 15% 62%;
 
-    --accent: 217 25% 15%;
-    --accent-foreground: 210 30% 96%;
+    --accent: 38 55% 62%;
+    --accent-foreground: 215 55% 12%;
 
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 210 30% 96%;
+    --destructive: 0 55% 42%;
+    --destructive-foreground: 30 20% 96%;
 
-    --border: 217 20% 18%;
-    --input: 217 20% 18%;
-    --ring: 212 27% 84%;
+    --border: 215 30% 18%;
+    --input: 215 30% 18%;
+    --ring: 38 55% 62%;
 
-    --sidebar-background: 240 6% 10%;
-    --sidebar-foreground: 240 5% 96%;
-    --sidebar-primary: 224 76% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
-    --sidebar-accent-foreground: 240 5% 96%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 215 40% 9%;
+    --sidebar-foreground: 30 20% 96%;
+    --sidebar-primary: 38 55% 62%;
+    --sidebar-primary-foreground: 215 55% 12%;
+    --sidebar-accent: 215 35% 14%;
+    --sidebar-accent-foreground: 30 20% 96%;
+    --sidebar-border: 215 30% 18%;
+    --sidebar-ring: 38 55% 62%;
   }
 }
 
@@ -146,27 +149,19 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
     min-height: 100vh;
-    /* ─── Font feature settings — premium typography ─────────
-       ss01: stylistic alternate (Inter'da daha modern 'a', 'g')
-       cv11: variant one-story 'a' (daha okunaklı)
-       OpenType features premium markaların imza detayı. */
     font-feature-settings: 'ss01', 'cv11';
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ─── Typography defaults — subtle ama etkili ─────────────── */
   h1, h2, h3, h4, h5, h6 {
-    /* Tight tracking büyük başlıklarda premium hissi verir */
     letter-spacing: -0.02em;
   }
 
-  /* Gövde metni relaxed leading — yazma nefesi */
   p {
     line-height: 1.6;
   }
 
-  /* ─── Focus ring — iOS-esque ────────────────────────────── */
   :focus-visible {
     @apply outline-none;
     box-shadow:
@@ -175,7 +170,6 @@
     transition: box-shadow 150ms var(--ease-out-quart);
   }
 
-  /* Input/button focus — daha yumuşak ring */
   input:focus-visible,
   button:focus-visible,
   textarea:focus-visible,
@@ -185,13 +179,11 @@
       0 0 0 4px hsl(var(--ring) / 0.4);
   }
 
-  /* ─── Selection — marka renginde ─────────────────────────── */
   ::selection {
-    background-color: hsl(var(--primary) / 0.15);
+    background-color: hsl(var(--accent) / 0.25);
     color: hsl(var(--primary));
   }
 
-  /* ─── Scrollbar — minimal, premium markaların imzası ─────── */
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
@@ -217,13 +209,11 @@
 }
 
 @layer components {
-  /* ─── Card sistemi ───────────────────────────────────────── */
   .glass-card {
     @apply bg-card border border-border rounded-lg;
     box-shadow: var(--shadow-sm);
   }
 
-  /* ─── Voice input animasyonları ─────────────────────────── */
   .voice-pulse {
     animation: voicePulse 1.5s var(--ease-in-out-quart) infinite;
   }
@@ -232,15 +222,9 @@
     animation: voiceRecording 1.8s var(--ease-in-out-quart) infinite;
   }
 
-  .voice-idle {
-    background: hsl(var(--voice-inactive));
-  }
+  .voice-idle { background: hsl(var(--voice-inactive)); }
+  .voice-active { background: hsl(var(--voice-active)); }
 
-  .voice-active {
-    background: hsl(var(--voice-active));
-  }
-
-  /* ─── Status indicators ──────────────────────────────────── */
   .status-success {
     @apply bg-emerald-50 text-emerald-800 border-emerald-200
            dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900;
@@ -261,8 +245,6 @@
            dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800;
   }
 
-  /* ─── Interactive surfaces — hover translate + shadow ────
-     Pro detay: hover'da subtle kalkma etkisi. Raycast pattern'i. */
   .surface-interactive {
     @apply transition-all duration-200;
     transition-timing-function: var(--ease-out-quart);
@@ -278,46 +260,50 @@
     transition-duration: 100ms;
   }
 
-  /* ─── Button press feedback — tıklandığında hafif scale ──
-     iOS haptic hissi. Her button:active otomatik alır. */
   button:active:not(:disabled),
   [role="button"]:active:not(:disabled) {
     transform: scale(0.98);
     transition: transform 80ms var(--ease-out-quart);
   }
+
+  /* ─── Havayolu kimlik utilities ─────────────────────────────
+     Amber vurgularını belli yerlerde kullanmak için hazır class'lar.
+     "Connected" badge, CTA button'ları vs. için. */
+
+  .accent-text {
+    color: hsl(var(--accent));
+  }
+
+  .accent-border {
+    border-color: hsl(var(--accent));
+  }
+
+  /* Ince amber şerit — dekoratif element */
+  .accent-stripe {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--accent) / 0.8) 50%,
+      transparent 100%
+    );
+    height: 1px;
+  }
 }
 
 @layer utilities {
-  /* ─── Keyframes ──────────────────────────────────────────── */
   @keyframes voicePulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.04);
-      opacity: 0.85;
-    }
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.04); opacity: 0.85; }
   }
 
   @keyframes voiceRecording {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.35);
-    }
-    50% {
-      box-shadow: 0 0 0 8px hsl(var(--voice-active) / 0);
-    }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.35); }
+    50% { box-shadow: 0 0 0 8px hsl(var(--voice-active) / 0); }
   }
 
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes fadeIn {
@@ -325,7 +311,6 @@
     to { opacity: 1; }
   }
 
-  /* Daha yumuşak animasyon — fade-in-up ease'i premium curve'e çekildi */
   .animate-fade-in-up {
     animation: fadeInUp 0.45s var(--ease-out-quart);
   }
@@ -334,26 +319,15 @@
     animation: fadeIn 0.3s var(--ease-out-quart);
   }
 
-  /* ─── Typography utilities ───────────────────────────────── */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Premium başlıklar için — tighter tracking */
   .tracking-tighter-2 {
     letter-spacing: -0.025em;
   }
 
-  /* ─── Shadow utilities — design system'den ────────────── */
-  .shadow-layer-sm {
-    box-shadow: var(--shadow-sm);
-  }
-
-  .shadow-layer-md {
-    box-shadow: var(--shadow-md);
-  }
-
-  .shadow-layer-lg {
-    box-shadow: var(--shadow-lg);
-  }
+  .shadow-layer-sm { box-shadow: var(--shadow-sm); }
+  .shadow-layer-md { box-shadow: var(--shadow-md); }
+  .shadow-layer-lg { box-shadow: var(--shadow-lg); }
 }

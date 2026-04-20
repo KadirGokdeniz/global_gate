@@ -2,46 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <!-- Modern favicon — SVG, crisp at any size -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Legacy fallback for browsers that don't support SVG favicons -->
+    <link rel="alternate icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI-Powered Airline Policy Assistant - Instant Answers with Voice Support</title>
+    <title>Airline Assistant · AI-Powered Airline Policy Search</title>
     <meta
       name="description"
-      content="Get instant, accurate answers about airline policies using AI. Supports Turkish Airlines, Pegasus, and more. Features real-time voice input, multilingual support (English/Turkish), and advanced policy search."
+      content="Get instant, accurate answers about airline policies using AI. Supports Turkish Airlines and Pegasus. Features real-time voice input and multilingual support (English/Turkish)."
     />
-    <meta name="author" content="AI Airline Policy Assistant" />
+    <meta name="author" content="Airline Assistant" />
     <meta
       name="keywords"
       content="airline policies, AI assistant, voice search, Turkish Airlines, Pegasus, flight policies, travel assistant, multilingual support"
     />
 
-    <!--
-      NOT: og:image ve twitter:image path'leri public/ klasöründeki statik
-      asset'lere işaret etmeli. Eski kod /src/assets/... yoluna işaret ediyordu
-      — bu Vite build'de kırılır çünkü src/assets Vite tarafından hash'lenmiş
-      bir dosya adıyla dist/assets/ altında yayınlanır ve orijinal path çalışmaz.
-
-      Çözüm: Paylaşım için kullanılacak sosyal medya görselini `public/og-image.jpg`
-      olarak projenin public/ klasörüne koy. Vite public/ klasörünü olduğu gibi
-      kopyalar. Hosting URL'in ile birleştiğinde örn:
-        https://your-site.vercel.app/og-image.jpg
-      şeklinde erişilebilir.
-
-      Görselin olmadığı durumda bu meta tag'leri yorum satırına alabilirsin.
-    -->
-    <meta property="og:title" content="AI-Powered Airline Policy Assistant" />
+    <meta property="og:title" content="Airline Assistant · AI-Powered Airline Policy Search" />
     <meta
       property="og:description"
-      content="Revolutionary AI assistant for airline policy questions with real-time voice input and multilingual support"
+      content="Smart search in airline policies with AI power — Turkish Airlines and Pegasus supported."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/og-image.jpg" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AI Airline Policy Assistant" />
+    <meta name="twitter:title" content="Airline Assistant" />
     <meta
       name="twitter:description"
-      content="Get instant answers about airline policies with AI and voice support"
+      content="AI-powered airline policy search with voice support."
     />
     <meta name="twitter:image" content="/og-image.jpg" />
   </head>
