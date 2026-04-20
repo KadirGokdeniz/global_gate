@@ -11,9 +11,12 @@ import {
   Square,
   ExternalLink,
   ChevronDown,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Message, FeedbackType, Language } from '@/types';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface ResponseCardProps {
   message: Message;
@@ -43,6 +46,7 @@ export const ResponseCard = ({
   );
   const [expandedSources, setExpandedSources] = useState<number[]>([]);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -204,6 +208,16 @@ export const ResponseCard = ({
     }
   };
 
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(message.answer);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API desteklenmiyorsa (eski tarayıcı / HTTP) sessizce geç
+    }
+  }, [message.answer]);
+
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -273,49 +287,214 @@ export const ResponseCard = ({
       <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
         {/* Answer body */}
         <div className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                {isEn ? 'Answer' : 'Cevap'}
-              </div>
-              <p className="text-[15px] leading-relaxed text-slate-900 dark:text-slate-100 whitespace-pre-wrap">
-                {message.answer}
-              </p>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+              {isEn ? 'Answer' : 'Cevap'}
             </div>
 
-            {/* Play button — kompakt ikon, büyük "Audio Player" kartı yok */}
-            {onPlayAudio && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={
-                  audioState === 'playing'
-                    ? handlePauseAudio
-                    : handlePlayAudio
-                }
-                disabled={audioState === 'loading'}
+            {/* Action buttons — copy + audio, sağ üst köşede */}
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Copy button */}
+              <button
+                type="button"
+                onClick={handleCopy}
                 aria-label={
-                  audioState === 'playing'
-                    ? isEn
-                      ? 'Pause audio'
-                      : 'Duraklat'
-                    : isEn
-                      ? 'Listen to answer'
-                      : 'Cevabı dinle'
+                  copied
+                    ? isEn ? 'Copied!' : 'Kopyalandı!'
+                    : isEn ? 'Copy answer' : 'Yanıtı kopyala'
                 }
-                className="h-8 w-8 p-0 shrink-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                title={
+                  copied
+                    ? isEn ? 'Copied!' : 'Kopyalandı!'
+                    : isEn ? 'Copy answer' : 'Yanıtı kopyala'
+                }
+                className={`h-7 w-7 flex items-center justify-center rounded-md transition-all duration-150 ${
+                  copied
+                    ? 'text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40'
+                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
               >
-                {audioState === 'loading' ? (
-                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : audioState === 'playing' ? (
-                  <Pause className="w-4 h-4" />
-                ) : audioState === 'error' ? (
-                  <VolumeX className="w-4 h-4 text-red-500" />
+                {copied ? (
+                  <Check className="w-3.5 h-3.5" />
                 ) : (
-                  <Volume2 className="w-4 h-4" />
+                  <Copy className="w-3.5 h-3.5" />
                 )}
-              </Button>
-            )}
+              </button>
+
+              {/* Audio button */}
+              {onPlayAudio && (
+                <button
+                  type="button"
+                  onClick={
+                    audioState === 'playing' ? handlePauseAudio : handlePlayAudio
+                  }
+                  disabled={audioState === 'loading'}
+                  aria-label={
+                    audioState === 'playing'
+                      ? isEn ? 'Pause audio' : 'Duraklat'
+                      : isEn ? 'Listen to answer' : 'Cevabı dinle'
+                  }
+                  title={
+                    audioState === 'playing'
+                      ? isEn ? 'Pause' : 'Duraklat'
+                      : isEn ? 'Listen' : 'Dinle'
+                  }
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                >
+                  {audioState === 'loading' ? (
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : audioState === 'playing' ? (
+                    <Pause className="w-3.5 h-3.5" />
+                  ) : audioState === 'error' ? (
+                    <VolumeX className="w-3.5 h-3.5 text-red-500" />
+                  ) : (
+                    <Volume2 className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Markdown renderer ─────────────────────────────
+              LLM yanıtlarındaki **bold**, *italic*, listeler,
+              kod blokları, başlıklar vs. düzgün render edilsin. */}
+          <div className="markdown-body text-[15px] leading-relaxed text-slate-900 dark:text-slate-100">
+                <ReactMarkdown
+                  components={{
+                    // ─── Paragraf
+                    p: ({ children }) => (
+                      <p className="mb-3 last:mb-0 leading-relaxed">
+                        {children}
+                      </p>
+                    ),
+                    // ─── Başlıklar — hiyerarşi sıkı tracking'le
+                    h1: ({ children }) => (
+                      <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 tracking-tight text-slate-900 dark:text-slate-100">
+                        {children}
+                      </h2>
+                    ),
+                    h2: ({ children }) => (
+                      <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0 tracking-tight text-slate-900 dark:text-slate-100">
+                        {children}
+                      </h3>
+                    ),
+                    h3: ({ children }) => (
+                      <h4 className="text-[15px] font-semibold mb-2 mt-3 first:mt-0 text-slate-900 dark:text-slate-100">
+                        {children}
+                      </h4>
+                    ),
+                    // ─── Bullet list
+                    ul: ({ children }) => (
+                      <ul className="mb-3 last:mb-0 space-y-1 pl-0">
+                        {children}
+                      </ul>
+                    ),
+                    // ─── Numbered list
+                    ol: ({ children }) => (
+                      <ol className="mb-3 last:mb-0 space-y-1 pl-0 list-none counter-reset-[item]">
+                        {children}
+                      </ol>
+                    ),
+                    // ─── List item — custom bullet ile
+                    li: ({ children, ...props }) => {
+                      const isOrdered = (props as any).ordered;
+                      return (
+                        <li className="flex items-start gap-2 text-[15px]">
+                          <span
+                            className="mt-[0.35em] shrink-0 text-slate-400 dark:text-slate-500 select-none"
+                            aria-hidden="true"
+                          >
+                            {isOrdered ? '›' : '·'}
+                          </span>
+                          <span className="flex-1">{children}</span>
+                        </li>
+                      );
+                    },
+                    // ─── Inline code
+                    code: ({ inline, children, ...props }: any) =>
+                      inline ? (
+                        <code className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                          {children}
+                        </code>
+                      ) : (
+                        <code
+                          className="block px-4 py-3 rounded-lg text-[13px] font-mono bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 overflow-x-auto leading-relaxed"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      ),
+                    // ─── Code block wrapper
+                    pre: ({ children }) => (
+                      <pre className="mb-3 last:mb-0 rounded-lg overflow-hidden">
+                        {children}
+                      </pre>
+                    ),
+                    // ─── Blockquote — önemli notlar için
+                    blockquote: ({ children }) => (
+                      <blockquote className="pl-4 border-l-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 italic mb-3 last:mb-0">
+                        {children}
+                      </blockquote>
+                    ),
+                    // ─── Bold
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-slate-900 dark:text-slate-100">
+                        {children}
+                      </strong>
+                    ),
+                    // ─── Italic
+                    em: ({ children }) => (
+                      <em className="italic text-slate-700 dark:text-slate-300">
+                        {children}
+                      </em>
+                    ),
+                    // ─── Link — dışarı açılan
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-900 dark:text-slate-100 underline underline-offset-2 decoration-slate-300 dark:decoration-slate-600 hover:decoration-slate-600 dark:hover:decoration-slate-300 transition-colors"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    // ─── Yatay çizgi — bölüm ayırıcı
+                    hr: () => (
+                      <hr className="my-4 border-slate-200 dark:border-slate-800" />
+                    ),
+                    // ─── Tablo — havayolu politikalarında sık görünür
+                    table: ({ children }) => (
+                      <div className="mb-3 last:mb-0 overflow-x-auto">
+                        <table className="w-full text-sm border-collapse">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="border-b border-slate-200 dark:border-slate-800">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-3 py-2 text-[14px] border-b border-slate-100 dark:border-slate-800/50">
+                        {children}
+                      </td>
+                    ),
+                    tr: ({ children }) => (
+                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        {children}
+                      </tr>
+                    ),
+                  }}
+                >
+                  {message.answer}
+                </ReactMarkdown>
           </div>
 
           {/* Audio player expanded panel — sadece aktifken */}
