@@ -1,341 +1,428 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { VoiceRecordingState } from '@/types';
 
+// ✅ Voice activity sabitleri — TEK YERDE tanımlı.
+// VoiceInput.tsx artık kendi sabitlerini kullanmıyor.
+const SILENCE_THRESHOLD = 0.01;
+const SILENCE_DURATION_MS = 2000;
+const MIN_RECORDING_TIME_MS = 1000;
+const MAX_RECORDING_TIME_MS = 30000;
+const VOLUME_HISTORY_SIZE = 5;
+
+// Production'da gereksiz log gürültüsünü kes; hataları her zaman göster.
+const log = import.meta.env.DEV ? console.log : () => {};
+const logError = console.error;
+
+type StopReason = 'silence' | 'max_time';
+
 export const useVoiceRecording = (language: 'en' | 'tr' = 'en') => {
   const [state, setState] = useState<VoiceRecordingState>({
     isRecording: false,
     isProcessing: false,
     transcript: '',
-    volume: 0
+    volume: 0,
+    silenceDetected: false,
+    recordingDuration: 0,
   });
+
+  // ─── Refs ──────────────────────────────────────────────────────────────
+  // Stale closure problemini çözen kritik ref:
+  // requestAnimationFrame döngüsünde state.isRecording güncel olmadığı için
+  // döngüyü sürdürüp sürdürmeyeceğimize bu ref üzerinden karar veriyoruz.
+  const isRecordingRef = useRef(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const volumeAnalyzerRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>();
-  
-  // ✅ NEW: Enhanced volume detection refs
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const lastVolumeUpdateRef = useRef<number>(0);
+  const animationFrameRef = useRef<number | null>(null);
   const volumeHistoryRef = useRef<number[]>([]);
-  
-  // ✅ NEW: Auto-stop functionality refs
   const silenceStartTimeRef = useRef<number | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
 
-  // ✅ ENHANCED: Better volume calculation using time domain data
-  const updateVolume = useCallback(() => {
-    if (!volumeAnalyzerRef.current) return;
+  // stopRecording'i updateVolume içinden çağırırken closure yakalamasını
+  // engellemek için ref üzerinden çağırıyoruz. Her render'da güncellenir.
+  const stopRecordingRef = useRef<(reason?: StopReason) => void>(() => {});
 
-    // Use time domain data for more accurate voice activity detection
-    const dataArray = new Uint8Array(volumeAnalyzerRef.current.fftSize);
-    volumeAnalyzerRef.current.getByteTimeDomainData(dataArray);
-    
-    // Calculate RMS (Root Mean Square) for better volume representation
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      const sample = (dataArray[i] - 128) / 128; // Normalize to -1 to 1
-      sum += sample * sample;
+  // ─── Cleanup ──────────────────────────────────────────────────────────
+  const cleanupAudioResources = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
-    const rms = Math.sqrt(sum / dataArray.length);
-    
-    // Apply smoothing and convert to 0-1 range
-    const currentVolume = Math.min(1, rms * 10); // Amplify and cap at 1
-    
-    // ✅ NEW: Volume smoothing with history
-    volumeHistoryRef.current.push(currentVolume);
-    if (volumeHistoryRef.current.length > 5) {
-      volumeHistoryRef.current.shift();
+
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => {
+        // AudioContext zaten kapalıysa fırlatan hatayı yutuyoruz
+      });
+      audioContextRef.current = null;
     }
-    
-    const smoothedVolume = volumeHistoryRef.current.reduce((a, b) => a + b, 0) / volumeHistoryRef.current.length;
-    
-    setState(prev => ({ ...prev, volume: smoothedVolume }));
-    lastVolumeUpdateRef.current = Date.now();
-    
-    // ✅ NEW: Auto-stop logic based on silence detection
-    const SILENCE_THRESHOLD = 0.01;
-    const SILENCE_DURATION = 2000; // 2 seconds
-    const MIN_RECORDING_TIME = 1000; // 1 second minimum
-    const MAX_RECORDING_TIME = 30000; // 30 seconds maximum
-    
-    const recordingDuration = Date.now() - recordingStartTimeRef.current;
-    
-    // Check for maximum recording time
-    if (recordingDuration > MAX_RECORDING_TIME) {
-      console.log('📢 Voice Hook: Max recording time reached, stopping...');
-      stopRecording();
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    analyserRef.current = null;
+    volumeHistoryRef.current = [];
+    silenceStartTimeRef.current = null;
+  }, []);
+
+  // ─── Volume monitoring & silence detection ────────────────────────────
+  // useCallback DEĞİL — her rerender'da yeniden yaratılsın istemiyoruz,
+  // ref'ler üzerinden çalıştığı için stabil bir fonksiyon yeterli.
+  const updateVolume = () => {
+    if (!isRecordingRef.current || !analyserRef.current) {
       return;
     }
-    
-    // Only check silence after minimum recording time
-    if (recordingDuration > MIN_RECORDING_TIME) {
+
+    // Time-domain data ile RMS hesapla — voice activity için frequency
+    // data'sından daha doğru sonuç veriyor.
+    const dataArray = new Uint8Array(analyserRef.current.fftSize);
+    analyserRef.current.getByteTimeDomainData(dataArray);
+
+    let sumSquares = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const sample = (dataArray[i] - 128) / 128;
+      sumSquares += sample * sample;
+    }
+    const rms = Math.sqrt(sumSquares / dataArray.length);
+    const instantVolume = Math.min(1, rms * 10);
+
+    // Sliding window smoothing — 5 frame ortalaması
+    volumeHistoryRef.current.push(instantVolume);
+    if (volumeHistoryRef.current.length > VOLUME_HISTORY_SIZE) {
+      volumeHistoryRef.current.shift();
+    }
+    const smoothedVolume =
+      volumeHistoryRef.current.reduce((a, b) => a + b, 0) /
+      volumeHistoryRef.current.length;
+
+    const now = Date.now();
+    const recordingDuration = now - recordingStartTimeRef.current;
+
+    // Silence detection (sadece min süre geçtikten sonra)
+    let silenceDetected = false;
+    if (recordingDuration > MIN_RECORDING_TIME_MS) {
       if (smoothedVolume < SILENCE_THRESHOLD) {
         if (silenceStartTimeRef.current === null) {
-          silenceStartTimeRef.current = Date.now();
-          console.log('🔇 Voice Hook: Silence started');
-        } else {
-          const silenceDuration = Date.now() - silenceStartTimeRef.current;
-          if (silenceDuration >= SILENCE_DURATION) {
-            console.log('⏹️ Voice Hook: Silence duration exceeded, auto-stopping...');
-            stopRecording();
-            return;
-          }
+          silenceStartTimeRef.current = now;
+          log('🔇 Voice Hook: Silence started');
         }
-      } else {
-        // Voice detected, reset silence timer
-        if (silenceStartTimeRef.current !== null) {
-          console.log('🔊 Voice Hook: Voice detected, resetting silence timer');
-          silenceStartTimeRef.current = null;
+        silenceDetected = true;
+
+        const silenceDuration = now - silenceStartTimeRef.current;
+        if (silenceDuration >= SILENCE_DURATION_MS) {
+          log('⏹️ Voice Hook: Silence threshold reached, auto-stopping');
+          stopRecordingRef.current('silence');
+          return;
         }
+      } else if (silenceStartTimeRef.current !== null) {
+        log('🔊 Voice Hook: Voice detected, resetting silence timer');
+        silenceStartTimeRef.current = null;
       }
     }
-    
-    if (state.isRecording) {
-      animationFrameRef.current = requestAnimationFrame(updateVolume);
-    }
-  }, [state.isRecording]);
 
-  const startRecording = useCallback(async () => {
+    // Max recording time guard
+    if (recordingDuration > MAX_RECORDING_TIME_MS) {
+      log('📢 Voice Hook: Max recording time reached');
+      stopRecordingRef.current('max_time');
+      return;
+    }
+
+    // Gereksiz re-render'dan kaçınmak için anlamlı değişiklikler olmadıkça
+    // setState çağırma. 60fps'de her frame setState absurd olur.
+    setState((prev) => {
+      const volumeDelta = Math.abs(prev.volume - smoothedVolume);
+      const durationDelta = Math.abs(prev.recordingDuration - recordingDuration);
+      const silenceChanged = prev.silenceDetected !== silenceDetected;
+
+      if (volumeDelta < 0.01 && durationDelta < 100 && !silenceChanged) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        volume: smoothedVolume,
+        silenceDetected,
+        recordingDuration,
+      };
+    });
+
+    animationFrameRef.current = requestAnimationFrame(updateVolume);
+  };
+
+  // ─── STT (speech-to-text) ─────────────────────────────────────────────
+  const processAudio = useCallback(
+    async (audioBlob: Blob) => {
+      log('🔄 Voice Hook: Processing audio blob...', audioBlob.size, 'bytes');
+
+      try {
+        if (audioBlob.size === 0) {
+          throw new Error('Audio blob is empty');
+        }
+
+        // Circular import'u önlemek için dinamik import
+        const { apiService } = await import('@/services/api');
+        const transcript = await apiService.convertSpeechToText(
+          audioBlob,
+          language,
+        );
+
+        if (transcript && transcript.trim().length > 0) {
+          log('✅ Voice Hook: Transcript received');
+          setState((prev) => ({
+            ...prev,
+            isProcessing: false,
+            transcript: transcript.trim(),
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isProcessing: false,
+            error:
+              language === 'en'
+                ? 'No speech detected. Please try speaking louder.'
+                : 'Konuşma algılanamadı. Lütfen daha yüksek sesle konuşun.',
+          }));
+        }
+      } catch (error) {
+        logError('❌ Voice Hook: Processing error:', error);
+        setState((prev) => ({
+          ...prev,
+          isProcessing: false,
+          error:
+            language === 'en'
+              ? 'Failed to process audio. Please try again.'
+              : 'Ses işlenemedi. Lütfen tekrar deneyin.',
+        }));
+      }
+    },
+    [language],
+  );
+
+  // ─── Stop ─────────────────────────────────────────────────────────────
+  const stopRecording = useCallback((reason?: StopReason) => {
+    if (!isRecordingRef.current) {
+      log('Voice Hook: stopRecording called but not recording, ignoring');
+      return;
+    }
+
+    log('🛑 Voice Hook: Stopping recording, reason:', reason || 'manual');
+
+    // Ref'i hemen false yap ki updateVolume döngüsü bir sonraki frame'de
+    // kendini durdursun.
+    isRecordingRef.current = false;
+
     try {
-      console.log('🎤 Voice Hook: Starting recording...');
-      setState(prev => ({ ...prev, error: undefined }));
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== 'inactive'
+      ) {
+        // onstop handler processAudio'yu tetikleyecek
+        mediaRecorderRef.current.stop();
+      }
+    } catch (err) {
+      logError('Voice Hook: MediaRecorder stop error:', err);
+    }
+
+    setState((prev) => ({
+      ...prev,
+      isRecording: false,
+      isProcessing: true,
+      silenceDetected: false,
+      autoStoppedReason: reason,
+    }));
+
+    cleanupAudioResources();
+  }, [cleanupAudioResources]);
+
+  // Her render'da ref'i güncelle — updateVolume güncel closure'ı çağırabilsin
+  stopRecordingRef.current = stopRecording;
+
+  // ─── Start ────────────────────────────────────────────────────────────
+  const startRecording = useCallback(async () => {
+    if (isRecordingRef.current) {
+      log('Voice Hook: Already recording, ignoring start');
+      return;
+    }
+
+    try {
+      log('🎤 Voice Hook: Starting recording...');
+
+      // Önceki bir hatayı veya otomatik durdurma nedenini temizle
+      setState((prev) => ({
+        ...prev,
+        error: undefined,
+        transcript: '',
+        autoStoppedReason: undefined,
+      }));
+
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true, // ✅ NEW: Better audio quality
-          sampleRate: 44100
-        } 
+          autoGainControl: true,
+          sampleRate: 44100,
+        },
       });
-      
+
       streamRef.current = stream;
       recordingStartTimeRef.current = Date.now();
       silenceStartTimeRef.current = null;
       volumeHistoryRef.current = [];
 
-      // ✅ ENHANCED: Better audio context setup
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      
+      // AudioContext setup
       const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
-      
+
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
-      
-      // ✅ ENHANCED: Better analyzer settings for voice detection
-      analyser.fftSize = 1024; // Higher resolution for better voice detection
-      analyser.smoothingTimeConstant = 0.3; // Less smoothing for more responsive detection
-      
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.3;
       source.connect(analyser);
-      volumeAnalyzerRef.current = analyser;
+      analyserRef.current = analyser;
 
-      // Start volume monitoring
-      updateVolume();
+      // MediaRecorder setup — tarayıcı uyumluluğu için MIME type fallback
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+            ? 'audio/mp4'
+            : '';
 
-      // ✅ ENHANCED: Better MediaRecorder setup
-      const options: MediaRecorderOptions = {};
-      
-      // Try different MIME types for better compatibility
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        options.mimeType = 'audio/webm;codecs=opus';
-      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        options.mimeType = 'audio/webm';
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        options.mimeType = 'audio/mp4';
-      }
-      
-      const mediaRecorder = new MediaRecorder(stream, options);
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log(`📦 Voice Hook: Audio chunk received: ${event.data.size} bytes`);
         }
       };
 
       mediaRecorder.onstop = () => {
-        console.log('🛑 Voice Hook: MediaRecorder stopped, processing audio...');
-        const audioBlob = new Blob(audioChunksRef.current, { 
-          type: options.mimeType || 'audio/webm' 
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType || 'audio/webm',
         });
-        console.log(`📦 Voice Hook: Final audio blob: ${audioBlob.size} bytes`);
-        processAudio(audioBlob);
+        if (audioBlob.size > 0) {
+          processAudio(audioBlob);
+        } else {
+          setState((prev) => ({
+            ...prev,
+            isProcessing: false,
+            error:
+              language === 'en'
+                ? 'No audio data captured'
+                : 'Ses verisi yakalanamadı',
+          }));
+        }
       };
 
       mediaRecorder.onerror = (event) => {
-        console.error('❌ Voice Hook: MediaRecorder error:', event);
-        setState(prev => ({ 
-          ...prev, 
+        logError('❌ Voice Hook: MediaRecorder error:', event);
+        isRecordingRef.current = false;
+        cleanupAudioResources();
+        setState((prev) => ({
+          ...prev,
           error: 'Recording error occurred',
-          isRecording: false 
+          isRecording: false,
         }));
       };
 
-      // ✅ NEW: Record in smaller chunks for better processing
-      mediaRecorder.start(1000); // 1 second chunks
-      setState(prev => ({ ...prev, isRecording: true }));
-      
-      console.log('✅ Voice Hook: Recording started successfully');
-      
+      mediaRecorder.start(1000);
+
+      // ÖNEMLİ: ref'i state'ten önce set ediyoruz ki updateVolume'un ilk
+      // frame'i isRecordingRef.current === true görsün ve döngüyü sürdürsün.
+      isRecordingRef.current = true;
+
+      setState((prev) => ({
+        ...prev,
+        isRecording: true,
+        volume: 0,
+        silenceDetected: false,
+        recordingDuration: 0,
+      }));
+
+      updateVolume();
+
+      log('✅ Voice Hook: Recording started');
     } catch (error) {
-      console.error('❌ Voice Hook: Failed to start recording:', error);
-      setState(prev => ({ 
-        ...prev, 
-        error: 'Microphone access denied or unavailable',
-        isRecording: false 
+      logError('❌ Voice Hook: Failed to start recording:', error);
+      isRecordingRef.current = false;
+      cleanupAudioResources();
+      setState((prev) => ({
+        ...prev,
+        error:
+          language === 'en'
+            ? 'Microphone access denied or unavailable'
+            : 'Mikrofon erişimi reddedildi veya kullanılamıyor',
+        isRecording: false,
       }));
     }
-  }, [updateVolume]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, processAudio, cleanupAudioResources]);
 
-  const stopRecording = useCallback(() => {
-    console.log('🛑 Voice Hook: Stopping recording...');
-    
-    if (mediaRecorderRef.current && state.isRecording) {
-      mediaRecorderRef.current.stop();
-      setState(prev => ({ ...prev, isRecording: false, isProcessing: true }));
-      
-      // Stop volume monitoring
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      
-      // ✅ ENHANCED: Proper cleanup
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-      
-      // Stop media stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log('🔇 Voice Hook: Audio track stopped');
-        });
-        streamRef.current = null;
-      }
-      
-      // Reset timers
-      silenceStartTimeRef.current = null;
-      volumeHistoryRef.current = [];
-      
-      console.log('✅ Voice Hook: Recording stopped successfully');
-    }
-  }, [state.isRecording]);
-
-  // ✅ ENHANCED: Better audio processing with more error handling
-  const processAudio = useCallback(async (audioBlob: Blob) => {
-    console.log('🔄 Voice Hook: Processing audio blob...');
-    
-    try {
-      if (audioBlob.size === 0) {
-        throw new Error('Audio blob is empty');
-      }
-      
-      // Use the API service for speech-to-text conversion
-      const { apiService } = await import('@/services/api');
-      console.log('📡 Voice Hook: Calling STT API...');
-      
-      const transcript = await apiService.convertSpeechToText(audioBlob, language);
-      
-      if (transcript && transcript.trim().length > 0) {
-        console.log('✅ Voice Hook: Transcript received:', transcript.substring(0, 50) + '...');
-        setState(prev => ({ 
-          ...prev, 
-          isProcessing: false,
-          transcript: transcript.trim()
-        }));
-      } else {
-        console.log('⚠️ Voice Hook: No transcript received');
-        setState(prev => ({ 
-          ...prev, 
-          isProcessing: false,
-          error: language === 'en' ? 
-            'No speech detected. Please try speaking louder.' :
-            'Konuşma algılanamadı. Lütfen daha yüksek sesle konuşun.'
-        }));
-      }
-      
-    } catch (error) {
-      console.error('❌ Voice Hook: Processing error:', error);
-      setState(prev => ({ 
-        ...prev, 
-        isProcessing: false,
-        error: language === 'en' ? 
-          'Failed to process audio. Please try again.' :
-          'Ses işlenemedi. Lütfen tekrar deneyin.'
-      }));
-    }
-  }, [language]);
-
+  // ─── Reset ────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
-    console.log('🔄 Voice Hook: Resetting...');
-    
+    log('🔄 Voice Hook: Resetting');
+
+    if (isRecordingRef.current) {
+      isRecordingRef.current = false;
+      try {
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state !== 'inactive'
+        ) {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    cleanupAudioResources();
+    recordingStartTimeRef.current = 0;
+
     setState({
       isRecording: false,
       isProcessing: false,
       transcript: '',
-      volume: 0
+      volume: 0,
+      silenceDetected: false,
+      recordingDuration: 0,
     });
-    
-    // Clean up any ongoing recording
-    if (mediaRecorderRef.current && state.isRecording) {
-      mediaRecorderRef.current.stop();
-    }
-    
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
-    }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    // Reset refs
-    silenceStartTimeRef.current = null;
-    volumeHistoryRef.current = [];
-    recordingStartTimeRef.current = 0;
-    
-    console.log('✅ Voice Hook: Reset completed');
-  }, [state.isRecording]);
+  }, [cleanupAudioResources]);
 
-  // ✅ ENHANCED: Better cleanup on unmount
+  // ─── Unmount cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      console.log('🧹 Voice Hook: Cleaning up on unmount...');
-      
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      log('🧹 Voice Hook: Cleaning up on unmount');
+      isRecordingRef.current = false;
+      try {
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state === 'recording'
+        ) {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        // ignore
       }
-      
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-      
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
+      cleanupAudioResources();
     };
-  }, []);
+  }, [cleanupAudioResources]);
 
   return {
     ...state,
     startRecording,
-    stopRecording,
-    reset
+    // Dışarıdan manuel çağrı için reason argümanını expose etmiyoruz
+    stopRecording: () => stopRecording(),
+    reset,
   };
 };

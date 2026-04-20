@@ -13,8 +13,8 @@ export interface Message {
   performance?: PerformanceStats;
   airline_preference?: string;
   language: string;
-  cot_enabled?: boolean;   // ✅ Yeni alan
-  reasoning?: string;      // ✅ Yeni alan - CoT düşünme süreci
+  cot_enabled?: boolean;
+  reasoning?: string;
 }
 
 export interface Source {
@@ -60,8 +60,8 @@ export interface APIResponse {
   airline_preference?: string;
   language?: string;
   error?: string;
-  cot_enabled?: boolean;   // ✅ Yeni alan
-  reasoning?: string;      // ✅ Yeni alan
+  cot_enabled?: boolean;
+  reasoning?: string;
 }
 
 export interface APIConnection {
@@ -74,17 +74,23 @@ export interface APIConnection {
 export type Language = 'en' | 'tr';
 export type Provider = 'OpenAI' | 'Claude';
 
-// ✅ "all" seçeneği kaldırıldı - Sadece thy ve pegasus
+// "all" seçeneği kaldırıldı — sadece thy ve pegasus
 export type AirlinePreference = 'thy' | 'pegasus';
 
 export type FeedbackType = 'helpful' | 'not_helpful' | 'too_slow' | 'incorrect';
 
+// ✅ GÜNCELLENDİ: Silence detection, duration ve auto-stop nedeni
+// artık hook tarafından expose ediliyor. VoiceInput component'i
+// bunları duplicate etmek yerine tüketiyor.
 export interface VoiceRecordingState {
   isRecording: boolean;
   isProcessing: boolean;
   transcript: string;
   error?: string;
-  volume?: number;
+  volume: number;
+  silenceDetected: boolean;
+  recordingDuration: number; // milisaniye
+  autoStoppedReason?: 'silence' | 'max_time';
 }
 
 export interface SessionStats {
