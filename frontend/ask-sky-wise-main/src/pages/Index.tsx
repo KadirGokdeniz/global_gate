@@ -5,6 +5,7 @@ import { usePersistedMessages } from '@/hooks/usePersistedMessages';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { SearchBox } from '@/components/SearchBox';
 import { ResponseCard } from '@/components/ResponseCard';
+import { SkeletonCard } from '@/components/SkeletonCard';
 import { AirlineSelector } from '@/components/AirlineSelector';
 import { QuickQuestions } from '@/components/QuickQuestions';
 import { SettingsPanel } from '@/components/SettingsPanel';
@@ -80,6 +81,7 @@ const Index = () => {
   >('airline-assistant:feedback', {}, isValidFeedback);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState('');
   const [apiConnection, setApiConnection] = useState<APIConnection>({
     success: false,
   });
@@ -333,7 +335,9 @@ const Index = () => {
 
   const handleSearch = useCallback(
     async (question: string) => {
+      setCurrentQuestion(question);
       await handleSendMessage(question, provider, model, selectedAirline);
+      setCurrentQuestion('');
     },
     [handleSendMessage, provider, model, selectedAirline],
   );
@@ -484,13 +488,25 @@ const Index = () => {
               />
             </div>
 
-            {/* Quick Questions */}
-            <div className="w-full max-w-4xl">
-              <QuickQuestions
-                language={language}
-                onQuestionSelect={handleSearch}
-              />
-            </div>
+            {/* Quick Questions — skeleton varken gizle */}
+            {!isLoading && (
+              <div className="w-full max-w-4xl">
+                <QuickQuestions
+                  language={language}
+                  onQuestionSelect={handleSearch}
+                />
+              </div>
+            )}
+
+            {/* Landing'de skeleton — ilk soru gönderildi ama mesaj listesi henüz boş */}
+            {isLoading && currentQuestion && (
+              <div className="w-full max-w-3xl">
+                <SkeletonCard
+                  language={language}
+                  question={currentQuestion}
+                />
+              </div>
+            )}
           </div>
         ) : (
           /* ─── Results Page ──────────────────────────────────────── */
@@ -531,6 +547,14 @@ const Index = () => {
 
             {/* Messages */}
             <div className="space-y-6">
+              {/* Loading skeleton — sadece yüklenirken, listenin BAŞINDA */}
+              {isLoading && currentQuestion && (
+                <SkeletonCard
+                  language={language}
+                  question={currentQuestion}
+                />
+              )}
+
               {reversedMessages.map((message, index) => (
                 <div
                   key={message.id}
