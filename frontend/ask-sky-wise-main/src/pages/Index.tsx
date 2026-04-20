@@ -421,7 +421,7 @@ const Index = () => {
                   </Button>
                 </SheetTrigger>
                 <SheetOverlay className="bg-slate-900/40 backdrop-blur-sm" />
-                <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-y-auto">
+                <SheetContent className="w-[88%] sm:max-w-md md:max-w-lg p-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-y-auto [&>button]:hidden">
                   <SettingsPanel
                     language={language}
                     t={t}
@@ -435,6 +435,7 @@ const Index = () => {
                     sessionStats={sessionStats}
                     onReconnect={handleReconnect}
                     onClearHistory={handleClearHistory}
+                    onClose={() => setSettingsOpen(false)}
                   />
                 </SheetContent>
               </Sheet>

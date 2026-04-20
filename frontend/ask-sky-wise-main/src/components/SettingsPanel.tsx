@@ -15,6 +15,7 @@ import {
   Plane,
   Cpu,
   BarChart3,
+  X,
 } from 'lucide-react';
 import { ReactNode } from 'react';
 import {
@@ -86,6 +87,7 @@ interface SettingsPanelProps {
   sessionStats: SessionStats;
   onReconnect: () => void;
   onClearHistory: () => void;
+  onClose?: () => void;   // Sheet'i kapatmak için — mobilde kritik
 }
 
 const MODEL_OPTIONS: Record<Provider, string[]> = {
@@ -109,6 +111,7 @@ export const SettingsPanel = ({
   sessionStats,
   onReconnect,
   onClearHistory,
+  onClose,
 }: SettingsPanelProps) => {
   const isEn = language === 'en';
 
@@ -148,16 +151,32 @@ export const SettingsPanel = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* ─── Header ──────────────────────────────────────────────── */}
-      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-10">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          {isEn ? 'Settings' : 'Ayarlar'}
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          {isEn
-            ? 'Configure your assistant preferences'
-            : 'Asistan tercihlerinizi yapılandırın'}
-        </p>
+      {/* ─── Header — sticky, close button ile ─────────────────────
+          Mobilde kritik: kullanıcının "çıkış yolu" net görünmeli.
+          Close button 44x44px (Apple/Google HIG minimum tap target). */}
+      <div className="px-5 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 sticky top-0 z-10 flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+            {isEn ? 'Settings' : 'Ayarlar'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {isEn
+              ? 'Configure your assistant preferences'
+              : 'Asistan tercihlerinizi yapılandırın'}
+          </p>
+        </div>
+
+        {/* Close button — büyük tap target (44x44px mobilde) */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={isEn ? 'Close settings' : 'Ayarları kapat'}
+            className="shrink-0 h-11 w-11 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors -mr-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* ─── Body ────────────────────────────────────────────────── */}
