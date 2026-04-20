@@ -4,66 +4,65 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    Airline Policy Assistant — Design System
-   Sakin, enterprise tarzı tasarım. Klişe AI app görselleri (pulsing
-   blur'lar, her şey gradient) yerine solid renkler ve ince border'lar.
+   Linear/Stripe/Arc tarzı premium sakınlık. Detaylar:
+   - Muted palette: saf siyah/beyaz yerine yumuşak tonlar
+   - Tighter letter-spacing başlıklarda
+   - Layered shadows (tek büyük yerine 3 ince)
+   - Custom easing curves ile akıcı etkileşimler
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* Surface */
-    --background: 210 20% 98%;       /* slate-50 */
-    --foreground: 222 47% 11%;       /* slate-900 */
+    /* ─── Surface — saf beyaz DEĞİL, çok hafif off-white ──────────
+       Pure white göze sert gelir. %98 açıklık premium standart. */
+    --background: 0 0% 99%;
+    --foreground: 222 20% 11%;          /* slate-900'dan biraz yumuşak */
 
-    /* Card system — artık tek tip; glass efekti minimalize */
+    /* ─── Card — düz beyaz, background'dan ayrışsın ──────────── */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 20% 11%;
 
-    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 222 20% 11%;
 
-    /* Primary — neutral slate, klişe mor/mavi değil */
-    --primary: 222 47% 11%;          /* slate-900 */
+    /* ─── Primary — pure siyah değil, hafif mavi tonlu siyah ───
+       Mavi tonu dijital ürünlerde "teknik" ama "sıcak" hissi verir. */
+    --primary: 222 25% 13%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 222 47% 18%;
+    --primary-hover: 222 25% 20%;
 
-    /* Secondary */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96.5%;
+    --secondary-foreground: 222 20% 11%;
 
-    /* Muted */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* ─── Muted text — eski slate-500'den biraz daha soluk ─── */
+    --muted: 210 40% 96.5%;
+    --muted-foreground: 215 14% 50%;
 
-    /* Accent — hafif vurgu için, aşırı parlak değil */
-    --accent: 222 47% 11%;
+    --accent: 222 25% 13%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders & inputs */
-    --border: 214 32% 91%;           /* slate-200 */
-    --input: 214 32% 91%;
-    --ring: 222 47% 11%;
+    /* ─── Border — neredeyse görünmez, kağıt kenarı gibi ────── */
+    --border: 214 25% 91%;
+    --input: 214 25% 91%;
+    --ring: 222 25% 13%;
 
-    /* Voice/status — korundu, component'ler hâlâ kullanabiliyor */
-    --voice-primary: 222 47% 11%;
-    --voice-secondary: 215 16% 47%;
-    --voice-active: 142 76% 36%;     /* emerald-600 */
-    --voice-inactive: 215 20% 65%;
+    /* Voice colors */
+    --voice-primary: 222 25% 13%;
+    --voice-secondary: 215 14% 50%;
+    --voice-active: 142 72% 36%;
+    --voice-inactive: 215 16% 65%;
 
-    --status-success: 142 76% 36%;
+    --status-success: 142 72% 36%;
     --status-warning: 38 92% 50%;
     --status-error: 0 72% 51%;
-    --status-info: 222 47% 11%;
+    --status-info: 222 25% 13%;
 
-    /* Radius — component'lerle uyumlu kalsın */
-    --radius: 0.5rem;                /* 8px — daha az "yumuşak", daha enterprise */
+    --radius: 0.5rem;
     --radius-large: 0.75rem;
 
-    /* Sidebar (shadcn default'ı) */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 26%;
     --sidebar-primary: 240 6% 10%;
@@ -73,38 +72,59 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 91% 60%;
 
-    /* Typography */
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
+
+    /* ─── Shadow sistemi — layered, mavi tonlu siyah ──────────
+       Tek büyük shadow yerine 3 ince katman. Arc/Linear pattern'i. */
+    --shadow-xs:
+      0 1px 2px 0 hsl(220 40% 4% / 0.04);
+    --shadow-sm:
+      0 1px 2px 0 hsl(220 40% 4% / 0.04),
+      0 2px 4px 0 hsl(220 40% 4% / 0.02);
+    --shadow-md:
+      0 1px 2px 0 hsl(220 40% 4% / 0.04),
+      0 2px 4px 0 hsl(220 40% 4% / 0.03),
+      0 4px 8px 0 hsl(220 40% 4% / 0.03);
+    --shadow-lg:
+      0 2px 4px 0 hsl(220 40% 4% / 0.04),
+      0 4px 8px 0 hsl(220 40% 4% / 0.04),
+      0 8px 16px 0 hsl(220 40% 4% / 0.04);
+
+    /* ─── Easing curves — premium etkileşimler ───────────────
+       Default 'ease' ucuz hissedilir. Bunlar özenle seçilmiş. */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .dark {
-    --background: 222 47% 5%;         /* slate-950 */
-    --foreground: 210 40% 98%;
+    --background: 222 30% 6%;
+    --foreground: 210 30% 96%;
 
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 25% 8%;
+    --card-foreground: 210 30% 96%;
 
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 25% 8%;
+    --popover-foreground: 210 30% 96%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 210 30% 96%;
+    --primary-foreground: 222 25% 13%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 25% 15%;
+    --secondary-foreground: 210 30% 96%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 217 25% 15%;
+    --muted-foreground: 215 16% 62%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 25% 15%;
+    --accent-foreground: 210 30% 96%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 210 30% 96%;
 
-    --border: 217 33% 17%;            /* slate-800 */
-    --input: 217 33% 17%;
+    --border: 217 20% 18%;
+    --input: 217 20% 18%;
     --ring: 212 27% 84%;
 
     --sidebar-background: 240 6% 10%;
@@ -125,34 +145,91 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
-    /* Solid arka plan — eskiden 135deg gradient vardı, kaldırıldı */
     min-height: 100vh;
+    /* ─── Font feature settings — premium typography ─────────
+       ss01: stylistic alternate (Inter'da daha modern 'a', 'g')
+       cv11: variant one-story 'a' (daha okunaklı)
+       OpenType features premium markaların imza detayı. */
+    font-feature-settings: 'ss01', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Focus ring — daha kontrollü, erişilebilir */
+  /* ─── Typography defaults — subtle ama etkili ─────────────── */
+  h1, h2, h3, h4, h5, h6 {
+    /* Tight tracking büyük başlıklarda premium hissi verir */
+    letter-spacing: -0.02em;
+  }
+
+  /* Gövde metni relaxed leading — yazma nefesi */
+  p {
+    line-height: 1.6;
+  }
+
+  /* ─── Focus ring — iOS-esque ────────────────────────────── */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply outline-none;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.5);
+    transition: box-shadow 150ms var(--ease-out-quart);
+  }
+
+  /* Input/button focus — daha yumuşak ring */
+  input:focus-visible,
+  button:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring) / 0.4);
+  }
+
+  /* ─── Selection — marka renginde ─────────────────────────── */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.15);
+    color: hsl(var(--primary));
+  }
+
+  /* ─── Scrollbar — minimal, premium markaların imzası ─────── */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.4);
   }
 }
 
 @layer components {
-  /* ─── Card sistemi ──────────────────────────────────────────────
-     glass-card artık "glass" değil — sadece temiz bir card.
-     Eski background (gradient + blur + saydamlık) kaldırıldı,
-     yerine solid background + ince border. */
+  /* ─── Card sistemi ───────────────────────────────────────── */
   .glass-card {
     @apply bg-card border border-border rounded-lg;
-    /* shadow kaldırıldı — enterprise look için border tercih edilir */
+    box-shadow: var(--shadow-sm);
   }
 
-  /* ─── Voice input stilleri ──────────────────────────────────────
-     Korundu ama sakinleştirildi; recording animasyonu daha ince. */
+  /* ─── Voice input animasyonları ─────────────────────────── */
   .voice-pulse {
-    animation: voicePulse 1.5s ease-in-out infinite;
+    animation: voicePulse 1.5s var(--ease-in-out-quart) infinite;
   }
 
   .voice-recording {
-    animation: voiceRecording 1.5s ease-in-out infinite;
+    animation: voiceRecording 1.8s var(--ease-in-out-quart) infinite;
   }
 
   .voice-idle {
@@ -163,8 +240,7 @@
     background: hsl(var(--voice-active));
   }
 
-  /* ─── Status indicators ─────────────────────────────────────────
-     Düz, dashboard tarzı — arkaplan değil sadece renk kullanıyoruz. */
+  /* ─── Status indicators ──────────────────────────────────── */
   .status-success {
     @apply bg-emerald-50 text-emerald-800 border-emerald-200
            dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900;
@@ -185,47 +261,58 @@
            dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800;
   }
 
-  /* ─── Language selector ─────────────────────────────────────────
-     Eski stil LanguageSelector component'te override edildi, bu
-     class artık kullanılmıyor ama başka yerde çağrılırsa diye duruyor. */
-  .language-flag {
-    @apply cursor-pointer p-2 rounded-md transition-colors;
+  /* ─── Interactive surfaces — hover translate + shadow ────
+     Pro detay: hover'da subtle kalkma etkisi. Raycast pattern'i. */
+  .surface-interactive {
+    @apply transition-all duration-200;
+    transition-timing-function: var(--ease-out-quart);
   }
 
-  .language-flag.active {
-    @apply bg-accent text-accent-foreground;
+  .surface-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .surface-interactive:active {
+    transform: translateY(0);
+    transition-duration: 100ms;
+  }
+
+  /* ─── Button press feedback — tıklandığında hafif scale ──
+     iOS haptic hissi. Her button:active otomatik alır. */
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled) {
+    transform: scale(0.98);
+    transition: transform 80ms var(--ease-out-quart);
   }
 }
 
 @layer utilities {
-  /* ─── Keyframes ─────────────────────────────────────────────────
-     Klişe float/gradient-shift/particles animasyonları kaldırıldı.
-     Sadece voice + fade kaldı. */
-
+  /* ─── Keyframes ──────────────────────────────────────────── */
   @keyframes voicePulse {
     0%, 100% {
       transform: scale(1);
       opacity: 1;
     }
     50% {
-      transform: scale(1.05);
-      opacity: 0.9;
+      transform: scale(1.04);
+      opacity: 0.85;
     }
   }
 
   @keyframes voiceRecording {
     0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.4);
+      box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.35);
     }
     50% {
-      box-shadow: 0 0 0 6px hsl(var(--voice-active) / 0);
+      box-shadow: 0 0 0 8px hsl(var(--voice-active) / 0);
     }
   }
 
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(6px);
     }
     to {
       opacity: 1;
@@ -234,24 +321,39 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
+  /* Daha yumuşak animasyon — fade-in-up ease'i premium curve'e çekildi */
   .animate-fade-in-up {
-    animation: fadeInUp 0.4s ease-out;
+    animation: fadeInUp 0.45s var(--ease-out-quart);
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.25s ease-out;
+    animation: fadeIn 0.3s var(--ease-out-quart);
   }
 
-  /* Tabular numerals — stats gibi rakamlar hizalı görünsün */
+  /* ─── Typography utilities ───────────────────────────────── */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Premium başlıklar için — tighter tracking */
+  .tracking-tighter-2 {
+    letter-spacing: -0.025em;
+  }
+
+  /* ─── Shadow utilities — design system'den ────────────── */
+  .shadow-layer-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shadow-layer-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-layer-lg {
+    box-shadow: var(--shadow-lg);
   }
 }
