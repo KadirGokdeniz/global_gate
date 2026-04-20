@@ -1,458 +1,470 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { usePersistedMessages } from '@/hooks/usePersistedMessages';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { SearchBox } from '@/components/SearchBox';
 import { ResponseCard } from '@/components/ResponseCard';
 import { AirlineSelector } from '@/components/AirlineSelector';
 import { QuickQuestions } from '@/components/QuickQuestions';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import { Sheet, SheetContent, SheetTrigger, SheetOverlay } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetOverlay,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Settings, Plane, Brain } from 'lucide-react';
+import { Settings, Plane } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Message, 
-  Language, 
-  Provider, 
-  AirlinePreference, 
-  FeedbackType, 
+import {
+  Message,
+  Provider,
+  AirlinePreference,
+  FeedbackType,
   APIConnection,
-  SessionStats 
+  SessionStats,
 } from '@/types';
 
-// ✅ Her havayolu için ayrı mesaj geçmişi tipi
-type AirlineMessages = {
-  thy: Message[];
-  pegasus: Message[];
+const MODEL_OPTIONS: Record<Provider, string[]> = {
+  OpenAI: ['gpt-3.5-turbo', 'gpt-4o-mini', 'gpt-4'],
+  Claude: [
+    'claude-3-haiku-20240307',
+    'claude-3-5-haiku-20241022',
+    'claude-sonnet-4-20250514',
+  ],
 };
+
+const isValidAirline = (v: unknown): v is AirlinePreference =>
+  v === 'thy' || v === 'pegasus';
+const isValidProvider = (v: unknown): v is Provider =>
+  v === 'OpenAI' || v === 'Claude';
+const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
+const isValidFeedback = (v: unknown): boolean =>
+  typeof v === 'object' && v !== null;
 
 const Index = () => {
   const { language, t, switchLanguage } = useLanguage();
   const { toast } = useToast();
-  
-  // ✅ Her havayolu için ayrı mesaj geçmişi
-  const [airlineMessages, setAirlineMessages] = useState<AirlineMessages>({
-    thy: [],
-    pegasus: []
-  });
-  
+
+  const { messages: airlineMessages, addMessage, clearAirline } =
+    usePersistedMessages();
+
+  const [selectedAirline, setSelectedAirline] =
+    useLocalStorage<AirlinePreference>(
+      'airline-assistant:selected-airline',
+      'thy',
+      isValidAirline,
+    );
+
+  const [provider, setProvider] = useLocalStorage<Provider>(
+    'airline-assistant:provider',
+    'OpenAI',
+    isValidProvider,
+  );
+
+  const [model, setModel] = useLocalStorage<string>(
+    'airline-assistant:model',
+    'gpt-4o-mini',
+  );
+
+  const [enableCoT, setEnableCoT] = useLocalStorage<boolean>(
+    'airline-assistant:cot-enabled',
+    false,
+    isBoolean,
+  );
+
+  const [feedbackGiven, setFeedbackGiven] = useLocalStorage<
+    Record<string, FeedbackType>
+  >('airline-assistant:feedback', {}, isValidFeedback);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [apiConnection, setApiConnection] = useState<APIConnection>({ success: false });
-  const [feedbackGiven, setFeedbackGiven] = useState<Record<string, FeedbackType>>({});
-  const [currentQuestion, setCurrentQuestion] = useState<string>('');
-  const [sessionStats, setSessionStats] = useState<SessionStats>({
-    totalQueries: 0,
-    satisfactionRate: 0,
-    helpfulCount: 0,
-    totalFeedback: 0
+  const [apiConnection, setApiConnection] = useState<APIConnection>({
+    success: false,
   });
-
-  // ✅ Default havayolu artık 'thy' ("all" kaldırıldı)
-  const [selectedAirline, setSelectedAirline] = useState<AirlinePreference>('thy');
-  const [provider, setProvider] = useState<Provider>('OpenAI');
-  const [model, setModel] = useState('gpt-4o-mini');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  
-  // ✅ CoT (Chain of Thought) state
-  const [enableCoT, setEnableCoT] = useState(false);
 
-  // ✅ Seçili havayolunun mesajları
-  const messages = airlineMessages[selectedAirline as 'thy' | 'pegasus'] || [];
+  useEffect(() => {
+    if (!MODEL_OPTIONS[provider].includes(model)) {
+      setModel(MODEL_OPTIONS[provider][0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Initialize API connection
+  const messages = airlineMessages[selectedAirline];
+  const reversedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
+  const sessionStats: SessionStats = useMemo(() => {
+    const totalQueries =
+      airlineMessages.thy.length + airlineMessages.pegasus.length;
+    const feedbackValues = Object.values(feedbackGiven);
+    const totalFeedback = feedbackValues.length;
+    const helpfulCount = feedbackValues.filter((f) => f === 'helpful').length;
+    const satisfactionRate =
+      totalFeedback > 0 ? (helpfulCount / totalFeedback) * 100 : 0;
+    return { totalQueries, satisfactionRate, helpfulCount, totalFeedback };
+  }, [airlineMessages, feedbackGiven]);
+
   useEffect(() => {
     const initializeAPI = async () => {
       const connection = await apiService.findWorkingAPI();
       setApiConnection(connection);
-      
       if (!connection.success) {
         toast({
           title: t('apiFailed'),
           description: connection.error,
-          variant: "destructive"
+          variant: 'destructive',
         });
       }
     };
-    
     initializeAPI();
-  }, [toast, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Update session stats when messages or feedback changes
-  useEffect(() => {
-    const totalQueries = airlineMessages.thy.length + airlineMessages.pegasus.length;
-    const totalFeedback = Object.keys(feedbackGiven).length;
-    const helpfulCount = Object.values(feedbackGiven).filter(f => f === 'helpful').length;
-    const satisfactionRate = totalFeedback > 0 ? (helpfulCount / totalFeedback) * 100 : 0;
-
-    setSessionStats({
-      totalQueries,
-      satisfactionRate,
-      helpfulCount,
-      totalFeedback
-    });
-  }, [airlineMessages, feedbackGiven]);
-
-  const handleSendMessage = useCallback(async (
-    question: string,
-    provider: Provider,
-    model: string,
-    airline: AirlinePreference
-  ) => {
-    if (!apiConnection.success) {
-      toast({
-        title: t('apiFailed'),
-        description: t('connectionLost'),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // ✅ CoT parametresi eklendi
-      const response = await apiService.queryAirlinePolicy(
-        question,
-        provider,
-        model,
-        airline,
-        language,
-        enableCoT
-      );
-
-      if (response.success && response.answer) {
-        const newMessage: Message = {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          question,
-          answer: response.answer,
-          timestamp: new Date(),
-          provider,
-          model: response.model || model,
-          sources: response.sources,
-          session_id: response.session_id,
-          stats: response.stats,
-          performance: response.performance,
-          airline_preference: response.airline_preference,
-          language,
-          cot_enabled: enableCoT,
-          reasoning: response.reasoning
-        };
-
-        setAirlineMessages(prev => ({
-          ...prev,
-          [airline]: [...prev[airline as 'thy' | 'pegasus'], newMessage]
-        }));
-        
-        toast({
-          title: t('analysisComplete'),
-          description: language === 'en' ? 
-            'Your question has been answered successfully.' : 
-            'Sorunuz başarıyla yanıtlandı.'
-        });
-      } else {
+  const handleSendMessage = useCallback(
+    async (
+      question: string,
+      currentProvider: Provider,
+      currentModel: string,
+      airline: AirlinePreference,
+    ) => {
+      if (!apiConnection.success) {
         toast({
           title: t('apiFailed'),
-          description: response.error || 'Unknown error occurred',
-          variant: "destructive"
+          description: t('connectionLost'),
+          variant: 'destructive',
         });
+        return;
       }
-    } catch (error) {
-      toast({
-        title: t('apiFailed'),
-        description: error instanceof Error ? error.message : 'Network error',
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiConnection.success, language, t, toast, enableCoT]);
 
-  const handleFeedback = useCallback(async (messageId: string, feedback: FeedbackType) => {
-    const allMessages = [...airlineMessages.thy, ...airlineMessages.pegasus];
-    const message = allMessages.find(m => m.id === messageId);
-    if (!message) return;
+      setIsLoading(true);
 
-    setFeedbackGiven(prev => ({ ...prev, [messageId]: feedback }));
+      try {
+        const response = await apiService.queryAirlinePolicy(
+          question,
+          currentProvider,
+          currentModel,
+          airline,
+          language,
+          enableCoT,
+        );
 
-    try {
-      await apiService.sendFeedback(
-        message.question,
-        message.answer,
-        feedback,
-        message.provider,
-        message.model
-      );
+        if (response.success && response.answer) {
+          const newMessage: Message = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            question,
+            answer: response.answer,
+            timestamp: new Date(),
+            provider: currentProvider,
+            model: response.model || currentModel,
+            sources: response.sources,
+            session_id: response.session_id,
+            stats: response.stats,
+            performance: response.performance,
+            airline_preference: response.airline_preference,
+            language,
+            cot_enabled: enableCoT,
+            reasoning: response.reasoning,
+          };
+          addMessage(airline, newMessage);
+        } else {
+          toast({
+            title: t('apiFailed'),
+            description: response.error || 'Unknown error occurred',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: t('apiFailed'),
+          description: error instanceof Error ? error.message : 'Network error',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [apiConnection.success, language, t, toast, enableCoT, addMessage],
+  );
 
-      const feedbackMessages = {
-        helpful: language === 'en' ? 'Thanks for your feedback!' : 'Geri bildiriminiz için teşekkürler!',
-        not_helpful: language === 'en' ? 'Thanks, we\'ll improve!' : 'Teşekkürler, geliştireceğiz!',
-        too_slow: language === 'en' ? 'We\'ll work on speed!' : 'Hızda iyileştirme için çalışacağız!',
-        incorrect: language === 'en' ? 'Thanks, we\'ll review this!' : 'Teşekkürler, bu durumu inceleyeceğiz!'
-      };
+  const handleFeedback = useCallback(
+    async (messageId: string, feedback: FeedbackType) => {
+      const allMessages = [
+        ...airlineMessages.thy,
+        ...airlineMessages.pegasus,
+      ];
+      const message = allMessages.find((m) => m.id === messageId);
+      if (!message) return;
 
-      toast({
-        title: language === 'en' ? 'Feedback Recorded' : 'Geri Bildirim Kaydedildi',
-        description: feedbackMessages[feedback]
-      });
-    } catch (error) {
-      console.error('Failed to send feedback:', error);
-    }
-  }, [airlineMessages, language, toast]);
+      setFeedbackGiven((prev) => ({ ...prev, [messageId]: feedback }));
 
-  const handlePlayAudio = useCallback(async (text: string): Promise<string | null> => {
-    try {
-      const audioUrl = await apiService.convertTextToSpeech(text, language);
-      
-      if (audioUrl) {
-        return audioUrl;
-      } else {
+      try {
+        await apiService.sendFeedback(
+          message.question,
+          message.answer,
+          feedback,
+          message.provider,
+          message.model,
+        );
+
+        const feedbackMessages = {
+          helpful:
+            language === 'en'
+              ? 'Thanks for your feedback!'
+              : 'Geri bildiriminiz için teşekkürler!',
+          not_helpful:
+            language === 'en'
+              ? "Thanks, we'll improve!"
+              : 'Teşekkürler, geliştireceğiz!',
+          too_slow:
+            language === 'en'
+              ? "We'll work on speed!"
+              : 'Hızda iyileştirme için çalışacağız!',
+          incorrect:
+            language === 'en'
+              ? "Thanks, we'll review this!"
+              : 'Teşekkürler, bu durumu inceleyeceğiz!',
+        };
+
+        toast({
+          title:
+            language === 'en'
+              ? 'Feedback Recorded'
+              : 'Geri Bildirim Kaydedildi',
+          description: feedbackMessages[feedback],
+        });
+      } catch (error) {
+        console.error('Failed to send feedback:', error);
+      }
+    },
+    [airlineMessages, language, toast, setFeedbackGiven],
+  );
+
+  const handlePlayAudio = useCallback(
+    async (text: string): Promise<string | null> => {
+      try {
+        const audioUrl = await apiService.convertTextToSpeech(text, language);
+        if (audioUrl) return audioUrl;
+
         toast({
           title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
-          description: language === 'en' ? 
-            'Failed to generate audio' : 
-            'Ses oluşturulamadı',
-          variant: "destructive"
+          description:
+            language === 'en'
+              ? 'Failed to generate audio'
+              : 'Ses oluşturulamadı',
+          variant: 'destructive',
+        });
+        return null;
+      } catch {
+        toast({
+          title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
+          description:
+            language === 'en'
+              ? 'Audio generation failed'
+              : 'Ses üretimi başarısız',
+          variant: 'destructive',
         });
         return null;
       }
-    } catch (error) {
-      toast({
-        title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
-        description: language === 'en' ? 
-          'Audio generation failed' : 
-          'Ses üretimi başarısız',
-        variant: "destructive"
-      });
-      return null;
-    }
-  }, [language, toast]);
+    },
+    [language, toast],
+  );
 
   const handleReconnect = useCallback(async () => {
     const connection = await apiService.reconnect();
     setApiConnection(connection);
-    
+
     if (connection.success) {
       toast({
         title: t('apiConnected'),
-        description: language === 'en' ? 'Successfully reconnected to API' : 'API\'ye başarıyla yeniden bağlandı'
+        description:
+          language === 'en'
+            ? 'Successfully reconnected to API'
+            : "API'ye başarıyla yeniden bağlandı",
       });
     } else {
       toast({
         title: t('apiFailed'),
         description: connection.error,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   }, [t, language, toast]);
 
   const handleClearHistory = useCallback(() => {
-    setAirlineMessages(prev => ({
-      ...prev,
-      [selectedAirline]: []
-    }));
-    
-    const currentMessages = airlineMessages[selectedAirline as 'thy' | 'pegasus'];
-    const messageIds = currentMessages.map(m => m.id);
-    setFeedbackGiven(prev => {
+    clearAirline(selectedAirline);
+    const currentMessages = airlineMessages[selectedAirline];
+    const messageIds = currentMessages.map((m) => m.id);
+    setFeedbackGiven((prev) => {
       const newFeedback = { ...prev };
-      messageIds.forEach(id => delete newFeedback[id]);
+      messageIds.forEach((id) => delete newFeedback[id]);
       return newFeedback;
     });
 
     toast({
       title: language === 'en' ? 'History Cleared' : 'Geçmiş Temizlendi',
-      description: language === 'en' ? 
-        `${selectedAirline === 'thy' ? 'Turkish Airlines' : 'Pegasus'} conversation history cleared.` : 
-        `${selectedAirline === 'thy' ? 'THY' : 'Pegasus'} konuşma geçmişi temizlendi.`
+      description:
+        language === 'en'
+          ? `${selectedAirline === 'thy' ? 'Turkish Airlines' : 'Pegasus'} conversation history cleared.`
+          : `${selectedAirline === 'thy' ? 'THY' : 'Pegasus'} konuşma geçmişi temizlendi.`,
     });
-  }, [language, toast, selectedAirline, airlineMessages]);
+  }, [
+    language,
+    toast,
+    selectedAirline,
+    airlineMessages,
+    clearAirline,
+    setFeedbackGiven,
+  ]);
 
-  const handleQuestionSelect = useCallback((question: string) => {
-    setCurrentQuestion(question);
-  }, []);
+  const handleAirlineSelect = useCallback(
+    (airline: AirlinePreference) => setSelectedAirline(airline),
+    [setSelectedAirline],
+  );
 
-  const handleAirlineSelect = (airline: AirlinePreference) => {
-    if (airline === 'all') {
-      airline = 'thy';
-    }
-    setSelectedAirline(airline);
-  };
+  const handleProviderChange = useCallback(
+    (newProvider: Provider) => {
+      setProvider(newProvider);
+      setModel(MODEL_OPTIONS[newProvider][0]);
+    },
+    [setProvider, setModel],
+  );
 
-  const handleSearch = async (question: string) => {
-    await handleSendMessage(question, provider, model, selectedAirline);
-  };
-
-  const modelOptions = {
-    OpenAI: ['gpt-3.5-turbo', 'gpt-4o-mini', 'gpt-4'],
-    Claude: ['claude-3-haiku-20240307', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514']
-  };
-
-  useEffect(() => {
-    setModel(modelOptions[provider][0]);
-  }, [provider]);
+  const handleSearch = useCallback(
+    async (question: string) => {
+      await handleSendMessage(question, provider, model, selectedAirline);
+    },
+    [handleSendMessage, provider, model, selectedAirline],
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Modern Header with Glassmorphism */}
-      <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/20 shadow-lg shadow-slate-200/20 dark:shadow-slate-900/20">
-        <div className="container mx-auto px-6 py-5">
-          <div className="flex items-center justify-between">
-            {/* Logo & Title */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur-lg opacity-30 animate-pulse"></div>
-                <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-xl shadow-xl">
-                  <Plane className="w-6 h-6 text-white transform rotate-12" />
-                </div>
+    // ✅ Solid, nötr arka plan — klişe gradient yok.
+    // slate-50 açık modda, slate-950 koyu modda.
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* ✅ Minimalist Header
+          - Gradient + blur + pulse'lı logo yerine solid + subtle
+          - shadow-lg yerine border-b (daha pro his)
+          - Tek status indicator (detay settings'te)
+          - LanguageSelector artık header içine entegre */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-14">
+            {/* Left: Logo + Title */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-900 dark:bg-slate-100">
+                <Plane
+                  className="w-4 h-4 text-white dark:text-slate-900"
+                  aria-hidden="true"
+                />
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent leading-tight">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
                   {language === 'en' ? 'Airline Assistant' : 'Havayolu Asistanı'}
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                  {language === 'en' ? 'Powered by AI' : 'AI Destekli'}
-                </p>
+                <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500">
+                  {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
+                </span>
               </div>
             </div>
-            
-            {/* Controls */}
-            <div className="flex items-center gap-4">
-              {/* API Status */}
-              <div className="hidden md:flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${apiConnection.success ? 'bg-green-500' : 'bg-red-500'} shadow-lg`}>
-                  <div className={`w-full h-full rounded-full ${apiConnection.success ? 'bg-green-400' : 'bg-red-400'} animate-ping opacity-75`}></div>
-                </div>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  {apiConnection.success ? (language === 'en' ? 'Connected' : 'Bağlı') : (language === 'en' ? 'Offline' : 'Çevrimdışı')}
+
+            {/* Right: Status + Language + Settings */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Single status indicator — dot + text */}
+              <div
+                className="hidden sm:flex items-center gap-2 text-xs"
+                aria-live="polite"
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    apiConnection.success
+                      ? 'bg-emerald-500'
+                      : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                  aria-hidden="true"
+                />
+                <span className="text-slate-500 dark:text-slate-400">
+                  {apiConnection.success
+                    ? language === 'en'
+                      ? 'Connected'
+                      : 'Bağlı'
+                    : language === 'en'
+                      ? 'Offline'
+                      : 'Çevrimdışı'}
                 </span>
               </div>
 
-              {/* Status Bar */}
-              <div className="hidden lg:flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20 shadow-lg">
-                {/* Airline */}
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {selectedAirline === 'thy' ? 'THY' : 'Pegasus'}
-                  </span>
-                </div>
-                
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                
-                {/* Provider */}
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{provider}</span>
-                </div>
+              {/* Divider (desktop only) */}
+              <div
+                className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-800"
+                aria-hidden="true"
+              />
 
-                {/* ✅ CoT Status */}
-                {enableCoT && (
-                  <>
-                    <div className="w-px h-4 bg-slate-300 dark:bg-slate-600"></div>
-                    <div className="flex items-center gap-1">
-                      <Brain className="w-3 h-3 text-purple-500" />
-                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">CoT</span>
-                    </div>
-                  </>
-                )}
-              </div>
+              <LanguageSelector
+                language={language}
+                onLanguageChange={switchLanguage}
+              />
 
-              {/* Mobile Status */}
-              <div className="lg:hidden flex items-center gap-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20">
-                <span className="text-sm">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
-                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                  {selectedAirline === 'thy' ? 'THY' : 'PGS'}
-                </span>
-                <div className={`w-1.5 h-1.5 rounded-full ${provider === 'OpenAI' ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                {enableCoT && <Brain className="w-3 h-3 text-purple-500" />}
-              </div>
-
-              <LanguageSelector language={language} onLanguageChange={switchLanguage} />
-              
               <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="lg" 
-                    className="w-12 h-12 rounded-xl bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={
+                      language === 'en' ? 'Open settings' : 'Ayarları aç'
+                    }
+                    className="h-8 w-8 p-0 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
-                    <Settings className="w-6 h-6 text-slate-700 dark:text-slate-200" />
+                    <Settings className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetOverlay className="bg-black/50 backdrop-blur-sm" />
-                <SheetContent className="w-full sm:max-w-md md:max-w-2xl lg:max-w-4xl p-0 border-l-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-y-auto">
-                  <div className="p-4 w-full max-w-none">
-                    <SettingsPanel
-                      language={language}
-                      t={t}
-                      provider={provider}
-                      model={model}
-                      selectedAirline={selectedAirline}
-                      onProviderChange={setProvider}
-                      onModelChange={setModel}
-                      onAirlineChange={handleAirlineSelect}
-                      apiConnection={apiConnection}
-                      sessionStats={sessionStats}
-                      onReconnect={handleReconnect}
-                      onClearHistory={handleClearHistory}
-                    />
-                  </div>
+                <SheetOverlay className="bg-slate-900/40 backdrop-blur-sm" />
+                <SheetContent className="w-full sm:max-w-md md:max-w-lg p-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-y-auto">
+                  <SettingsPanel
+                    language={language}
+                    t={t}
+                    provider={provider}
+                    model={model}
+                    selectedAirline={selectedAirline}
+                    onProviderChange={handleProviderChange}
+                    onModelChange={setModel}
+                    onAirlineChange={handleAirlineSelect}
+                    apiConnection={apiConnection}
+                    sessionStats={sessionStats}
+                    onReconnect={handleReconnect}
+                    onClearHistory={handleClearHistory}
+                  />
                 </SheetContent>
               </Sheet>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 relative">
+      <main className="container mx-auto px-4 sm:px-6">
         {messages.length === 0 ? (
-          /* Landing Page */
-          <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center px-4 py-20">
-            {/* Background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-violet-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            </div>
-
+          /* ─── Landing Page ──────────────────────────────────────────
+             ✅ Pulsing blob'lar kaldırıldı.
+             ✅ Hero başlığı gradient'ten solid'e (daha sakin).
+             ✅ Feature badge'leri minimalize edildi. */
+          <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center py-12 sm:py-20">
             {/* Title */}
-            <div className="text-center space-y-8 mb-20 max-w-4xl relative z-10">
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-slate-800 via-blue-800 to-indigo-800 dark:from-slate-100 dark:via-blue-100 dark:to-indigo-100 bg-clip-text text-transparent leading-tight tracking-tight">
-                  {language === 'en' ? 'Airline Assistant' : 'Havayolu Asistanı'}
-                </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full"></div>
-              </div>
-              <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                {language === 'en' ? 
-                  'Smart search in airline policies with AI power' : 
-                  'Yapay zeka destekli havayolu politikaları arama'}
+            <div className="text-center space-y-4 mb-12 max-w-2xl">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                {language === 'en'
+                  ? 'Airline Assistant'
+                  : 'Havayolu Asistanı'}
+              </h2>
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                {language === 'en'
+                  ? 'Smart search in airline policies with AI'
+                  : 'Yapay zeka destekli havayolu politikaları arama'}
               </p>
-              <div className="flex flex-wrap justify-center gap-4 text-sm">
-                <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-slate-700 dark:text-slate-200 font-medium">
-                    {language === 'en' ? 'Real-time responses' : 'Anlık yanıtlar'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-slate-700 dark:text-slate-200 font-medium">
-                    {language === 'en' ? 'Separate histories' : 'Ayrı geçmişler'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                  <span className="text-slate-700 dark:text-slate-200 font-medium">
-                    {language === 'en' ? 'CoT Reasoning' : 'CoT Akıl Yürütme'}
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* Airline Selector */}
-            <div className="w-full max-w-4xl mb-12 relative z-10">
+            <div className="w-full max-w-3xl mb-8">
               <AirlineSelector
                 selectedAirline={selectedAirline}
                 onAirlineSelect={handleAirlineSelect}
@@ -460,70 +472,71 @@ const Index = () => {
               />
             </div>
 
-            {/* ✅ Search Box with CoT Toggle */}
-            <div className="w-full max-w-3xl mb-16 relative z-10">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-3xl blur-xl"></div>
-                <div className="relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-3xl p-2 shadow-2xl border border-white/20">
-                  <SearchBox
-                    language={language}
-                    t={t}
-                    onSearch={handleSearch}
-                    isLoading={isLoading}
-                    enableCoT={enableCoT}
-                    onCoTChange={setEnableCoT}
-                  />
-                </div>
-              </div>
+            {/* Search Box — sakinleştirilmiş konteyner */}
+            <div className="w-full max-w-2xl mb-12">
+              <SearchBox
+                language={language}
+                t={t}
+                onSearch={handleSearch}
+                isLoading={isLoading}
+                enableCoT={enableCoT}
+                onCoTChange={setEnableCoT}
+              />
             </div>
 
             {/* Quick Questions */}
-            <div className="w-full max-w-5xl relative z-10">
+            <div className="w-full max-w-4xl">
               <QuickQuestions
                 language={language}
-                onQuestionSelect={(question) => handleSearch(question)}
+                onQuestionSelect={handleSearch}
               />
             </div>
           </div>
         ) : (
-          /* Results Page */
-          <div className="py-8 space-y-8">
-            {/* Airline Badge */}
-            <div className="max-w-3xl mx-auto px-4">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <span className="text-2xl">{selectedAirline === 'thy' ? '🇹🇷' : '✈️'}</span>
-                <span className="font-semibold text-lg text-slate-700 dark:text-slate-200">
-                  {selectedAirline === 'thy' 
-                    ? (language === 'en' ? 'Turkish Airlines' : 'Türk Hava Yolları')
-                    : (language === 'en' ? 'Pegasus Airlines' : 'Pegasus Hava Yolları')}
-                </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  ({messages.length} {language === 'en' ? 'messages' : 'mesaj'})
-                </span>
-              </div>
-            </div>
-
-            {/* ✅ Search Box with CoT Toggle */}
-            <div className="max-w-3xl mx-auto px-4 relative z-10">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 rounded-2xl blur-lg"></div>
-                <div className="relative bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg rounded-2xl p-1 shadow-xl border border-white/20">
-                  <SearchBox
-                    language={language}
-                    t={t}
-                    onSearch={handleSearch}
-                    isLoading={isLoading}
-                    enableCoT={enableCoT}
-                    onCoTChange={setEnableCoT}
-                  />
+          /* ─── Results Page ──────────────────────────────────────── */
+          <div className="py-6 sm:py-8 space-y-6">
+            {/* Compact airline context strip */}
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {selectedAirline === 'thy'
+                      ? language === 'en'
+                        ? 'Turkish Airlines'
+                        : 'Türk Hava Yolları'
+                      : language === 'en'
+                        ? 'Pegasus Airlines'
+                        : 'Pegasus Hava Yolları'}
+                  </span>
+                  <span className="text-slate-400 dark:text-slate-600">·</span>
+                  <span>
+                    {messages.length}{' '}
+                    {language === 'en' ? 'messages' : 'mesaj'}
+                  </span>
                 </div>
               </div>
             </div>
 
+            {/* Search Box */}
+            <div className="max-w-3xl mx-auto">
+              <SearchBox
+                language={language}
+                t={t}
+                onSearch={handleSearch}
+                isLoading={isLoading}
+                enableCoT={enableCoT}
+                onCoTChange={setEnableCoT}
+              />
+            </div>
+
             {/* Messages */}
-            <div className="space-y-8 px-4 relative z-10">
-              {messages.slice().reverse().map((message, index) => (
-                <div key={message.id} className="animate-fade-in-up" style={{animationDelay: `${index * 0.1}s`}}>
+            <div className="space-y-6">
+              {reversedMessages.map((message, index) => (
+                <div
+                  key={message.id}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
                   <ResponseCard
                     message={message}
                     language={language}
@@ -536,7 +549,7 @@ const Index = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

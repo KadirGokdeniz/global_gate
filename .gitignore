@@ -73,3 +73,5 @@ aws-credentials.json
 # Security reports
 secrets_audit_report.json
 security_scan_*.json
+
+policy_data.sql

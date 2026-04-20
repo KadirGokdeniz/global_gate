@@ -2,21 +2,48 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI-Powered Airline Policy Assistant - Instant Answers with Voice Support</title>
-    <meta name="description" content="Get instant, accurate answers about airline policies using AI. Supports Turkish Airlines, Pegasus, and more. Features real-time voice input, multilingual support (English/Turkish), and advanced policy search." />
+    <meta
+      name="description"
+      content="Get instant, accurate answers about airline policies using AI. Supports Turkish Airlines, Pegasus, and more. Features real-time voice input, multilingual support (English/Turkish), and advanced policy search."
+    />
     <meta name="author" content="AI Airline Policy Assistant" />
-    <meta name="keywords" content="airline policies, AI assistant, voice search, Turkish Airlines, Pegasus, flight policies, travel assistant, multilingual support" />
+    <meta
+      name="keywords"
+      content="airline policies, AI assistant, voice search, Turkish Airlines, Pegasus, flight policies, travel assistant, multilingual support"
+    />
 
-    <meta property="og:title" content="AI-Powered Airline Policy Assistant - Instant Answers with Voice Support" />
-    <meta property="og:description" content="Revolutionary AI assistant for airline policy questions with real-time voice input and multilingual support" />
+    <!--
+      NOT: og:image ve twitter:image path'leri public/ klasöründeki statik
+      asset'lere işaret etmeli. Eski kod /src/assets/... yoluna işaret ediyordu
+      — bu Vite build'de kırılır çünkü src/assets Vite tarafından hash'lenmiş
+      bir dosya adıyla dist/assets/ altında yayınlanır ve orijinal path çalışmaz.
+
+      Çözüm: Paylaşım için kullanılacak sosyal medya görselini `public/og-image.jpg`
+      olarak projenin public/ klasörüne koy. Vite public/ klasörünü olduğu gibi
+      kopyalar. Hosting URL'in ile birleştiğinde örn:
+        https://your-site.vercel.app/og-image.jpg
+      şeklinde erişilebilir.
+
+      Görselin olmadığı durumda bu meta tag'leri yorum satırına alabilirsin.
+    -->
+    <meta property="og:title" content="AI-Powered Airline Policy Assistant" />
+    <meta
+      property="og:description"
+      content="Revolutionary AI assistant for airline policy questions with real-time voice input and multilingual support"
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/src/assets/hero-airline-assistant.jpg" />
+    <meta property="og:image" content="/og-image.jpg" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AI Airline Policy Assistant" />
-    <meta name="twitter:description" content="Get instant answers about airline policies with AI and voice support" />
-    <meta name="twitter:image" content="/src/assets/hero-airline-assistant.jpg" />
+    <meta
+      name="twitter:description"
+      content="Get instant answers about airline policies with AI and voice support"
+    />
+    <meta name="twitter:image" content="/og-image.jpg" />
   </head>
 
   <body>
