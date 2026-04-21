@@ -35,9 +35,50 @@ from slowapi.errors import RateLimitExceeded
 
 loader = SecretsLoader()
 
+# ═══════════════════════════════════════════════════════════════════
+# Sentry — Production hata takibi
+# Sadece production'da aktif, dev'de çağrıları sessizce yutar
+# ═══════════════════════════════════════════════════════════════════
+SENTRY_DSN = loader.get_secret('sentry_dsn', 'SENTRY_DSN')
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+
+if SENTRY_DSN and ENVIRONMENT == 'production':
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            FastApiIntegration(),
+            StarletteIntegration(),
+            AsyncPGIntegration(),
+        ],
+        traces_sample_rate=0.1,  # %10 transaction sample — free tier dostu
+        profiles_sample_rate=0.0,  # Profiling off, kota korunsun
+        environment=ENVIRONMENT,
+        release=os.getenv('RAILWAY_GIT_COMMIT_SHA', 'unknown'),
+        # PII'yi (personal info) otomatik gönderme
+        send_default_pii=False,
+        # Sensitive veriyi filtrele
+        before_send=lambda event, hint: _filter_sensitive(event),
+    )
+    print(f"Sentry initialized for {ENVIRONMENT}")
+
+
+def _filter_sensitive(event):
+    """Loglara API key/password sızmasın"""
+    if 'request' in event and 'headers' in event.get('request', {}):
+        headers = event['request']['headers']
+        for key in list(headers.keys()):
+            if 'authorization' in key.lower() or 'api-key' in key.lower():
+                headers[key] = '[FILTERED]'
+    return event
+
 # UNIFIED METRICS SYSTEM
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from functools import wraps
+
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+from sentry_sdk.integrations.asyncpg import AsyncPGIntegration
 
 # =============================================================================
 # 1. OPERATIONAL METRICS
