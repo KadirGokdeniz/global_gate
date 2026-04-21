@@ -18,7 +18,6 @@ import math
 import uuid
 from datetime import datetime, timedelta
 import hashlib
-from api.core.secrets_loader import SecretsLoader
 import time
 import asyncio
 
@@ -598,6 +597,10 @@ class FeedbackRequest(BaseModel):
     feedback_type: str
     provider: str
     model: str
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., description="Text to synthesize", min_length=1, max_length=3000)
+    language: str = Field(default="tr-TR", description="Language code (tr-TR, en-US)")
 
 # DATABASE DEPENDENCY
 async def get_db_connection():
@@ -1213,88 +1216,26 @@ async def get_stats(db = Depends(get_db_connection)):
 @limiter.limit("10/minute")
 async def openai_chat_post(
     request: Request,
-    chat_request: Optional[ChatRequest] = None,
-    question: Optional[str] = Query(None),
-    airline_preference: Optional[str] = Query(None),
-    max_results: Optional[int] = Query(None),
-    similarity_threshold: Optional[float] = Query(None),
-    model: Optional[str] = Query(None),
-    language: Optional[str] = Query("en"),
-    use_cot: Optional[bool] = Query(False)
+    chat_request: ChatRequest
 ):
-    """RAG Chat with OpenAI (POST) - CoT Support"""
-    if chat_request:
-        return await _chat_with_openai_logic(
-            chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
-            chat_request.model, chat_request.airline_preference, chat_request.language,
-            chat_request.use_cot, chat_request.include_full_content
-        )
-    elif question:
-        return await _chat_with_openai_logic(
-            question, max_results or 3, similarity_threshold or 0.3,
-            model, airline_preference, language or "en", use_cot
-        )
-    else:
-        raise HTTPException(status_code=422, detail="Question required")
-
-@app.get("/chat/openai") 
-async def openai_chat_get(
-    question: str = Query(...),
-    airline_preference: Optional[str] = Query(None),
-    max_results: int = Query(5),
-    similarity_threshold: float = Query(0.3),
-    model: Optional[str] = Query(None),
-    language: str = Query("en"),
-    use_cot: bool = Query(False)
-):
-    """RAG Chat with OpenAI (GET) - CoT Support"""
+    """RAG Chat with OpenAI - CoT Support"""
     return await _chat_with_openai_logic(
-        question, max_results, similarity_threshold, model,
-        airline_preference, language, use_cot
+        chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
+        chat_request.model, chat_request.airline_preference, chat_request.language,
+        chat_request.use_cot, chat_request.include_full_content
     )
 
 @app.post("/chat/claude")
 @limiter.limit("10/minute")
 async def claude_chat_post(
     request: Request,
-    chat_request: Optional[ChatRequest] = None,
-    question: Optional[str] = Query(None),
-    airline_preference: Optional[str] = Query(None),
-    max_results: Optional[int] = Query(None),
-    similarity_threshold: Optional[float] = Query(None),
-    model: Optional[str] = Query(None),
-    language: str = Query("en"),
-    use_cot: bool = Query(False)
+    chat_request: ChatRequest
 ):
-    """RAG Chat with Claude (POST) - CoT Support"""
-    if chat_request:
-        return await _chat_with_claude_logic(
-            chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
-            chat_request.model, chat_request.airline_preference, chat_request.language,
-            chat_request.use_cot, chat_request.include_full_content
-        )
-    elif question:
-        return await _chat_with_claude_logic(
-            question, max_results or 3, similarity_threshold or 0.3,
-            model, airline_preference, language or "en", use_cot
-        )
-    else:
-        raise HTTPException(status_code=422, detail="Question required")
-
-@app.get("/chat/claude")
-async def claude_chat_get(
-    question: str = Query(...),
-    airline_preference: Optional[str] = Query(None),
-    max_results: int = Query(5),
-    similarity_threshold: float = Query(0.3),
-    model: Optional[str] = Query(None),
-    language: str = Query("en"),
-    use_cot: bool = Query(False)
-):
-    """RAG Chat with Claude (GET) - CoT Support"""
+    """RAG Chat with Claude - CoT Support"""
     return await _chat_with_claude_logic(
-        question, max_results, similarity_threshold, model,
-        airline_preference, language, use_cot
+        chat_request.question, chat_request.max_results, chat_request.similarity_threshold,
+        chat_request.model, chat_request.airline_preference, chat_request.language,
+        chat_request.use_cot, chat_request.include_full_content
     )
 
 # =============================================================================
@@ -1327,19 +1268,15 @@ async def collect_user_feedback(feedback: FeedbackRequest):
 @limiter.limit("10/minute")
 async def text_to_speech(
     request: Request,
-    text: str,
-    language: str = "tr-TR"
+    tts_request: TTSRequest
 ):
-    """AWS Polly TTS"""
+    """ElevenLabs TTS — max 3000 karakter"""
     try:
         if not aws_speech_service:
-            raise HTTPException(status_code=503, detail="AWS Speech Service not available")
+            raise HTTPException(status_code=503, detail="Speech service not available")
         
-        if not text or len(text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Empty text not allowed")
-        
-        result = aws_speech_service.text_to_audio(text, language)
-        
+        result = aws_speech_service.text_to_audio(tts_request.text, tts_request.language)
+
         if result["success"]:
             return Response(
                 content=result["audio_data"],
