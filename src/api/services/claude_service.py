@@ -1,9 +1,5 @@
-# claude_service.py - PROMPT IMPROVEMENT VERSION v3
-# Baseline test sonrasi 4 prompt kurali eklendi:
-#   1. Strict faithfulness (hallucination guard)
-#   2. Inline citation (kaynak belirtme)
-#   3. Relevant info selection (pazarlama dilini atla)
-#   4. Graceful uncertainty (eksik bilgi icin dogru dil)
+# claude_service.py - PROMPT v4
+# v3'e ek olarak: TON KURALI — bürokratik giriş engeli
 
 import anthropic
 from typing import List, Dict, Optional
@@ -32,16 +28,20 @@ class ClaudeService:
                 self.client = None
         
         self.default_model = 'claude-3-haiku-20240307'
-        self.max_tokens = 800  # 500 -> 800: uzun listelerin kesilmesini onlemek icin
+        self.max_tokens = 800
         self.temperature = 0.2
 
-        # ===== PROMPT v3 — OpenAI ile ayni 4 kural =====
-        # Tutarlilik icin OpenAI servisindeki ile ayni talimatlari kullaniyoruz.
-        # Tek fark: Claude'un paragraph format tercihini koruyoruz (zaten iyiydi).
-        
+        # ===== PROMPT v4 — TON KURALI eklendi =====
         self.LANGUAGE_PROMPTS = {
             "tr": {
                 "system_instruction": """Sen bir havayolu politika asistanisin. Gorevi SADECE sana verilen belgelerdeki bilgilere dayanarak kullanicinin sorularini yanitlamak.
+
+TON KURALI:
+- Cevabina "Verilen belgelerde..." veya "Belgelerde..." gibi teknik/burokratik bir giris ile BASLAMA.
+- Bunun yerine dogrudan konuya gir, dogal bir dille yaz.
+- Ornek iyi giris: "Turkish Airlines'da kediyle kabinde seyahat icin soyle kurallar var..."
+- Ornek kotu giris: "Verilen belgelerde Turkish Airlines'da kediyle kabinde seyahat konusunda..."
+- Eksik bilgi varsa ONU cevabin ICINDE veya SONUNDA belirt, basinda degil.
 
 KURAL 1 — BELGEDE YOKSA UYDURMA:
 - Sadece sana verilen "Havayolu Politika Belgeleri" icindeki bilgileri kullan.
@@ -81,6 +81,7 @@ ORNEK YANLIS CEVAP (KULLANMA):
                 "system_instruction_cot": """Sen bir havayolu politika asistanisin. SADECE verilen belgelerdeki bilgileri kullan.
 
 Belgede olmayan bilgiyi uydurma, kaynak belirt, pazarlama dili kullanma, eksik bilgi varsa acikca soyle.
+Cevabin basinda "Verilen belgelerde..." gibi burokratik giris KULLANMA, dogrudan konuya gir.
 Verilen formati KESINLIKLE takip et. [ANSWER] bolumunde paragraf yaz, liste kullanma.""",
                 
                 "context_prefix": "Havayolu Politika Belgeleri:",
@@ -97,11 +98,12 @@ KRITIK: Asagidaki formati KESINLIKLE kullan.
 
 [ANSWER]
 (Sadece kullaniciya gosterilecek nihai Turkce cevap. 
-4 kurali uygula:
-1) Belgede yoksa uydurma, "bulamiyorum" de
-2) Her bilgi icin (Kaynak: kategori) belirt
-3) Pazarlama dili kullanma
-4) Eksik bilgi varsa acikca soyle
+Kurallari uygula:
+- "Verilen belgelerde..." ile baslama, dogrudan konuya gir
+- Belgede yoksa uydurma, "bulamiyorum" de
+- Her bilgi icin (Kaynak: kategori) belirt
+- Pazarlama dili kullanma
+- Eksik bilgi varsa cevabin icinde/sonunda soyle
 
 PARAGRAF FORMATINDA yaz, liste KULLANMA.
 Dogal ve akici bir dil kullan.
@@ -109,11 +111,12 @@ Eksik bilgi varsa "Detayli bilgi icin havayolunun resmi kanallarini kontrol edin
 """,
                 "answer_instruction": """Soruyu belgelere dayanarak PARAGRAF FORMATINDA yanitla. 
 
-4 kurali hatirla:
-1) Belgede olmayan bilgi ekleme
-2) Her spesifik bilgi icin (Kaynak: kategori_adi) belirt
-3) Pazarlama dilini atla
-4) Eksik bilgi varsa acikca belirt
+Kurallari hatirla:
+- "Verilen belgelerde..." diye bir girisle BASLAMA, dogrudan konuya gir
+- Belgede olmayan bilgi ekleme
+- Her spesifik bilgi icin (Kaynak: kategori_adi) belirt
+- Pazarlama dilini atla
+- Eksik bilgi varsa acikca belirt
 
 Liste veya madde isareti KULLANMA. Dogal paragraflarla yaz.
 
@@ -121,6 +124,13 @@ Cevap:"""
             },
             "en": {
                 "system_instruction": """You are an airline policy assistant. Your task is to answer user questions based ONLY on the policy documents provided to you.
+
+TONE RULE:
+- Do NOT start your answer with "In the provided documents..." or "The documents say..."
+- Instead, go directly to the topic with natural language.
+- Good opening example: "Turkish Airlines allows cats in the cabin under these rules..."
+- Bad opening example: "In the provided documents about Turkish Airlines cat travel..."
+- When information is missing, mention it IN THE MIDDLE or END, not at the beginning.
 
 RULE 1 — DO NOT INVENT:
 - Use ONLY the information in the "Airline Policy Documents" provided.
@@ -160,6 +170,7 @@ WRONG EXAMPLE (DO NOT USE):
                 "system_instruction_cot": """You are an airline policy assistant. Use ONLY the information in the provided documents.
 
 Do not invent information, cite sources, skip marketing language, and clearly state when info is missing.
+Do NOT start answers with "In the provided documents..." — go directly to the topic.
 You MUST follow the exact format provided. In the [ANSWER] section, write in paragraphs, do not use lists.""",
                 
                 "context_prefix": "Airline Policy Documents:",
@@ -176,11 +187,12 @@ CRITICAL: You MUST use EXACTLY this format.
 
 [ANSWER]
 (Only the final answer for the user.
-Apply all 4 rules:
-1) Don't invent info, say "cannot find" if absent
-2) Cite every fact: (Source: category_name)
-3) Skip marketing language
-4) State missing info clearly
+Apply all rules:
+- Don't start with "In the provided documents..." — go directly to the topic
+- Don't invent info, say "cannot find" if absent
+- Cite every fact: (Source: category_name)
+- Skip marketing language
+- State missing info in the middle/end
 
 Write in PARAGRAPH format, do NOT use lists.
 Use natural, conversational language.
@@ -188,11 +200,12 @@ End with "For detailed information, please check the airline's official channels
 """,
                 "answer_instruction": """Answer the question in PARAGRAPH format based on the documents.
 
-Remember the 4 rules:
-1) Don't add info not in documents
-2) Cite each fact with (Source: category_name)
-3) Skip marketing language
-4) Clearly state missing information
+Remember the rules:
+- Do NOT start with "In the provided documents..." — go directly to the topic
+- Don't add info not in documents
+- Cite each fact with (Source: category_name)
+- Skip marketing language
+- Clearly state missing information
 
 Do NOT use numbered lists or bullet points. Write in natural paragraphs.
 
@@ -248,7 +261,6 @@ Answer:"""
         reasoning = None
         final_answer = full_response
         
-        # Strategy 1: ASCII-safe markers [REASONING] and [ANSWER]
         if "[REASONING]" in full_response and "[ANSWER]" in full_response:
             try:
                 reasoning_start = full_response.find("[REASONING]") + len("[REASONING]")
@@ -263,7 +275,6 @@ Answer:"""
             except Exception as e:
                 logger.warning(f"Primary marker parsing failed: {e}")
         
-        # Strategy 2: Regex for various "Answer" patterns
         answer_patterns = [
             r'\[ANSWER\](.*?)$',
             r'(?:^|\n)Answer[:\s]*\n?(.*?)$',
@@ -287,7 +298,6 @@ Answer:"""
                     logger.debug(f"CoT parsed with regex pattern: {pattern[:30]}...")
                     return reasoning, final_answer
         
-        # Strategy 3: Numbered section detection
         if re.search(r'^\s*\d+\.', full_response, re.MULTILINE):
             sections = re.split(r'\n(?=\d+\.)', full_response)
             if len(sections) >= 2:
@@ -318,7 +328,6 @@ Answer:"""
             else:
                 system_instruction = lang_config["system_instruction"]
             
-            # Build context from retrieved documents
             if retrieved_docs:
                 context_parts = []
                 for i, doc in enumerate(retrieved_docs[:5], 1):
@@ -343,7 +352,6 @@ Answer:"""
                 context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
-            # Create user prompt
             if use_cot:
                 user_prompt = f"""{lang_config['context_prefix']}
 {context}
