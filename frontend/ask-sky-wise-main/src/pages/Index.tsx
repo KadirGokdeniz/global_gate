@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { usePersistedMessages } from '@/hooks/usePersistedMessages';
@@ -579,6 +580,33 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {/* ─── Footer — privacy + feedback links ─── */}
+      <footer className="border-t border-border mt-16">
+        <div className="container mx-auto px-4 sm:px-6 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/privacy"
+                className="hover:text-foreground transition-colors"
+              >
+                {language === 'en' ? 'Privacy' : 'Gizlilik'}
+              </Link>
+              <a
+                href="mailto:kadirqokdeniz@hotmail.com?subject=Airline Assistant - Feedback"
+                className="hover:text-foreground transition-colors"
+              >
+                {language === 'en' ? 'Feedback' : 'Geri Bildirim'}
+              </a>
+            </div>
+            <div>
+              {language === 'en'
+                ? 'Personal project · Not a commercial service'
+                : 'Kişisel proje · Ticari bir hizmet değil'}
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
