@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -5,9 +6,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Index from './pages/Index';
+import { PrivacyPage } from './pages/PrivacyPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
+
+/**
+ * ErrorBoundary'den Sentry'ye hata iletmek için handler.
+ *
+ * - error: Gerçek exception object'i (stack trace içerir)
+ * - errorInfo.componentStack: Hatanın hangi React component ağacında
+ *   olduğunu gösteren ek bilgi — debugging için çok değerli
+ *
+ * Sentry production'da init'lidir (main.tsx'e bakın). Dev modunda
+ * init edilmediği için captureException sessizce no-op olur.
+ */
+const handleErrorBoundaryError = (error: Error, errorInfo: { componentStack: string }) => {
+  Sentry.captureException(error, {
+    contexts: {
+      react: {
+        componentStack: errorInfo.componentStack,
+      },
+    },
+  });
+};
 
 /**
  * Nested Error Boundary stratejisi:
@@ -24,15 +46,16 @@ const queryClient = new QueryClient();
  * kurtulma yolu kolaylaşır.
  */
 const App = () => (
-  <ErrorBoundary>
+  <ErrorBoundary onError={handleErrorBoundaryError}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ErrorBoundary>
+          <ErrorBoundary onError={handleErrorBoundaryError}>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
