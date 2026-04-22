@@ -1,4 +1,9 @@
-# openai_service.py - FIXED VERSION v2
+# openai_service.py - PROMPT IMPROVEMENT VERSION v3
+# Baseline test sonrasi 4 prompt kurali eklendi:
+#   1. Strict faithfulness (hallucination guard)
+#   2. Inline citation (kaynak belirtme)
+#   3. Relevant info selection (pazarlama dilini atla)
+#   4. Graceful uncertainty (eksik bilgi icin dogru dil)
 
 import openai
 from typing import List, Dict, Optional
@@ -28,68 +33,145 @@ class OpenAIService:
         
         # Configuration
         self.default_model = 'gpt-3.5-turbo'
-        self.max_tokens = 500  
+        self.max_tokens = 800  # 500 -> 800: uzun listelerin kesilmesini onlemek icin
         self.temperature = 0.2
 
-        # SEPARATE PROMPTS FOR COT AND NON-COT
+        # ===== PROMPT v3 — 4 yeni kural eklendi =====
+        #
+        # KURAL 1 (Faithfulness): Belgede olmayan bilgi kullanma, tahmin etme,
+        # "havayollari genelde" tarzi kendi bilginle doldurma.
+        #
+        # KURAL 2 (Citation): Her spesifik bilgi icin inline kaynak belirt:
+        # (Kaynak: kategori_adi)
+        #
+        # KURAL 3 (Selection): Pazarlama dilini, marka tanitimini, alakasiz
+        # detaylari cevaba katma. Sadece sorulan seyi cevapla.
+        #
+        # KURAL 4 (Uncertainty): Kullanici birden fazla sey soruyorsa (fiyat,
+        # kural, prosedur) eksik olan parcayi acikca belirt.
+        
         self.LANGUAGE_PROMPTS = {
             "tr": {
-                # NON-COT: Direct answer, no thinking steps
-                "system_instruction": """Sen profesyonel bir havayolu musteri hizmetleri asistanisin.
-Yanitlarini SADECE Turkce ver.
-Kullaniciya SADECE nihai cevabi ver.
-Dusunce surecini, analiz adimlarini veya ara adimlari GOSTERME.
-Dogrudan, net ve anlasilir bir yanit ver.""",
+                "system_instruction": """Sen bir havayolu politika asistanisin. Gorevi SADECE sana verilen belgelerdeki bilgilere dayanarak kullanicinin sorularini yanitlamak.
 
-                # COT: With reasoning (internal use)
-                "system_instruction_cot": """Sen profesyonel bir havayolu musteri hizmetleri asistanisin.
-Yanitlarini SADECE Turkce ver.
+KURAL 1 — BELGEDE YOKSA UYDURMA:
+- Sadece sana verilen "Havayolu Politika Belgeleri" icindeki bilgileri kullan.
+- Baska havayollarinin politikalarini, genel havacilik kurallarini veya egitim verinden gelen bilgileri EKLEME.
+- Bir konu belgelerde yoksa "Elimdeki belgelerde bu konuda spesifik bilgi bulamiyorum" de.
+- "Havayollari genelde...", "Genellikle...", "Muhtemelen..." tarzi tahminler yapma.
+
+KURAL 2 — KAYNAK BELIRT:
+- Her spesifik bilgiden sonra kaynak belgeyi parantez icinde belirt.
+- Format: (Kaynak: kategori_adi). Ornek: "Kabin bagaji 8 kg'dir (Kaynak: general_rules)."
+- Birden fazla kaynak varsa virgulle ayir: (Kaynak: pets_cabin, pets_terms)
+
+KURAL 3 — SADECE SORUYA ODAKLAN:
+- Pazarlama dilini, marka tanitimini, ilgisiz detaylari atla.
+- "Dunyanin en iyi havayolu olarak...", "Size hizmet vermekten gurur duyuyoruz..." gibi cumleleri KULLANMA.
+- Sadece kullanicinin sorusunu yanitlayan spesifik bilgiyi ver.
+
+KURAL 4 — EKSIK BILGIYI SAKLAMA:
+- Kullanici birden fazla sey sorduysa (fiyat + kural + prosedur), her parcayi ayri degerlendir.
+- Bir parca belgelerde yoksa acikca soyle: "Fiyat bilgisi belgelerde yer almiyor."
+- Cevabin sonunda, bilgi eksikse sunu ekle: "Detayli bilgi icin havayolunun resmi kanallarini kontrol edin."
+
+FORMAT:
+- Sadece Turkce yanit ver.
+- Paragraf halinde yaz, numarali liste veya madde isareti kullanma.
+- Dogrudan, net ve dogal bir dille.""",
+
+                "system_instruction_cot": """Sen bir havayolu politika asistanisin. SADECE verilen belgelerdeki bilgileri kullan.
+
+Belgede olmayan bilgiyi uydurma, kaynak belirt, pazarlama dili kullanma, eksik bilgi varsa acikca soyle.
 Verilen formati KESINLIKLE takip et.""",
                 
                 "context_prefix": "Havayolu Politika Belgeleri:",
                 "question_prefix": "Musteri Sorusu:",
                 
                 "cot_instruction": """
-KRITIK: Asagidaki formati KESINLIKLE kullan. Baska format KABUL EDILMEZ.
+KRITIK: Asagidaki formati KESINLIKLE kullan.
 
 [REASONING]
 - Soru ne soruyor: 
 - Ilgili belgeler:
-- Onemli bilgiler:
+- Onemli bilgiler (ve kaynak kategorisi):
+- Belgede olmayan/eksik bilgiler:
 
 [ANSWER]
-(Sadece kullaniciya gosterilecek nihai Turkce cevap. Analiz veya adimlar YAZMA.)
+(Sadece kullaniciya gosterilecek nihai Turkce cevap. 4 kurali uygula:
+1) Belgede yoksa uydurma, "bulamiyorum" de
+2) Her bilgi icin (Kaynak: kategori) belirt
+3) Pazarlama dili kullanma
+4) Eksik bilgi varsa acikca soyle ve "Detayli bilgi icin havayolunun resmi kanallarini kontrol edin." ile bitir)
 """,
-                "answer_instruction": "Soruyu DOGRUDAN yanitla. Dusunce adimlarini veya analizi GOSTERME:"
+                "answer_instruction": """Soruyu belgelere dayanarak yanitla. 4 kurali hatirla:
+1) Belgede olmayan bilgi ekleme
+2) Her spesifik bilgi icin (Kaynak: kategori_adi) belirt
+3) Pazarlama dilini atla
+4) Eksik bilgi varsa acikca belirt
+
+Cevap:"""
             },
             "en": {
-                # NON-COT: Direct answer, no thinking steps
-                "system_instruction": """You are a professional airline customer service assistant.
-Answer ONLY in English.
-Give the user ONLY the final answer.
-Do NOT show your thinking process, analysis steps, or intermediate steps.
-Provide a direct, clear, and helpful response.""",
+                "system_instruction": """You are an airline policy assistant. Your task is to answer user questions based ONLY on the policy documents provided to you.
 
-                # COT: With reasoning (internal use)
-                "system_instruction_cot": """You are a professional airline customer service assistant.
-Answer ONLY in English.
+RULE 1 — DO NOT INVENT:
+- Use ONLY the information in the "Airline Policy Documents" provided.
+- Do NOT add information from other airlines' policies, general aviation knowledge, or your training data.
+- If a topic is not in the documents, say: "I cannot find specific information about this in the available documents."
+- Do NOT use phrases like "Airlines generally...", "Typically...", "Usually..." when making guesses.
+
+RULE 2 — CITE YOUR SOURCES:
+- After each specific piece of information, cite the source document in parentheses.
+- Format: (Source: category_name). Example: "Cabin baggage is 8 kg (Source: general_rules)."
+- For multiple sources, separate with commas: (Source: pets_cabin, pets_terms)
+
+RULE 3 — STAY ON TOPIC:
+- Skip marketing language, brand promotion, and irrelevant details.
+- Do NOT use phrases like "As the world's leading airline...", "We're proud to serve you..."
+- Give only the specific information that answers the user's question.
+
+RULE 4 — DON'T HIDE MISSING INFO:
+- If the user asks multiple things (price + rule + procedure), evaluate each separately.
+- If a part is missing from documents, say clearly: "Price information is not in the documents."
+- End with: "For detailed information, please check the airline's official channels." when info is incomplete.
+
+FORMAT:
+- Answer ONLY in English.
+- Write in paragraph form, no numbered lists or bullet points.
+- Direct, clear, natural language.""",
+
+                "system_instruction_cot": """You are an airline policy assistant. Use ONLY the information in the provided documents.
+
+Do not invent information, cite sources, skip marketing language, and clearly state when info is missing.
 You MUST follow the exact format provided.""",
                 
                 "context_prefix": "Airline Policy Documents:",
                 "question_prefix": "Customer Question:",
                 
                 "cot_instruction": """
-CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
+CRITICAL: You MUST use EXACTLY this format.
 
 [REASONING]
 - What the question asks:
 - Relevant documents:
-- Key information:
+- Key information (with source category):
+- Missing information not in documents:
 
 [ANSWER]
-(Only the final answer for the user. Do NOT include analysis or steps here.)
+(Only the final answer for the user. Apply all 4 rules:
+1) Don't invent info, say "cannot find" if absent
+2) Cite every fact: (Source: category_name)
+3) Skip marketing language
+4) State missing info clearly and end with "For detailed information, please check the airline's official channels." when needed)
 """,
-                "answer_instruction": "Answer the question DIRECTLY. Do NOT show thinking steps or analysis:"
+                "answer_instruction": """Answer the question based on the documents. Remember the 4 rules:
+1) Don't add info not in documents
+2) Cite each fact with (Source: category_name)
+3) Skip marketing language
+4) Clearly state missing information
+
+Answer:"""
             }
         }
 
@@ -137,11 +219,7 @@ CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
         }
 
     def _parse_cot_response(self, full_response: str, language: str) -> tuple:
-        """
-        Parse CoT response to extract reasoning and final answer.
-        Multiple fallback strategies for robust parsing.
-        Returns: (reasoning, final_answer)
-        """
+        """Parse CoT response to extract reasoning and final answer."""
         reasoning = None
         final_answer = full_response
         
@@ -177,31 +255,24 @@ CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
             match = re.search(pattern, full_response, re.DOTALL | re.IGNORECASE)
             if match:
                 potential_answer = match.group(1).strip()
-                if len(potential_answer) > 20:  # Sanity check
-                    # Everything before is reasoning
+                if len(potential_answer) > 20:
                     answer_start_pos = match.start()
                     reasoning = full_response[:answer_start_pos].strip()
                     final_answer = potential_answer
-                    
                     logger.debug(f"CoT parsed with regex pattern: {pattern[:30]}...")
                     return reasoning, final_answer
         
-        # Strategy 3: Look for numbered structure and extract last section
+        # Strategy 3: Look for numbered structure
         if re.search(r'^\s*\d+\.', full_response, re.MULTILINE):
-            # Find the last numbered section that looks like an answer
             sections = re.split(r'\n(?=\d+\.)', full_response)
             if len(sections) >= 2:
-                # Check if last section contains answer-like content
                 last_section = sections[-1]
                 if any(keyword in last_section.lower() for keyword in ['response', 'answer', 'yanit', 'therefore', 'so,', 'in summary']):
                     reasoning = '\n'.join(sections[:-1]).strip()
-                    # Remove the number prefix from answer
                     final_answer = re.sub(r'^\d+\.\s*(?:Response|Answer|Yanit)[:\s]*', '', last_section, flags=re.IGNORECASE).strip()
-                    
                     logger.debug("CoT parsed with numbered section detection")
                     return reasoning, final_answer
         
-        # Strategy 4: If nothing worked, log and return full response
         logger.warning("No CoT markers found, returning full response as answer")
         return None, full_response
 
@@ -217,7 +288,6 @@ CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
             model_to_use = model or self.default_model
             lang_config = self.LANGUAGE_PROMPTS.get(language, self.LANGUAGE_PROMPTS["en"])
             
-            # Select appropriate system instruction based on CoT mode
             if use_cot:
                 system_instruction = lang_config["system_instruction_cot"]
             else:
@@ -248,7 +318,7 @@ CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
                 context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
-            # Create user prompt - CoT or standard
+            # Create user prompt
             if use_cot:
                 user_prompt = f"""{lang_config['context_prefix']}
 {context}
@@ -275,20 +345,17 @@ CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
                 temperature=self.temperature
             )
             
-            # Safety check for response
             if not response.choices or not response.choices[0].message.content:
                 return self._get_error_response(language, "Empty response from API")
             
             full_response = response.choices[0].message.content
             
-            # Parse response - extract reasoning and answer if CoT used
             if use_cot:
                 reasoning, final_answer = self._parse_cot_response(full_response, language)
             else:
                 reasoning = None
                 final_answer = full_response
             
-            # Extract usage information
             usage_info = {
                 "prompt_tokens": response.usage.prompt_tokens,
                 "completion_tokens": response.usage.completion_tokens, 

@@ -1,4 +1,9 @@
-# claude_service.py - FIXED VERSION v2
+# claude_service.py - PROMPT IMPROVEMENT VERSION v3
+# Baseline test sonrasi 4 prompt kurali eklendi:
+#   1. Strict faithfulness (hallucination guard)
+#   2. Inline citation (kaynak belirtme)
+#   3. Relevant info selection (pazarlama dilini atla)
+#   4. Graceful uncertainty (eksik bilgi icin dogru dil)
 
 import anthropic
 from typing import List, Dict, Optional
@@ -27,106 +32,171 @@ class ClaudeService:
                 self.client = None
         
         self.default_model = 'claude-3-haiku-20240307'
-        self.max_tokens = 500
+        self.max_tokens = 800  # 500 -> 800: uzun listelerin kesilmesini onlemek icin
         self.temperature = 0.2
 
-        # SEPARATE PROMPTS FOR COT AND NON-COT
+        # ===== PROMPT v3 — OpenAI ile ayni 4 kural =====
+        # Tutarlilik icin OpenAI servisindeki ile ayni talimatlari kullaniyoruz.
+        # Tek fark: Claude'un paragraph format tercihini koruyoruz (zaten iyiydi).
+        
         self.LANGUAGE_PROMPTS = {
             "tr": {
-                # NON-COT: Direct answer, conversational tone, NO formatting
-                "system_instruction": """Sen profesyonel bir havayolu musteri hizmetleri asistanisin.
-Yanitlarini SADECE Turkce ver.
+                "system_instruction": """Sen bir havayolu politika asistanisin. Gorevi SADECE sana verilen belgelerdeki bilgilere dayanarak kullanicinin sorularini yanitlamak.
 
-FORMAT KURALLARI (KESINLIKLE UYULMALI):
-- Numarali liste KULLANMA (1. 2. 3. gibi)
-- Madde isareti KULLANMA (- veya * gibi)
-- Baslik KULLANMA
-- SADECE dogal paragraflar halinde yaz
-- Bir arkadasinla konusur gibi samimi ve akici yaz
-- Bilgileri cumle icinde ver, liste yapma
+KURAL 1 — BELGEDE YOKSA UYDURMA:
+- Sadece sana verilen "Havayolu Politika Belgeleri" icindeki bilgileri kullan.
+- Baska havayollarinin politikalarini, genel havacilik kurallarini veya egitim verinden gelen bilgileri EKLEME.
+- Bir konu belgelerde yoksa "Elimdeki belgelerde bu konuda spesifik bilgi bulamiyorum" de.
+- "Havayollari genelde...", "Genellikle...", "Muhtemelen..." tarzi tahminler yapma.
 
-ORNEK YANIT TARZI:
-"Turkish Airlines'da kabin bagajiniz 8 kg'a kadar olabilir ve 55x40x23 cm boyutlarini gecmemeli. Ayrica yanınıza kucuk bir kisisel esya da alabilirsiniz."
+KURAL 2 — KAYNAK BELIRT:
+- Her spesifik bilgiden sonra kaynak belgeyi parantez icinde belirt.
+- Format: (Kaynak: kategori_adi). Ornek: "Kabin bagaji 8 kg'dir (Kaynak: general_rules)."
+- Birden fazla kaynak varsa virgulle ayir: (Kaynak: pets_cabin, pets_terms)
 
-YANLIS TARZI (KULLANMA):
+KURAL 3 — SADECE SORUYA ODAKLAN:
+- Pazarlama dilini, marka tanitimini, ilgisiz detaylari atla.
+- "Dunyanin en iyi havayolu olarak...", "Size hizmet vermekten gurur duyuyoruz..." gibi cumleleri KULLANMA.
+- Sadece kullanicinin sorusunu yanitlayan spesifik bilgiyi ver.
+
+KURAL 4 — EKSIK BILGIYI SAKLAMA:
+- Kullanici birden fazla sey sorduysa (fiyat + kural + prosedur), her parcayi ayri degerlendir.
+- Bir parca belgelerde yoksa acikca soyle: "Fiyat bilgisi belgelerde yer almiyor."
+- Cevabin sonunda, bilgi eksikse sunu ekle: "Detayli bilgi icin havayolunun resmi kanallarini kontrol edin."
+
+FORMAT:
+- SADECE Turkce yanit ver.
+- Paragraf halinde dogal bir dille yaz.
+- Numarali liste (1. 2. 3.) veya madde isareti (- veya *) KULLANMA.
+- Baslik KULLANMA.
+- Bilgileri cumle icinde, akici bir sekilde ver.
+
+ORNEK DOGRU CEVAP:
+"Turkish Airlines'da kabin bagaji agirlik limiti 8 kg'dir ve boyut olarak 55x40x23 cm'yi asmamasi gerekir (Kaynak: general_rules). Kabin bagajinizin yaninda bir kucuk kisisel esya da yanınıza alabilirsiniz (Kaynak: carry_on_baggage)."
+
+ORNEK YANLIS CEVAP (KULLANMA):
 "1. Kabin bagaji: 8 kg
-2. Boyutlar: 55x40x23 cm
-3. Kisisel esya: Evet"
+2. Boyutlar: 55x40x23 cm" """,
 
-Dogrudan, net ve anlasilir bir yanit ver.""",
+                "system_instruction_cot": """Sen bir havayolu politika asistanisin. SADECE verilen belgelerdeki bilgileri kullan.
 
-                # COT: With reasoning (internal use)
-                "system_instruction_cot": """Sen profesyonel bir havayolu musteri hizmetleri asistanisin.
-Yanitlarini SADECE Turkce ver.
-Verilen formati KESINLIKLE takip et.
-[ANSWER] bolumunde numarali liste veya madde isareti KULLANMA, paragraf yaz.""",
+Belgede olmayan bilgiyi uydurma, kaynak belirt, pazarlama dili kullanma, eksik bilgi varsa acikca soyle.
+Verilen formati KESINLIKLE takip et. [ANSWER] bolumunde paragraf yaz, liste kullanma.""",
                 
                 "context_prefix": "Havayolu Politika Belgeleri:",
                 "question_prefix": "Musteri Sorusu:",
                 
                 "cot_instruction": """
-KRITIK: Asagidaki formati KESINLIKLE kullan. Baska format KABUL EDILMEZ.
+KRITIK: Asagidaki formati KESINLIKLE kullan.
 
 [REASONING]
 - Soru ne soruyor: 
 - Ilgili belgeler:
-- Onemli bilgiler:
+- Onemli bilgiler (ve kaynak kategorisi):
+- Belgede olmayan/eksik bilgiler:
 
 [ANSWER]
 (Sadece kullaniciya gosterilecek nihai Turkce cevap. 
-PARAGRAF FORMATINDA yaz. 
-Numarali liste veya madde isareti KULLANMA.
-Dogal ve akici bir dil kullan.)
+4 kurali uygula:
+1) Belgede yoksa uydurma, "bulamiyorum" de
+2) Her bilgi icin (Kaynak: kategori) belirt
+3) Pazarlama dili kullanma
+4) Eksik bilgi varsa acikca soyle
+
+PARAGRAF FORMATINDA yaz, liste KULLANMA.
+Dogal ve akici bir dil kullan.
+Eksik bilgi varsa "Detayli bilgi icin havayolunun resmi kanallarini kontrol edin." ile bitir.)
 """,
-                "answer_instruction": "Soruyu DOGRUDAN ve PARAGRAF FORMATINDA yanitla. Liste veya madde isareti KULLANMA:"
+                "answer_instruction": """Soruyu belgelere dayanarak PARAGRAF FORMATINDA yanitla. 
+
+4 kurali hatirla:
+1) Belgede olmayan bilgi ekleme
+2) Her spesifik bilgi icin (Kaynak: kategori_adi) belirt
+3) Pazarlama dilini atla
+4) Eksik bilgi varsa acikca belirt
+
+Liste veya madde isareti KULLANMA. Dogal paragraflarla yaz.
+
+Cevap:"""
             },
             "en": {
-                # NON-COT: Direct answer, conversational tone, NO formatting
-                "system_instruction": """You are a professional airline customer service assistant.
-Answer ONLY in English.
+                "system_instruction": """You are an airline policy assistant. Your task is to answer user questions based ONLY on the policy documents provided to you.
 
-FORMAT RULES (MUST BE FOLLOWED):
-- Do NOT use numbered lists (1. 2. 3.)
-- Do NOT use bullet points (- or *)
-- Do NOT use headers
-- Write ONLY in natural paragraphs
-- Write in a friendly, conversational tone
-- Include information within sentences, do NOT make lists
+RULE 1 — DO NOT INVENT:
+- Use ONLY the information in the "Airline Policy Documents" provided.
+- Do NOT add information from other airlines' policies, general aviation knowledge, or your training data.
+- If a topic is not in the documents, say: "I cannot find specific information about this in the available documents."
+- Do NOT use phrases like "Airlines generally...", "Typically...", "Usually..." when making guesses.
 
-CORRECT STYLE EXAMPLE:
-"Turkish Airlines allows cabin baggage up to 8 kg with dimensions not exceeding 55x40x23 cm. You can also bring a small personal item with you."
+RULE 2 — CITE YOUR SOURCES:
+- After each specific piece of information, cite the source document in parentheses.
+- Format: (Source: category_name). Example: "Cabin baggage is 8 kg (Source: general_rules)."
+- For multiple sources, separate with commas: (Source: pets_cabin, pets_terms)
 
-WRONG STYLE (DO NOT USE):
+RULE 3 — STAY ON TOPIC:
+- Skip marketing language, brand promotion, and irrelevant details.
+- Do NOT use phrases like "As the world's leading airline...", "We're proud to serve you..."
+- Give only the specific information that answers the user's question.
+
+RULE 4 — DON'T HIDE MISSING INFO:
+- If the user asks multiple things (price + rule + procedure), evaluate each separately.
+- If a part is missing from documents, say clearly: "Price information is not in the documents."
+- End with: "For detailed information, please check the airline's official channels." when info is incomplete.
+
+FORMAT:
+- Answer ONLY in English.
+- Write in natural paragraph form.
+- Do NOT use numbered lists (1. 2. 3.) or bullet points (- or *).
+- Do NOT use headers.
+- Embed information in flowing sentences.
+
+CORRECT EXAMPLE:
+"Turkish Airlines allows cabin baggage up to 8 kg with dimensions not exceeding 55x40x23 cm (Source: general_rules). You may also bring a small personal item alongside your cabin baggage (Source: carry_on_baggage)."
+
+WRONG EXAMPLE (DO NOT USE):
 "1. Cabin baggage: 8 kg
-2. Dimensions: 55x40x23 cm
-3. Personal item: Yes"
+2. Dimensions: 55x40x23 cm" """,
 
-Provide a direct, clear, and helpful response.""",
+                "system_instruction_cot": """You are an airline policy assistant. Use ONLY the information in the provided documents.
 
-                # COT: With reasoning (internal use)
-                "system_instruction_cot": """You are a professional airline customer service assistant.
-Answer ONLY in English.
-You MUST follow the exact format provided.
-In the [ANSWER] section, do NOT use numbered lists or bullet points, write in paragraphs.""",
+Do not invent information, cite sources, skip marketing language, and clearly state when info is missing.
+You MUST follow the exact format provided. In the [ANSWER] section, write in paragraphs, do not use lists.""",
                 
                 "context_prefix": "Airline Policy Documents:",
                 "question_prefix": "Customer Question:",
                 
                 "cot_instruction": """
-CRITICAL: You MUST use EXACTLY this format. No other format is accepted.
+CRITICAL: You MUST use EXACTLY this format.
 
 [REASONING]
 - What the question asks:
 - Relevant documents:
-- Key information:
+- Key information (with source category):
+- Missing information not in documents:
 
 [ANSWER]
 (Only the final answer for the user.
-Write in PARAGRAPH format.
-Do NOT use numbered lists or bullet points.
-Use natural, conversational language.)
+Apply all 4 rules:
+1) Don't invent info, say "cannot find" if absent
+2) Cite every fact: (Source: category_name)
+3) Skip marketing language
+4) State missing info clearly
+
+Write in PARAGRAPH format, do NOT use lists.
+Use natural, conversational language.
+End with "For detailed information, please check the airline's official channels." when info is incomplete.)
 """,
-                "answer_instruction": "Answer the question DIRECTLY in PARAGRAPH format. Do NOT use lists or bullet points:"
+                "answer_instruction": """Answer the question in PARAGRAPH format based on the documents.
+
+Remember the 4 rules:
+1) Don't add info not in documents
+2) Cite each fact with (Source: category_name)
+3) Skip marketing language
+4) Clearly state missing information
+
+Do NOT use numbered lists or bullet points. Write in natural paragraphs.
+
+Answer:"""
             }
         }
     
@@ -174,11 +244,7 @@ Use natural, conversational language.)
         }
 
     def _parse_cot_response(self, full_response: str, language: str) -> tuple:
-        """
-        Parse CoT response to extract reasoning and final answer.
-        Multiple fallback strategies for robust parsing.
-        Returns: (reasoning, final_answer)
-        """
+        """Parse CoT response to extract reasoning and final answer."""
         reasoning = None
         final_answer = full_response
         
@@ -214,31 +280,24 @@ Use natural, conversational language.)
             match = re.search(pattern, full_response, re.DOTALL | re.IGNORECASE)
             if match:
                 potential_answer = match.group(1).strip()
-                if len(potential_answer) > 20:  # Sanity check
-                    # Everything before is reasoning
+                if len(potential_answer) > 20:
                     answer_start_pos = match.start()
                     reasoning = full_response[:answer_start_pos].strip()
                     final_answer = potential_answer
-                    
                     logger.debug(f"CoT parsed with regex pattern: {pattern[:30]}...")
                     return reasoning, final_answer
         
-        # Strategy 3: Look for numbered structure and extract last section
+        # Strategy 3: Numbered section detection
         if re.search(r'^\s*\d+\.', full_response, re.MULTILINE):
-            # Find the last numbered section that looks like an answer
             sections = re.split(r'\n(?=\d+\.)', full_response)
             if len(sections) >= 2:
-                # Check if last section contains answer-like content
                 last_section = sections[-1]
                 if any(keyword in last_section.lower() for keyword in ['response', 'answer', 'yanit', 'therefore', 'so,', 'in summary']):
                     reasoning = '\n'.join(sections[:-1]).strip()
-                    # Remove the number prefix from answer
                     final_answer = re.sub(r'^\d+\.\s*(?:Response|Answer|Yanit)[:\s]*', '', last_section, flags=re.IGNORECASE).strip()
-                    
                     logger.debug("CoT parsed with numbered section detection")
                     return reasoning, final_answer
         
-        # Strategy 4: If nothing worked, log and return full response
         logger.warning("No CoT markers found, returning full response as answer")
         return None, full_response
 
@@ -254,7 +313,6 @@ Use natural, conversational language.)
             model_to_use = model or self.default_model
             lang_config = self.LANGUAGE_PROMPTS.get(language, self.LANGUAGE_PROMPTS["en"])
             
-            # Select appropriate system instruction based on CoT mode
             if use_cot:
                 system_instruction = lang_config["system_instruction_cot"]
             else:
@@ -285,7 +343,7 @@ Use natural, conversational language.)
                 context = no_doc_messages.get(language, no_doc_messages["en"])
                 context_used = False
             
-            # Create user prompt - CoT or standard
+            # Create user prompt
             if use_cot:
                 user_prompt = f"""{lang_config['context_prefix']}
 {context}
@@ -311,20 +369,17 @@ Use natural, conversational language.)
                 ]
             )
             
-            # Safety check for response
             if not response.content or len(response.content) == 0:
                 return self._get_error_response(language, "Empty response from Claude")
             
             full_response = response.content[0].text
             
-            # Parse response - extract reasoning and answer if CoT used
             if use_cot:
                 reasoning, final_answer = self._parse_cot_response(full_response, language)
             else:
                 reasoning = None
                 final_answer = full_response
             
-            # Extract usage information
             usage_info = {
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
