@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Settings, Plane } from 'lucide-react';
 import { apiService } from '@/services/api';
+import type { APIErrorDetails } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import {
   Message,
@@ -172,6 +173,8 @@ const Index = () => {
           };
           addMessage(airline, newMessage);
         } else {
+          // Graceful degradation: error.error artık hata türüne göre
+          // kategorize edilmiş user-friendly bir mesaj (api.ts'de düzenlendi)
           toast({
             title: t('apiFailed'),
             description: response.error || 'Unknown error occurred',
@@ -244,34 +247,35 @@ const Index = () => {
     [airlineMessages, language, toast, setFeedbackGiven],
   );
 
+  /**
+   * TTS handler — yeni tip: { audioUrl, error? } döner.
+   * ResponseCard bu objeyi kendi içinde işler, toast atmıyoruz artık —
+   * error mesajı ResponseCard'ın içinde (getAudioErrorMessage) gösteriliyor.
+   * Bu, aynı hata için 2 farklı mesaj çıkmasını engeller.
+   */
   const handlePlayAudio = useCallback(
-    async (text: string): Promise<string | null> => {
+    async (
+      text: string,
+    ): Promise<{ audioUrl: string | null; error?: APIErrorDetails }> => {
       try {
-        const audioUrl = await apiService.convertTextToSpeech(text, language);
-        if (audioUrl) return audioUrl;
-
-        toast({
-          title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
-          description:
-            language === 'en'
-              ? 'Failed to generate audio'
-              : 'Ses oluşturulamadı',
-          variant: 'destructive',
-        });
-        return null;
-      } catch {
-        toast({
-          title: language === 'en' ? 'Audio Error' : 'Ses Hatası',
-          description:
-            language === 'en'
-              ? 'Audio generation failed'
-              : 'Ses üretimi başarısız',
-          variant: 'destructive',
-        });
-        return null;
+        return await apiService.convertTextToSpeech(text, language);
+      } catch (error) {
+        // apiService zaten hataları yakalar, buraya gelmezse emniyet ağı
+        console.error('Unexpected TTS error:', error);
+        return {
+          audioUrl: null,
+          error: {
+            kind: 'unknown',
+            message: error instanceof Error ? error.message : 'Unknown',
+            userMessage:
+              language === 'en'
+                ? 'Audio generation failed'
+                : 'Ses üretimi başarısız',
+          },
+        };
       }
     },
-    [language, toast],
+    [language],
   );
 
   const handleReconnect = useCallback(async () => {
@@ -346,20 +350,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* ─── Minimalist Header ─── */}
-      {/* Navy chrome header — beyaz/altın text, koyu background */}
       <header className="sticky top-0 z-40 bg-chrome border-b border-chrome-border">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
-            {/* Left: Logo + Title */}
             <div className="flex items-center gap-3">
-              {/* Altın uçak artık navy kare içinde değil — chrome zaten navy.
-                  Logo'yu subtle tone-on-tone yapıyoruz (koyu navy kutu içinde).
-                  Ya da sadece altın bir uçak icon yeter. */}
               <div className="flex items-center justify-center w-8 h-8 rounded-md bg-white/10 border border-white/10">
-                <Plane
-                  className="w-4 h-4 text-accent"
-                  aria-hidden="true"
-                />
+                <Plane className="w-4 h-4 text-accent" aria-hidden="true" />
               </div>
               <div className="flex items-baseline gap-2">
                 <h1 className="text-sm font-semibold text-chrome-foreground tracking-tight">
@@ -371,18 +367,14 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Right: Status + Language + Settings */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Single status indicator — dot + text */}
               <div
                 className="hidden sm:flex items-center gap-2 text-xs"
                 aria-live="polite"
               >
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
-                    apiConnection.success
-                      ? 'bg-emerald-400'
-                      : 'bg-slate-500'
+                    apiConnection.success ? 'bg-emerald-400' : 'bg-slate-500'
                   }`}
                   aria-hidden="true"
                 />
@@ -397,7 +389,6 @@ const Index = () => {
                 </span>
               </div>
 
-              {/* Divider (desktop only) */}
               <div
                 className="hidden sm:block w-px h-5 bg-chrome-border"
                 aria-hidden="true"
@@ -448,20 +439,13 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6">
         {messages.length === 0 ? (
-          /* ─── Landing Page ──────────────────────────────────────────
-             ✅ Pulsing blob'lar kaldırıldı.
-             ✅ Hero başlığı gradient'ten solid'e (daha sakin).
-             ✅ Feature badge'leri minimalize edildi. */
+          /* ─── Landing Page ── */
           <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center py-12 sm:py-20">
-            {/* Title */}
             <div className="text-center space-y-5 mb-12 max-w-2xl">
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground">
-                {language === 'en'
-                  ? 'Airline Assistant'
-                  : 'Havayolu Asistanı'}
+                {language === 'en' ? 'Airline Assistant' : 'Havayolu Asistanı'}
               </h2>
 
-              {/* Dekoratif altın şerit — havayolu zarafeti dokunuşu */}
               <div className="flex justify-center" aria-hidden="true">
                 <div className="h-px w-16 bg-accent" />
               </div>
@@ -473,7 +457,6 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Airline Selector */}
             <div className="w-full max-w-3xl mb-8">
               <AirlineSelector
                 selectedAirline={selectedAirline}
@@ -482,7 +465,6 @@ const Index = () => {
               />
             </div>
 
-            {/* Search Box — sakinleştirilmiş konteyner */}
             <div className="w-full max-w-2xl mb-12">
               <SearchBox
                 language={language}
@@ -494,7 +476,6 @@ const Index = () => {
               />
             </div>
 
-            {/* Quick Questions — skeleton varken gizle */}
             {!isLoading && (
               <div className="w-full max-w-4xl">
                 <QuickQuestions
@@ -504,7 +485,6 @@ const Index = () => {
               </div>
             )}
 
-            {/* Landing'de skeleton — ilk soru gönderildi ama mesaj listesi henüz boş */}
             {isLoading && currentQuestion && (
               <div className="w-full max-w-3xl">
                 <SkeletonCard
@@ -515,9 +495,8 @@ const Index = () => {
             )}
           </div>
         ) : (
-          /* ─── Results Page ──────────────────────────────────────── */
+          /* ─── Results Page ── */
           <div className="py-6 sm:py-8 space-y-6">
-            {/* Compact airline context strip */}
             <div className="max-w-3xl mx-auto">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
@@ -539,7 +518,6 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Search Box */}
             <div className="max-w-3xl mx-auto">
               <SearchBox
                 language={language}
@@ -551,9 +529,7 @@ const Index = () => {
               />
             </div>
 
-            {/* Messages */}
             <div className="space-y-6">
-              {/* Loading skeleton — sadece yüklenirken, listenin BAŞINDA */}
               {isLoading && currentQuestion && (
                 <SkeletonCard
                   language={language}

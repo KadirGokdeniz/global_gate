@@ -17,12 +17,17 @@ import {
 import { Message, FeedbackType, Language } from '@/types';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import type { APIErrorDetails } from '@/services/api';
 
 interface ResponseCardProps {
   message: Message;
   language: Language;
   onFeedback: (messageId: string, feedback: FeedbackType) => void;
-  onPlayAudio?: (text: string) => Promise<string | null>;
+  // TTS handler artık sadece URL değil, hata detayı da dönebilir.
+  // audioUrl null geldiğinde error opsiyonel olarak neyin yanlış gittiğini söyler.
+  onPlayAudio?: (
+    text: string,
+  ) => Promise<{ audioUrl: string | null; error?: APIErrorDetails }>;
   feedbackGiven?: FeedbackType | null;
 }
 
@@ -47,6 +52,10 @@ export const ResponseCard = ({
   const [expandedSources, setExpandedSources] = useState<number[]>([]);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Graceful degradation: TTS fail olduğunda ne hata olduğunu UI'ya iletelim.
+  // null = audio playback hatası (browser seviyesi), error = servis hatası.
+  const [audioError, setAudioError] = useState<APIErrorDetails | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -136,6 +145,8 @@ export const ResponseCard = ({
     audio.addEventListener('error', () => {
       logError('TTS audio error:', audio.error);
       setAudioState('error');
+      // Browser audio tag'inin playback hatası — TTS üretimi değil, çalma sorunu.
+      setAudioError(null);
       stopProgressTracking();
     });
   };
@@ -143,6 +154,8 @@ export const ResponseCard = ({
   const handlePlayAudio = async () => {
     if (!onPlayAudio) return;
     setShowAudioPanel(true);
+    // Yeni deneme — önceki hatayı temizle
+    setAudioError(null);
 
     try {
       if (audioRef.current && audioState === 'paused') {
@@ -162,15 +175,20 @@ export const ResponseCard = ({
       setAudioState('loading');
       if (audioUrlRef.current) revokeAudioUrl();
 
-      const audioUrl = await onPlayAudio(message.answer);
-      if (!audioUrl) {
+      const result = await onPlayAudio(message.answer);
+
+      if (!result.audioUrl) {
         setAudioState('error');
+        // Backend/network hatası — UI'ya kategori ile detay geçir
+        if (result.error) {
+          setAudioError(result.error);
+        }
         return;
       }
 
       teardownAudio();
-      audioUrlRef.current = audioUrl;
-      const audio = new Audio(audioUrl);
+      audioUrlRef.current = result.audioUrl;
+      const audio = new Audio(result.audioUrl);
       audioRef.current = audio;
       attachAudioListeners(audio);
 
@@ -179,10 +197,13 @@ export const ResponseCard = ({
       } catch (playErr) {
         logError('play() rejected:', playErr);
         setAudioState('error');
+        // Browser seviyesi hata — kategori yok, generic mesaj gösterilecek
+        setAudioError(null);
       }
     } catch (error) {
       logError('handlePlayAudio error:', error);
       setAudioState('error');
+      setAudioError(null);
     }
   };
 
@@ -241,6 +262,74 @@ export const ResponseCard = ({
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  /**
+   * Graceful degradation: Audio hata mesajı.
+   * Hata türüne göre kullanıcıya ne olduğunu net söyle. Retry opsiyonunu
+   * sadece geçici hatalar için göster (service_down, timeout, network).
+   * rate_limit için retry kötü UX — önce beklemesi lazım.
+   */
+  const getAudioErrorMessage = (): {
+    text: string;
+    showRetry: boolean;
+  } => {
+    // Browser playback hatası (audioError null ama audioState error)
+    if (!audioError) {
+      return {
+        text: isEn ? 'Audio playback failed' : 'Ses oynatılamadı',
+        showRetry: true,
+      };
+    }
+
+    // Backend'den gelen kategorize hata
+    switch (audioError.kind) {
+      case 'service_down':
+        return {
+          text: isEn
+            ? 'Audio service is temporarily unavailable. Try again in a moment.'
+            : 'Ses servisi şu an kullanılamıyor. Birazdan tekrar deneyin.',
+          showRetry: true,
+        };
+      case 'rate_limit':
+        return {
+          text: isEn
+            ? 'Too many requests. Please wait a minute.'
+            : 'Çok sık istek gönderildi. Bir dakika bekleyin.',
+          showRetry: false,
+        };
+      case 'timeout':
+        return {
+          text: isEn
+            ? 'Audio generation timed out.'
+            : 'Ses üretimi zaman aşımına uğradı.',
+          showRetry: true,
+        };
+      case 'network':
+        return {
+          text: isEn
+            ? 'Connection problem. Check your network.'
+            : 'Bağlantı sorunu. Ağınızı kontrol edin.',
+          showRetry: true,
+        };
+      case 'bad_request':
+        return {
+          text: isEn
+            ? 'Text is too long or invalid for audio.'
+            : 'Metin ses için çok uzun veya geçersiz.',
+          showRetry: false,
+        };
+      case 'server_error':
+      case 'unavailable':
+      case 'unknown':
+      default:
+        return {
+          text: isEn
+            ? 'Audio could not be generated.'
+            : 'Ses oluşturulamadı.',
+          showRetry: true,
+        };
+    }
   };
 
   // Feedback buttons — sakin, tek sıra
@@ -355,19 +444,15 @@ export const ResponseCard = ({
             </div>
           </div>
 
-          {/* ─── Markdown renderer ─────────────────────────────
-              LLM yanıtlarındaki **bold**, *italic*, listeler,
-              kod blokları, başlıklar vs. düzgün render edilsin. */}
+          {/* ─── Markdown renderer ───────────────────────────── */}
           <div className="markdown-body text-[15px] leading-relaxed text-slate-900 dark:text-slate-100">
                 <ReactMarkdown
                   components={{
-                    // ─── Paragraf
                     p: ({ children }) => (
                       <p className="mb-3 last:mb-0 leading-relaxed">
                         {children}
                       </p>
                     ),
-                    // ─── Başlıklar — hiyerarşi sıkı tracking'le
                     h1: ({ children }) => (
                       <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0 tracking-tight text-slate-900 dark:text-slate-100">
                         {children}
@@ -383,19 +468,16 @@ export const ResponseCard = ({
                         {children}
                       </h4>
                     ),
-                    // ─── Bullet list
                     ul: ({ children }) => (
                       <ul className="mb-3 last:mb-0 space-y-1 pl-0">
                         {children}
                       </ul>
                     ),
-                    // ─── Numbered list
                     ol: ({ children }) => (
                       <ol className="mb-3 last:mb-0 space-y-1 pl-0 list-none counter-reset-[item]">
                         {children}
                       </ol>
                     ),
-                    // ─── List item — custom bullet ile
                     li: ({ children, ...props }) => {
                       const isOrdered = (props as any).ordered;
                       return (
@@ -410,7 +492,6 @@ export const ResponseCard = ({
                         </li>
                       );
                     },
-                    // ─── Inline code
                     code: ({ inline, children, ...props }: any) =>
                       inline ? (
                         <code className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
@@ -424,31 +505,26 @@ export const ResponseCard = ({
                           {children}
                         </code>
                       ),
-                    // ─── Code block wrapper
                     pre: ({ children }) => (
                       <pre className="mb-3 last:mb-0 rounded-lg overflow-hidden">
                         {children}
                       </pre>
                     ),
-                    // ─── Blockquote — önemli notlar için
                     blockquote: ({ children }) => (
                       <blockquote className="pl-4 border-l-2 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 italic mb-3 last:mb-0">
                         {children}
                       </blockquote>
                     ),
-                    // ─── Bold
                     strong: ({ children }) => (
                       <strong className="font-semibold text-slate-900 dark:text-slate-100">
                         {children}
                       </strong>
                     ),
-                    // ─── Italic
                     em: ({ children }) => (
                       <em className="italic text-slate-700 dark:text-slate-300">
                         {children}
                       </em>
                     ),
-                    // ─── Link — dışarı açılan
                     a: ({ href, children }) => (
                       <a
                         href={href}
@@ -459,11 +535,9 @@ export const ResponseCard = ({
                         {children}
                       </a>
                     ),
-                    // ─── Yatay çizgi — bölüm ayırıcı
                     hr: () => (
                       <hr className="my-4 border-slate-200 dark:border-slate-800" />
                     ),
-                    // ─── Tablo — havayolu politikalarında sık görünür
                     table: ({ children }) => (
                       <div className="mb-3 last:mb-0 overflow-x-auto">
                         <table className="w-full text-sm border-collapse">
@@ -543,20 +617,30 @@ export const ResponseCard = ({
             </div>
           )}
 
-          {audioState === 'error' && (
-            <div className="mt-4 text-xs text-red-600 dark:text-red-500 flex items-center gap-1.5">
-              <VolumeX className="w-3 h-3" />
-              <span>
-                {isEn ? 'Audio playback failed' : 'Ses oynatılamadı'}
-              </span>
-              <button
-                onClick={handlePlayAudio}
-                className="underline hover:no-underline ml-1"
-              >
-                {isEn ? 'Retry' : 'Tekrar dene'}
-              </button>
-            </div>
-          )}
+          {/* ─── Audio error — Graceful degradation ─────────────────
+              Hata türüne göre detaylı mesaj; retry sadece uygun hatalar için. */}
+          {audioState === 'error' && (() => {
+            const { text, showRetry } = getAudioErrorMessage();
+            return (
+              <div className="mt-4 text-xs text-red-600 dark:text-red-500 flex items-start gap-1.5">
+                <VolumeX className="w-3 h-3 mt-0.5 shrink-0" />
+                <span className="flex-1">
+                  {text}
+                  {showRetry && (
+                    <>
+                      {' '}
+                      <button
+                        onClick={handlePlayAudio}
+                        className="underline hover:no-underline"
+                      >
+                        {isEn ? 'Retry' : 'Tekrar dene'}
+                      </button>
+                    </>
+                  )}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Metadata strip — ince bir çizgi, küçük rakamlar */}
@@ -639,8 +723,7 @@ export const ResponseCard = ({
         </div>
       </div>
 
-      {/* ─── Sources ───────────────────────────────────────────────
-          Ayrı bir bölüm, collapse edilebilir liste. */}
+      {/* ─── Sources ───────────────────────────────────────────── */}
       {message.sources && message.sources.length > 0 && (
         <details className="mt-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-layer-sm group">
           <summary className="px-4 py-3 flex items-center justify-between cursor-pointer list-none text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
