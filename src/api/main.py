@@ -1426,11 +1426,6 @@ async def health_check():
         }
     }
 
-@app.get("/sentry-test")
-async def sentry_test():
-    """Gecici: Sentry testi - basari dogrulandiktan sonra sil"""
-    raise Exception("Sentry backend test - bu goruyorsan Sentry calisiyor")
-
 @app.get("/speech/health")
 async def speech_health_check():
     try:
