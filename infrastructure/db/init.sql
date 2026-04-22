@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Main policy table - MULTI-AIRLINE SUPPORT
-DROP TABLE IF EXISTS policy CASCADE;
+-- DROP TABLE IF EXISTS policy CASCADE;
 
 CREATE TABLE policy (
     id SERIAL PRIMARY KEY,
@@ -20,7 +20,7 @@ CREATE TABLE policy (
     metadata JSONB DEFAULT '{}',
     
     -- Vector embedding
-    embedding vector(768),  -- 384 dimension for multilingual model
+    embedding vector(768),  -- 768 dimension for multilingual model
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
