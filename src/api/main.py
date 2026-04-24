@@ -1334,18 +1334,49 @@ async def debug_tsvector(db = Depends(get_db_connection)):
         result["indexed_rows"] = indexed
         result["coverage_pct"] = round(indexed / total * 100, 1) if total else 0
         
-        # Test query matches
-        test_queries = ["Pegasus", "Extra", "Extra Seat", "kopegi", "köpek", "pet", "PETC"]
+        # Test query matches - HEM plainto_tsquery HEM websearch_to_tsquery ile
+        test_queries = [
+            "Pegasus",
+            "Extra Seat",
+            "Pegasus Extra Seat",
+            "Pegasus Extra Seat satin alabilir miyim?",  # soru işareti
+            "Pegasus Extra Seat satin alabilir miyim? Kimler icin uygundur?",  # uzun
+            "pet",
+            "PETC",
+        ]
         matches = {}
         for q in test_queries:
+            row = {}
+            # plainto_tsquery (AND)
             try:
                 count = await db.fetchval(
                     "SELECT COUNT(*) FROM policy WHERE content_tsv @@ plainto_tsquery('simple', $1)",
                     q
                 )
-                matches[q] = count
+                row["plainto"] = count
             except Exception as e:
-                matches[q] = f"ERROR: {e}"
+                row["plainto"] = f"ERR: {type(e).__name__}"
+            
+            # websearch_to_tsquery (OR + syntax)
+            try:
+                count = await db.fetchval(
+                    "SELECT COUNT(*) FROM policy WHERE content_tsv @@ websearch_to_tsquery('simple', $1)",
+                    q
+                )
+                row["websearch"] = count
+            except Exception as e:
+                row["websearch"] = f"ERR: {type(e).__name__}"
+            
+            # Actual tsquery string (debug)
+            try:
+                ws_str = await db.fetchval(
+                    "SELECT websearch_to_tsquery('simple', $1)::text", q
+                )
+                row["ws_query"] = ws_str
+            except Exception as e:
+                row["ws_query"] = f"ERR: {e}"
+            
+            matches[q] = row
         result["sample_matches"] = matches
         
         # İlk satırın tsvector örneği (ilk 200 karakter)
