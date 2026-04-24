@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
 
 <p align="center">
-  <img width="2400" height="1254" alt="Image" src="https://github.com/user-attachments/assets/0601748b-196a-45b4-8946-ad95ed684464" />
+  <img width="2400" height="1269" alt="Image" src="https://github.com/user-attachments/assets/02fb9d35-7fed-40c2-a7a9-66522969872e" />
 </p>
 
 <p align="center">
