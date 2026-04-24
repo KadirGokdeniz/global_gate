@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/8740f24a-6d1f-422d-8fc7-9fc952ad1ce1" alt="Airline Assistant" width="100%" />
+  <img width="2400" height="1254" alt="Image" src="https://github.com/user-attachments/assets/0601748b-196a-45b4-8946-ad95ed684464" />
 </p>
 
 <p align="center">
