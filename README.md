@@ -6,6 +6,10 @@
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8740f24a-6d1f-422d-8fc7-9fc952ad1ce1" alt="Airline Assistant" width="100%" />
+</p>
+
 ## Problem
 
 Airline policy information is scattered, inconsistent, and hard to access when you actually need it. [Phone support averages 2-12 hours](https://www.mightytravels.com/2024/10/how-major-airlines-customer-service-response-times-compare-analysis-of-7-leading-carriers-in-2024/). [80% of travelers](https://www.cxtoday.com/speech-analytics/chatbots-are-still-frustrating-customers-here-is-why/) say standard chatbots can't answer simple policy questions. And when you're rushing between gates or driving to the airport, typing through FAQ pages isn't practical.
@@ -23,19 +27,13 @@ https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e35bd43e-cf16-4771-91e9-c8eeafb01d1a" alt="RAG answer with cited sources" width="85%" />
   <br/>
-  <em>RAG answer with source attribution, similarity scores, and quality metadata.</em>
+  <em>Answer with source attribution, similarity scores, and quality metadata.</em>
 </p>
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/84574081-6172-4b96-b052-62521d7d60f5" alt="Settings panel" width="85%" />
   <br/>
-  <em>Settings panel — switch between airlines, LLM providers, and models.</em>
-</p>
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/8740f24a-6d1f-422d-8fc7-9fc952ad1ce1" alt="Landing page" width="85%" />
-  <br/>
-  <em>Landing page.</em>
+  <em>Settings — switch between airlines, LLM providers, and models.</em>
 </p>
 
 ## System Architecture
@@ -87,6 +85,8 @@ graph TD
 | **OpenAI + Claude** | LLM | Dual-provider prevents lock-in. Enables quality comparison. |
 | **AssemblyAI** | STT | Strong Turkish accuracy. Handles background noise well. |
 | **ElevenLabs (turbo_v2_5)** | TTS | Low-latency multilingual output. Better Turkish prosody than open alternatives. |
+
+For deeper rationale on each decision, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Core Capabilities
 
