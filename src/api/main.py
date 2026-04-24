@@ -474,16 +474,12 @@ async def lifespan(app: FastAPI):
             logger.info(f"Database contains {result} policies")
         
         # Migration: tsvector/BM25 full-text search desteği
-        # Idempotent - kolon ve index zaten varsa hızla geçer
-        # İlk çalıştırmada ~30-60sn sürebilir (GIN index oluşturma)
         try:
             from api.core.tsvector_migration import ensure_tsvector_support
             migration_result = await ensure_tsvector_support(db_pool)
             if migration_result["column_added"] or migration_result["index_added"]:
                 logger.info(f"📊 tsvector migration: {migration_result}")
         except Exception as e:
-            # Migration fail etse bile uygulama başlasın
-            # Hybrid search fallback olarak sadece dense kullanacak
             logger.error(f"tsvector migration failed (non-fatal): {e}")
         
         logger.info("Loading AI services...")
@@ -1287,6 +1283,90 @@ async def get_stats(db = Depends(get_db_connection)):
     except Exception as e:
         logger.error(f"Stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Stats error: {str(e)}")
+
+
+@app.get("/debug/tsvector")
+async def debug_tsvector(db = Depends(get_db_connection)):
+    """
+    Debug endpoint — tsvector / BM25 health check.
+    
+    Returns:
+      - column_exists: content_tsv kolonu var mı
+      - index_exists: GIN index var mı
+      - total_rows: total policy row count
+      - indexed_rows: content_tsv NOT NULL olan row sayısı
+      - sample_matches: Test sorguları için match sayısı
+      - sample_content: İlk satırın tsvector'ından örnek
+    """
+    try:
+        # Kolon var mı?
+        column_exists = await db.fetchval("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'policy' AND column_name = 'content_tsv'
+            )
+        """)
+        
+        # Index var mı?
+        index_exists = await db.fetchval("""
+            SELECT EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE tablename = 'policy' AND indexname = 'idx_policy_content_tsv'
+            )
+        """)
+        
+        result = {
+            "column_exists": column_exists,
+            "index_exists": index_exists,
+        }
+        
+        if not column_exists:
+            result["error"] = "content_tsv column does not exist — migration never ran"
+            return result
+        
+        # Doluluk
+        total = await db.fetchval("SELECT COUNT(*) FROM policy")
+        indexed = await db.fetchval(
+            "SELECT COUNT(*) FROM policy WHERE content_tsv IS NOT NULL"
+        )
+        
+        result["total_rows"] = total
+        result["indexed_rows"] = indexed
+        result["coverage_pct"] = round(indexed / total * 100, 1) if total else 0
+        
+        # Test query matches
+        test_queries = ["Pegasus", "Extra", "Extra Seat", "kopegi", "köpek", "pet", "PETC"]
+        matches = {}
+        for q in test_queries:
+            try:
+                count = await db.fetchval(
+                    "SELECT COUNT(*) FROM policy WHERE content_tsv @@ plainto_tsquery('simple', $1)",
+                    q
+                )
+                matches[q] = count
+            except Exception as e:
+                matches[q] = f"ERROR: {e}"
+        result["sample_matches"] = matches
+        
+        # İlk satırın tsvector örneği (ilk 200 karakter)
+        sample = await db.fetchrow("""
+            SELECT id, content, LEFT(content_tsv::text, 200) AS tsv_sample
+            FROM policy
+            WHERE content_tsv IS NOT NULL
+            LIMIT 1
+        """)
+        if sample:
+            result["sample_row"] = {
+                "id": sample["id"],
+                "content_preview": sample["content"][:100] + "..." if sample["content"] else None,
+                "tsv_preview": sample["tsv_sample"],
+            }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"tsvector debug error: {e}")
+        raise HTTPException(status_code=500, detail=f"Debug error: {str(e)}")
 
 # =============================================================================
 # CHAT ENDPOINTS WITH CoT SUPPORT
