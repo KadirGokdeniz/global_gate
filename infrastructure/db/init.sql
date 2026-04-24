@@ -1,4 +1,4 @@
--- Simplified Airlines Policy Database Schema 
+-- Simplified Airlines Policy Database Schema
 -- Core functionality only - no complex KPI tracking
 
 -- pgvector extension
@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE policy (
     id SERIAL PRIMARY KEY,
     airline VARCHAR(50) NOT NULL,
-    
+
     source VARCHAR(50) NOT NULL,  -- checked_baggage, sports_equipment, etc.
     content TEXT NOT NULL,
     content_hash VARCHAR(32) NOT NULL,
@@ -18,36 +18,49 @@ CREATE TABLE policy (
     extraction_type VARCHAR(50) DEFAULT 'unknown',
     url TEXT,
     metadata JSONB DEFAULT '{}',
-    
+
     -- Vector embedding
     embedding vector(768),  -- 768 dimension for multilingual model
-    
+
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- UNIQUE constraint: airline + source + content_hash
     CONSTRAINT unique_airline_content UNIQUE (airline, source, content_hash)
 );
 
--- Performance indexes
-CREATE INDEX idx_airline ON policy(airline);
-CREATE INDEX idx_source ON policy(source);
-CREATE INDEX idx_airline_source ON policy(airline, source);
-CREATE INDEX idx_quality_score ON policy(quality_score);
-CREATE INDEX idx_created_at ON policy(created_at);
-CREATE INDEX idx_updated_at ON policy(updated_at);
+-- Performance indexes (scalar columns only — vector index created post-load)
+CREATE INDEX idx_airline         ON policy(airline);
+CREATE INDEX idx_source          ON policy(source);
+CREATE INDEX idx_airline_source  ON policy(airline, source);
+CREATE INDEX idx_quality_score   ON policy(quality_score);
+CREATE INDEX idx_created_at      ON policy(created_at);
+CREATE INDEX idx_updated_at      ON policy(updated_at);
 
 -- Full-text search index
-CREATE INDEX idx_content_fts 
-ON policy 
+CREATE INDEX idx_content_fts
+ON policy
 USING GIN (to_tsvector('english', content));
 
--- Vector similarity search index
-CREATE INDEX idx_embedding_cosine 
-ON policy 
-USING ivfflat (embedding vector_cosine_ops) 
-WITH (lists = 100);
+-- ==============================================
+-- IVFFLAT VECTOR INDEX — NOT CREATED HERE
+-- ==============================================
+-- ivfflat is a training-based index: K-means clusters are built from
+-- existing rows at creation time. If the index is created on an empty
+-- table, clusters are meaningless and new inserts never re-cluster.
+--
+-- The index is therefore created AFTER the scraper finishes embedding
+-- all policies. See scraper_only.py (_create_vector_index) for the
+-- post-load CREATE INDEX call, which also chooses `lists` based on
+-- row count (pgvector recommendation: lists ≈ rows / 1000, or
+-- sqrt(rows) for small tables).
+--
+-- If you ever need to drop and rebuild the index manually:
+--   DROP INDEX IF EXISTS idx_embedding_cosine;
+--   CREATE INDEX idx_embedding_cosine ON policy
+--     USING ivfflat (embedding vector_cosine_ops) WITH (lists = N);
+-- ==============================================
 
 -- ==============================================
 -- OPTIONAL: Simple session logging (if needed)
@@ -78,14 +91,14 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_policy_updated_at 
-    BEFORE UPDATE ON policy 
-    FOR EACH ROW 
+CREATE TRIGGER update_policy_updated_at
+    BEFORE UPDATE ON policy
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Simple stats view per airline
 CREATE OR REPLACE VIEW airline_stats AS
-SELECT 
+SELECT
     airline,
     source,
     COUNT(*) as total_policies,
@@ -95,13 +108,13 @@ SELECT
     AVG(quality_score) as avg_quality_score,
     MIN(created_at) as oldest_policy,
     MAX(created_at) as newest_policy
-FROM policy 
+FROM policy
 GROUP BY airline, source
 ORDER BY airline, source;
 
--- Overall stats view 
+-- Overall stats view
 CREATE OR REPLACE VIEW overall_stats AS
-SELECT 
+SELECT
     COUNT(*) as total_policies,
     COUNT(DISTINCT airline) as total_airlines,
     COUNT(DISTINCT source) as total_sources,
@@ -111,9 +124,9 @@ SELECT
 FROM policy;
 
 -- Simple data quality check function
-CREATE OR REPLACE FUNCTION check_data_quality() 
+CREATE OR REPLACE FUNCTION check_data_quality()
 RETURNS TABLE(
-    airline text, 
+    airline text,
     source text,
     total_policies bigint,
     quality_issues bigint,
@@ -121,13 +134,13 @@ RETURNS TABLE(
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         p.airline::text,
         p.source::text,
         COUNT(*) as total_policies,
         COUNT(*) FILTER (
-            WHERE p.content IS NULL 
-               OR LENGTH(p.content) < 10 
+            WHERE p.content IS NULL
+               OR LENGTH(p.content) < 10
                OR p.quality_score < 0.1
         ) as quality_issues,
         ROUND(AVG(LENGTH(p.content))::NUMERIC, 2) as avg_content_length
@@ -138,8 +151,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Sample data insertion (for testing)
-INSERT INTO policy (airline, source, content, content_hash, quality_score, extraction_type) 
-VALUES 
+INSERT INTO policy (airline, source, content, content_hash, quality_score, extraction_type)
+VALUES
     ('turkish_airlines', 'checked_baggage', 'Turkish Airlines checked baggage policy: Passengers are allowed one piece of checked baggage up to 23kg for economy class.', md5('thy_checked_baggage'), 0.8, 'manual'),
     ('turkish_airlines', 'carry_on', 'Turkish Airlines carry-on baggage policy: Economy passengers may bring one carry-on bag up to 8kg and dimensions of 55x40x23cm.', md5('thy_carry_on'), 0.9, 'manual'),
     ('pegasus', 'checked_baggage', 'Pegasus Airlines checked baggage policy: Basic fare includes no checked baggage. Additional baggage can be purchased.', md5('pegasus_checked_baggage'), 0.7, 'manual'),
@@ -155,8 +168,8 @@ DO $$
 BEGIN
     RAISE NOTICE 'Airlines database schema created successfully';
     RAISE NOTICE 'Core Tables: policy, query_sessions (simple)';
-    RAISE NOTICE 'Views: airline_stats, overall_stats';  
+    RAISE NOTICE 'Views: airline_stats, overall_stats';
     RAISE NOTICE 'Functions: check_data_quality()';
     RAISE NOTICE 'Ready for Turkish Airlines + Pegasus data';
-    RAISE NOTICE 'Simplified schema - focus on core functionality';
+    RAISE NOTICE 'NOTE: ivfflat vector index is created post-load by the scraper.';
 END $$;

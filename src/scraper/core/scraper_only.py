@@ -6,6 +6,7 @@ Container başlatılır, tüm airline'ları scrape eder, embed eder, temiz bir �
 
 import os
 import sys
+import math
 import asyncio
 import logging
 from scraper.core.web_scraper import (
@@ -119,6 +120,64 @@ async def wait_for_database(max_retries=30, delay=2):
     
     return False
 
+
+async def create_vector_index(pool):
+    """
+    ivfflat vector index'i embedding'ler yüklendikten SONRA yaratır.
+
+    Neden init.sql'de değil:
+        ivfflat training-based bir index — K-means cluster'ları var olan
+        satırlardan build ediliyor. Empty table'da yaratılırsa cluster'lar
+        anlamsız ve yeni insert'ler re-cluster edilmiyor. Bu yüzden scraper
+        embedding'i bitirdikten sonra yaratıyoruz.
+
+    `lists` parametresi (pgvector docs önerileri):
+        - Büyük tablolar:   lists = rows / 1000
+        - Küçük tablolar:   lists = sqrt(rows)
+        - Minimum 10.
+    """
+    try:
+        async with pool.acquire() as conn:
+            embedded_count = await conn.fetchval("""
+                SELECT COUNT(*) FROM policy WHERE embedding IS NOT NULL
+            """)
+
+            if embedded_count == 0:
+                print("⚠️ Vector index: embedded row yok, index yaratılmayacak")
+                return False
+
+            if embedded_count >= 1_000_000:
+                lists = embedded_count // 1000
+            else:
+                lists = max(10, int(math.sqrt(embedded_count)))
+
+            print(f"\n🔧 ivfflat index yaratılıyor:")
+            print(f"   Embedded rows: {embedded_count:,}")
+            print(f"   lists = {lists}  (auto-tuned)")
+
+            # Önceden yaratılmış index varsa kaldır (re-run için)
+            await conn.execute("DROP INDEX IF EXISTS idx_embedding_cosine")
+
+            # Yeni index — lists dinamik
+            # f-string: SQL injection riski yok, lists bizim hesapladığımız int
+            await conn.execute(f"""
+                CREATE INDEX idx_embedding_cosine
+                ON policy
+                USING ivfflat (embedding vector_cosine_ops)
+                WITH (lists = {lists})
+            """)
+
+            # Planner yeni index'i doğru kullansın diye ANALYZE
+            await conn.execute("ANALYZE policy")
+
+            print(f"✅ Vector index yaratıldı (lists={lists})")
+            return True
+
+    except Exception as e:
+        print(f"❌ Vector index creation failed: {e}")
+        return False
+
+
 async def run_embedding_process():
     """Enhanced embedding sürecini çalıştır"""
     print("\n🧠 MULTI-AIRLINE EMBEDDING PROCESS STARTING")
@@ -158,7 +217,11 @@ async def run_embedding_process():
         print(f"  Embedded: {stats_after.get('embedded_policies', 0)}")
         print(f"  Missing: {stats_after.get('missing_embeddings', 0)}")
         print(f"  Coverage: {stats_after.get('embedding_coverage_percent', 0)}%")
-        
+
+        # Vector index'i embedding tamamlandıktan sonra yarat
+        # (ivfflat training-based — empty table'da yaratmak yanlış sonuç verir)
+        await create_vector_index(pool)
+
         return embedded_count
         
     except Exception as e:
