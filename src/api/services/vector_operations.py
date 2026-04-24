@@ -381,16 +381,22 @@ class EnhancedVectorOperations:
         if not query or len(query.strip()) < 2:
             return []
         
-        # plainto_tsquery güvenli — user input'u AND'li OR'suz bir tsquery'e çevirir.
-        # to_tsquery'den farklı olarak kullanıcı karakterlerini escape eder.
-        # Örn: "Pegasus PETC" -> 'pegasus' & 'petc'
+        # websearch_to_tsquery kullanıyoruz (plainto_tsquery değil):
+        # plainto_tsquery: tüm kelimeleri AND'ler. Bir kelime eksikse sıfır match.
+        #   Örn: "Pegasus Airlines | satin alabilir miyim" →
+        #        'pegasus' & 'airlines' & 'satin' & 'alabilir' & 'miyim'
+        #        "satin" veya "miyim" İngilizce chunk'ta yoksa hiç match yok.
+        # websearch_to_tsquery: Google-style search syntax, default OR, stop words tolere edilir.
+        #   Aynı query → 'pegasus' | 'airlines' | 'satin' | ...
+        #   Herhangi bir kelime match yeterli, exact phrase "..." ile de desteklenir.
+        # Bu hybrid search için ideal — BM25 relaxed match, sonra Cohere rerank kesin ayıklar.
         sql = """
             SELECT 
                 id, airline, source, content, quality_score,
                 created_at, updated_at, url, metadata,
-                ts_rank_cd(content_tsv, plainto_tsquery('simple', $1)) AS bm25_score
+                ts_rank_cd(content_tsv, websearch_to_tsquery('simple', $1)) AS bm25_score
             FROM policy
-            WHERE content_tsv @@ plainto_tsquery('simple', $1)
+            WHERE content_tsv @@ websearch_to_tsquery('simple', $1)
         """
         params = [query]
         
@@ -526,6 +532,14 @@ class EnhancedVectorOperations:
         # ─────────────────────────────────────────────────────────────
         expanded_limit = int(limit * expanded_limit_factor)  # 5 × 4 = 20
         
+        # BM25 için query temizliği:
+        # retrieve_relevant_docs query'yi "Pegasus Airlines | Pegasus Extra Seat..." 
+        # şeklinde enhance ediyor. Dense bu prefix'ten faydalanır (airline kontexti
+        # embedding'e yardımcı), ama BM25 için prefix gereksiz — hem zaten airline_filter
+        # var, hem de gereksiz tokenlar OR'landığında alakasız chunk'ları da çeker.
+        # Son "|" karakterinden sonrasını al, yoksa query'nin tamamı.
+        bm25_query = query.split("|")[-1].strip() if "|" in query else query
+        
         # Both searches run concurrently (asyncio.gather)
         dense_task = self.similarity_search(
             query=query,
@@ -535,7 +549,7 @@ class EnhancedVectorOperations:
             use_semantic_categories=True
         )
         bm25_task = self.bm25_search(
-            query=query,
+            query=bm25_query,  # temiz query — enhanced prefix'siz
             limit=expanded_limit,
             airline_filter=airline_filter,
         )
