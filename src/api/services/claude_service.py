@@ -27,7 +27,7 @@ class ClaudeService:
                 logger.error(f"Claude initialization failed: {e}")
                 self.client = None
         
-        self.default_model = 'claude-3-haiku-20240307'
+        self.default_model = 'claude-haiku-4-5-20251001'
         self.max_tokens = 800
         self.temperature = 0.2
 
@@ -413,22 +413,22 @@ Answer:"""
     def get_available_models(self) -> List[str]:
         """Get list of Claude models"""
         return [
-            "claude-3-haiku-20240307",
-            "claude-3-5-haiku-20241022",
-            "claude-sonnet-4-20250514",
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-4-6",
+            "claude-opus-4-7",
         ]
 
     def _estimate_cost(self, usage, model: str) -> float:
-        """Estimate cost based on token usage"""
+        """Estimate cost based on token usage (per 1M tokens)"""
         pricing = {
-            "claude-sonnet-4-20250514": {"input": 4.00, "output": 20.00},
-            "claude-3-5-haiku-20241022": {"input": 1.00, "output": 5.00},
-            "claude-3-haiku-20240307": {"input": 0.25, "output": 1.25}
+            "claude-opus-4-7": {"input": 5.00, "output": 25.00},
+            "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+            "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00}
         }
         
         if model not in pricing:
             logger.warning(f"No pricing info for model {model}")
-            model = "claude-3-5-haiku-20241022"
+            model = "claude-haiku-4-5-20251001"
         
         input_cost = (usage.input_tokens / 1000000) * pricing[model]["input"]
         output_cost = (usage.output_tokens / 1000000) * pricing[model]["output"]

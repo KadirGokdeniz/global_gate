@@ -53,7 +53,9 @@ class CohereRerankerService:
             return
 
         try:
-            self.client = cohere.ClientV2(api_key=self.api_key)
+            # cohere.Client v4.x ve v5.x ile uyumlu
+            # ClientV2 sadece v5+ var, ama rerank API aynı
+            self.client = cohere.Client(api_key=self.api_key)
             self._test_connection()
             self._available = True
             logger.info(f"✅ Cohere Reranker hazır (model: {self.MODEL})")
@@ -71,10 +73,9 @@ class CohereRerankerService:
                 top_n=1,
                 model=self.MODEL
             )
-        except cohere.errors.UnauthorizedError as e:
-            raise RuntimeError(f"Cohere API key invalid: {e}")
         except Exception as e:
-            raise RuntimeError(f"Cohere connection test failed: {e}")
+            # UnauthorizedError, ApiError vs tüm Cohere hataları
+            raise RuntimeError(f"Cohere connection test failed: {type(e).__name__}: {e}")
 
     def is_available(self) -> bool:
         """Reranker aktif ve kullanıma hazır mı?"""
@@ -145,11 +146,8 @@ class CohereRerankerService:
             )
             return reranked
 
-        except cohere.errors.TooManyRequestsError:
-            logger.warning("⚠️ Cohere rate limit — fallback to original order")
-            return documents[:top_n]
-
         except Exception as e:
+            # Tüm hatalar (rate limit, network, API error, vs) → fallback
             elapsed_ms = (time.time() - start) * 1000
             logger.warning(
                 f"⚠️ Rerank failed ({elapsed_ms:.0f}ms): {type(e).__name__}: {e} "
