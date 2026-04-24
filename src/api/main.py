@@ -741,9 +741,27 @@ def prepare_retrieved_docs_preview(
 
         for doc in retrieved_docs:
             item = {
+                "id": doc.get("id"),
                 "airline": doc.get("airline", "Unknown"),
                 "source": doc.get("source"),
                 "similarity_score": round(doc.get("similarity_score", 0.0), 3),
+                # Reranker eklediyse bunları döndür (graceful fallback None)
+                "rerank_score": (
+                    round(doc["rerank_score"], 3)
+                    if doc.get("rerank_score") is not None
+                    else None
+                ),
+                "enhanced_relevance": (
+                    round(doc["enhanced_relevance"], 3)
+                    if doc.get("enhanced_relevance") is not None
+                    else None
+                ),
+                # Chunk'ın hangi section'dan geldiğini göster (debug + traceability)
+                "metadata": {
+                    "section_id": (doc.get("metadata") or {}).get("section_id"),
+                    "sub_label": (doc.get("metadata") or {}).get("sub_label"),
+                    "parent_id": (doc.get("metadata") or {}).get("parent_id"),
+                } if doc.get("metadata") else None,
                 "content_preview": (
                     doc["content"][:300] + "..."
                     if len(doc.get("content", "")) > 300
