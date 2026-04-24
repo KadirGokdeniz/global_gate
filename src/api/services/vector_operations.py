@@ -362,6 +362,122 @@ class EnhancedVectorOperations:
             logger.info(f"Pure semantic search for '{query[:50]}...': {len(formatted_results)} results {filter_info}")
             return formatted_results
     
+    async def bm25_search(
+        self,
+        query: str,
+        limit: int = 20,
+        airline_filter: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Keyword-based search using PostgreSQL full-text search (tsvector + GIN).
+        
+        BM25-like ranking via ts_rank_cd. Complements dense search by catching
+        exact matches dense can't: acronyms (PETC, BolBol), codes (3.2.1.b),
+        proper nouns (Esenboğa), numbers (20 kg).
+        
+        Returns same format as similarity_search but with bm25_score field.
+        Gracefully degrades on error (returns [] instead of crashing).
+        """
+        if not query or len(query.strip()) < 2:
+            return []
+        
+        # plainto_tsquery güvenli — user input'u AND'li OR'suz bir tsquery'e çevirir.
+        # to_tsquery'den farklı olarak kullanıcı karakterlerini escape eder.
+        # Örn: "Pegasus PETC" -> 'pegasus' & 'petc'
+        sql = """
+            SELECT 
+                id, airline, source, content, quality_score,
+                created_at, updated_at, url, metadata,
+                ts_rank_cd(content_tsv, plainto_tsquery('simple', $1)) AS bm25_score
+            FROM policy
+            WHERE content_tsv @@ plainto_tsquery('simple', $1)
+        """
+        params = [query]
+        
+        if airline_filter:
+            sql += f" AND airline = ${len(params) + 1}"
+            params.append(airline_filter)
+        
+        sql += f" ORDER BY bm25_score DESC LIMIT ${len(params) + 1}"
+        params.append(limit)
+        
+        try:
+            async with self.db_pool.acquire() as conn:
+                rows = await conn.fetch(sql, *params)
+                
+                results = []
+                for row in rows:
+                    result_dict = dict(row)
+                    if result_dict.get('created_at'):
+                        result_dict['created_at'] = result_dict['created_at'].isoformat()
+                    if result_dict.get('updated_at'):
+                        result_dict['updated_at'] = result_dict['updated_at'].isoformat()
+                    # BM25 skorunu aynı zamanda similarity_score olarak da set et
+                    # (aşağıdaki pipeline adımları similarity_score bekliyor)
+                    result_dict['similarity_score'] = float(result_dict.get('bm25_score', 0.0))
+                    results.append(result_dict)
+                
+                filter_info = f"(airline: {airline_filter or 'all'})"
+                logger.info(f"BM25 search for '{query[:50]}...': {len(results)} results {filter_info}")
+                return results
+        
+        except Exception as e:
+            # tsvector kolonu yok, query parse hatası, vs - graceful fallback
+            # Hybrid search dense-only moda düşer, sistem çökmez
+            logger.warning(f"BM25 search failed ({type(e).__name__}: {e}) — returning []")
+            return []
+    
+    @staticmethod
+    def _reciprocal_rank_fusion(
+        dense_results: List[Dict],
+        bm25_results: List[Dict],
+        k: int = 60,
+    ) -> List[Dict]:
+        """
+        RRF (Reciprocal Rank Fusion) — iki ranked list'i tek skora birleştir.
+        
+        Formula: rrf_score(doc) = 1/(k + dense_rank) + 1/(k + bm25_rank)
+        
+        k=60 standart (TREC default). Küçük k = top results dominate,
+        büyük k = uniform contribution.
+        
+        Neden RRF?
+          - Absolute skorları birleştirmez (cosine 0-1, bm25 0-∞ karşılaştırılamaz)
+          - Sadece rank bilgisi kullanır (hangi listede kaçıncı sırada)
+          - Her iki listede de olan belgeler otomatik olarak öne çıkar
+          - Birinde olup diğerinde olmayanlar da kazanabilir ama daha düşük skor
+        """
+        fused_scores: Dict = {}  # doc_id -> {score, doc}
+        
+        for rank, doc in enumerate(dense_results, start=1):
+            doc_id = doc['id']
+            contribution = 1.0 / (k + rank)
+            if doc_id not in fused_scores:
+                fused_scores[doc_id] = {'score': 0.0, 'doc': doc, 'dense_rank': rank, 'bm25_rank': None}
+            fused_scores[doc_id]['score'] += contribution
+        
+        for rank, doc in enumerate(bm25_results, start=1):
+            doc_id = doc['id']
+            contribution = 1.0 / (k + rank)
+            if doc_id not in fused_scores:
+                fused_scores[doc_id] = {'score': 0.0, 'doc': doc, 'dense_rank': None, 'bm25_rank': rank}
+            else:
+                fused_scores[doc_id]['bm25_rank'] = rank
+            fused_scores[doc_id]['score'] += contribution
+        
+        # RRF skoruna göre sırala, doc objelerini döndür
+        sorted_items = sorted(fused_scores.values(), key=lambda x: x['score'], reverse=True)
+        
+        fused_docs = []
+        for item in sorted_items:
+            doc = item['doc'].copy()
+            doc['rrf_score'] = item['score']
+            doc['dense_rank'] = item['dense_rank']
+            doc['bm25_rank'] = item['bm25_rank']
+            fused_docs.append(doc)
+        
+        return fused_docs
+    
     async def semantic_reranking_search(
         self,
         query: str,
@@ -372,22 +488,27 @@ class EnhancedVectorOperations:
         expanded_limit_factor: float = 4.0
     ) -> List[Dict]:
         """
-        Advanced semantic reranking with Cohere Rerank v3.5.
+        Advanced HYBRID reranking with Dense + BM25 + Cohere Rerank v3.5.
 
         PIPELINE:
         1. Semantic category detection (kept)
-        2. Expanded vector search (limit × expanded_limit_factor candidates)
-        3. Cohere cross-encoder reranking (TRUE relevance scoring)
-        4. Category boost (cohere_score × category_boost)
-        5. Final top-N selection
+        2. Parallel retrieval:
+           - Dense search (pgvector cosine, 20 candidates)
+           - BM25 search (tsvector + GIN, 20 candidates)
+        3. Reciprocal Rank Fusion (merged unique candidates)
+        4. Cohere cross-encoder reranking (TRUE relevance scoring)
+        5. Category boost (cohere_score × category_boost)
+        6. Final top-N selection
 
-        Why expanded_limit_factor defaults to 4.0 (was 2.0):
-          Cohere performs better with more candidates; throwing away weak candidates
-          is cheaper than missing a good one that didn't make the initial cut.
+        Why hybrid?
+          Dense catches meaning ("köpek" ≈ "pet" ≈ "evcil").
+          BM25 catches exact tokens (PETC, 3.2.1.b, BolBol, "20 kg").
+          RRF lets each method find what the other misses.
 
-        Fallback:
-          If Cohere is unavailable (no API key, API down, rate limit), the method
-          falls back to the original cosine-similarity order. No crash, degraded quality.
+        Fallback chain:
+          - If BM25 fails (no index, query parse error): use only dense
+          - If Cohere fails (no API key, rate limit): use RRF order
+          - If everything fails: return []
         """
         start_time = time.time()
 
@@ -401,22 +522,50 @@ class EnhancedVectorOperations:
         category_scores = {cat: score for cat, score in semantic_results}
 
         # ─────────────────────────────────────────────────────────────
-        # Step 2: Expanded vector search (larger candidate pool)
+        # Step 2: Parallel retrieval — Dense + BM25
         # ─────────────────────────────────────────────────────────────
         expanded_limit = int(limit * expanded_limit_factor)  # 5 × 4 = 20
-        candidates = await self.similarity_search(
+        
+        # Both searches run concurrently (asyncio.gather)
+        dense_task = self.similarity_search(
             query=query,
             limit=expanded_limit,
             similarity_threshold=similarity_threshold,
             airline_filter=airline_filter,
             use_semantic_categories=True
         )
+        bm25_task = self.bm25_search(
+            query=query,
+            limit=expanded_limit,
+            airline_filter=airline_filter,
+        )
+        
+        dense_results, bm25_results = await asyncio.gather(
+            dense_task, bm25_task, return_exceptions=False
+        )
+        
+        # Step 3: Reciprocal Rank Fusion
+        if bm25_results:
+            # Both methods contributed → fuse
+            candidates = self._reciprocal_rank_fusion(
+                dense_results=dense_results,
+                bm25_results=bm25_results,
+                k=60,  # TREC standard
+            )
+            # Limit to expanded_limit unique candidates
+            candidates = candidates[:expanded_limit]
+            retrieval_mode = "hybrid"
+        else:
+            # BM25 failed or returned empty → dense only
+            candidates = dense_results
+            retrieval_mode = "dense_only"
 
         if not candidates:
+            logger.warning(f"No candidates for query '{query[:50]}...' — returning []")
             return []
 
         # ─────────────────────────────────────────────────────────────
-        # Step 3: Cohere reranking (true cross-encoder)
+        # Step 4: Cohere reranking (true cross-encoder)
         # ─────────────────────────────────────────────────────────────
         if self.reranker.is_available():
             # Over-fetch slightly so category boost has room to reshuffle
@@ -429,16 +578,17 @@ class EnhancedVectorOperations:
             )
             rerank_used = True
         else:
-            # Fallback: keep cosine order, populate rerank_score from similarity
-            logger.warning("Reranker unavailable, falling back to cosine order")
+            # Fallback: keep RRF/cosine order
+            logger.warning("Reranker unavailable, falling back to RRF/cosine order")
             reranked = candidates[:limit * 2]
             for i, r in enumerate(reranked):
-                r['rerank_score'] = r.get('similarity_score', 0.0)
+                # Use RRF score if available, else similarity_score
+                r['rerank_score'] = r.get('rrf_score', r.get('similarity_score', 0.0))
                 r['original_rank'] = i
             rerank_used = False
 
         # ─────────────────────────────────────────────────────────────
-        # Step 4: Category boost (applied on top of Cohere score)
+        # Step 5: Category boost (applied on top of Cohere score)
         # ─────────────────────────────────────────────────────────────
         for candidate in reranked:
             source_category = candidate.get('source', '')
@@ -458,7 +608,7 @@ class EnhancedVectorOperations:
             candidate['original_similarity'] = candidate.get('similarity_score', 0.0)
 
         # ─────────────────────────────────────────────────────────────
-        # Step 5: Final sort + limit
+        # Step 6: Final sort + limit
         # ─────────────────────────────────────────────────────────────
         final_results = sorted(
             reranked,
@@ -467,15 +617,16 @@ class EnhancedVectorOperations:
         )[:limit]
 
         # ─────────────────────────────────────────────────────────────
-        # Logging
+        # Logging (hybrid pipeline metrics)
         # ─────────────────────────────────────────────────────────────
         total_ms = (time.time() - start_time) * 1000
         categories_str = ", ".join([f"{cat}({score:.2f})" for cat, score in semantic_results])
         rerank_tag = "cohere" if rerank_used else "fallback"
 
         logger.info(
-            f"Reranked search '{query[:50]}...' "
-            f"[{rerank_tag}, {len(candidates)}→{len(final_results)}] "
+            f"Hybrid search '{query[:50]}...' "
+            f"[mode={retrieval_mode}, dense={len(dense_results)}, bm25={len(bm25_results)}, "
+            f"fused={len(candidates)}, rerank={rerank_tag}, final={len(final_results)}] "
             f"in {total_ms:.0f}ms, categories: {categories_str}"
         )
 
