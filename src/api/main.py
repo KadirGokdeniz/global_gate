@@ -473,6 +473,19 @@ async def lifespan(app: FastAPI):
             result = await conn.fetchval("SELECT COUNT(*) FROM policy")
             logger.info(f"Database contains {result} policies")
         
+        # Migration: tsvector/BM25 full-text search desteği
+        # Idempotent - kolon ve index zaten varsa hızla geçer
+        # İlk çalıştırmada ~30-60sn sürebilir (GIN index oluşturma)
+        try:
+            from api.core.tsvector_migration import ensure_tsvector_support
+            migration_result = await ensure_tsvector_support(db_pool)
+            if migration_result["column_added"] or migration_result["index_added"]:
+                logger.info(f"📊 tsvector migration: {migration_result}")
+        except Exception as e:
+            # Migration fail etse bile uygulama başlasın
+            # Hybrid search fallback olarak sadece dense kullanacak
+            logger.error(f"tsvector migration failed (non-fatal): {e}")
+        
         logger.info("Loading AI services...")
         
         try:
