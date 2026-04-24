@@ -333,7 +333,7 @@ Answer:"""
                 for i, doc in enumerate(retrieved_docs[:5], 1):
                     airline_info = doc.get('airline', 'Bilinmiyor' if language == 'tr' else 'Unknown')
                     source = doc.get('source', 'Bilinmiyor' if language == 'tr' else 'Unknown')
-                    content = doc.get('content', '')[:2000]
+                    content = doc.get('content', '')[:3500]
                     
                     if language == 'tr':
                         context_parts.append(f"""Belge {i} (Kaynak: {source} - Havayolu: {airline_info}):

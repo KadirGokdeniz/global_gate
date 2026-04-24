@@ -75,3 +75,11 @@ secrets_audit_report.json
 security_scan_*.json
 
 policy_data.sql
+
+# Local scripts and backups
+backups/
+.env
+*.bak
+scripts/inspect_*.py
+scripts/reparse_pegasus.py
+scripts/test_*.py
