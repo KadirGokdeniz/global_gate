@@ -682,12 +682,14 @@ async def retrieve_relevant_docs(question: str, max_results: int, similarity_thr
             semantic_results = await vector_ops.semantic_category_detection(question, airline_preference)
             detected_categories = [cat for cat, score in semantic_results]
         
-        docs = await vector_ops.similarity_search(
+        # NOT: similarity_search yerine semantic_reranking_search kullanıyoruz.
+        # semantic_reranking_search Cohere reranker'ı da çağırır ve category_hint
+        # zaten içinde semantic_category_detection ile yapar (expanded search).
+        docs = await vector_ops.semantic_reranking_search(
             query=question,
             airline_filter=airline_preference,
             limit=max_results,
             similarity_threshold=similarity_threshold,
-            use_semantic_categories=use_category_hint
         )
         
         search_duration = time.time() - start_time
@@ -696,7 +698,8 @@ async def retrieve_relevant_docs(question: str, max_results: int, similarity_thr
         metadata = {
             "detected_categories": detected_categories,
             "category_hint_used": use_category_hint,
-            "search_duration": round(search_duration, 3)
+            "search_duration": round(search_duration, 3),
+            "reranking": "cohere_v3.5"
         }
         
         return docs, metadata
