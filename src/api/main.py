@@ -1332,7 +1332,7 @@ async def collect_user_feedback(feedback: FeedbackRequest):
 # =============================================================================
 
 @app.post("/speech/synthesize")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute;20/hour")
 async def text_to_speech(
     request: Request,
     tts_request: TTSRequest
