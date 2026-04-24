@@ -10,6 +10,12 @@
   <img src="https://github.com/user-attachments/assets/8740f24a-6d1f-422d-8fc7-9fc952ad1ce1" alt="Airline Assistant" width="100%" />
 </p>
 
+<p align="center">
+  <a href="https://airline-assistant.vercel.app">
+    <strong>→ Try it live</strong>
+  </a>
+</p>
+
 ## Problem
 
 Airline policy information is scattered, inconsistent, and hard to access when you actually need it. [Phone support averages 2-12 hours](https://www.mightytravels.com/2024/10/how-major-airlines-customer-service-response-times-compare-analysis-of-7-leading-carriers-in-2024/). [80% of travelers](https://www.cxtoday.com/speech-analytics/chatbots-are-still-frustrating-customers-here-is-why/) say standard chatbots can't answer simple policy questions. And when you're rushing between gates or driving to the airport, typing through FAQ pages isn't practical.
@@ -18,22 +24,10 @@ Airline policy information is scattered, inconsistent, and hard to access when y
 
 A voice-enabled assistant that understands natural language and compares policies across multiple airlines. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
 
-## Demo Video
-
-https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
-
-## Screenshots
-
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e35bd43e-cf16-4771-91e9-c8eeafb01d1a" alt="RAG answer with cited sources" width="85%" />
   <br/>
-  <em>Answer with source attribution, similarity scores, and quality metadata.</em>
-</p>
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/84574081-6172-4b96-b052-62521d7d60f5" alt="Settings panel" width="85%" />
-  <br/>
-  <em>Settings — switch between airlines, LLM providers, and models.</em>
+  <em>Every answer carries source attribution and similarity scores.</em>
 </p>
 
 ## System Architecture
