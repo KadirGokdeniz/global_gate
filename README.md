@@ -5,7 +5,6 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-336791?logo=postgresql)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker)
-![Coverage](https://img.shields.io/badge/Test_Coverage-90%25-success)
 
 ## Problem
 
@@ -19,6 +18,25 @@ A voice-enabled assistant that understands natural language and compares policie
 
 https://github.com/user-attachments/assets/0366c7bf-c611-4f1b-9775-27c297a8ab25
 
+## Screenshots
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/e35bd43e-cf16-4771-91e9-c8eeafb01d1a" alt="RAG answer with cited sources" width="85%" />
+  <br/>
+  <em>RAG answer with source attribution, similarity scores, and quality metadata.</em>
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/84574081-6172-4b96-b052-62521d7d60f5" alt="Settings panel" width="85%" />
+  <br/>
+  <em>Settings panel — switch between airlines, LLM providers, and models.</em>
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8740f24a-6d1f-422d-8fc7-9fc952ad1ce1" alt="Landing page" width="85%" />
+  <br/>
+  <em>Landing page.</em>
+</p>
 
 ## System Architecture
 
@@ -28,30 +46,31 @@ Speech services run as separate streams—TTS failure doesn't block query proces
 graph TD
     A[User] <--> B[Frontend React]
     B --> C[FastAPI Backend]
-    
+
     B --> I[Audio Input]
     I --> J[AssemblyAI STT]
     J --> C
-    
+
     C <--> D[PostgreSQL + pgvector]
     E[Web Scraper] --> D
-    C <--> F[OpenAI/Claude APIs]
-    
-    C --> K[AWS Polly TTS]
+    C <--> F[OpenAI / Claude APIs]
+    C <--> M[Cohere Rerank]
+
+    C --> K[ElevenLabs TTS]
     K --> L[Audio Output]
     L --> B
-    
+
     G[Prometheus] --> H[Grafana]
     C --> G
-    
+
     classDef userPath fill:#e1f5fe
     classDef audioPath fill:#f3e5f5
     classDef backend fill:#e8f5e8
     classDef monitoring fill:#fff3e0
-    
+
     class A,B userPath
     class I,J,K,L audioPath
-    class C,D,E,F backend
+    class C,D,E,F,M backend
     class G,H monitoring
 ```
 
@@ -61,18 +80,21 @@ graph TD
 |------------|---------|---------------------|
 | **pgvector** | Vector Search | Reduced overhead vs Pinecone/Weaviate. Sufficient for policy-scale datasets. |
 | **gte-multilingual-base** | Embeddings | Open-source, no per-query cost. Native Turkish/English support. |
+| **Cohere rerank-v3.5** | Cross-encoder reranking | Multilingual (100+ languages), strong Turkish quality, stable API. Improves top-5 precision over pure vector search. |
 | **FastAPI** | Backend | Async handles concurrent LLM + STT + TTS calls. |
+| **React + Vite** | Frontend | Fast dev loop, typed components, native voice API support. |
 | **BeautifulSoup** | Scraping | Sufficient for general-purpose scraping needs. |
 | **OpenAI + Claude** | LLM | Dual-provider prevents lock-in. Enables quality comparison. |
 | **AssemblyAI** | STT | Strong Turkish accuracy. Handles background noise well. |
+| **ElevenLabs (turbo_v2_5)** | TTS | Low-latency multilingual output. Better Turkish prosody than open alternatives. |
 
 ## Core Capabilities
 
-**RAG Pipeline**: Semantic search with source attribution. Reduces hallucination risk.
+**RAG Pipeline**: Semantic search → Cohere rerank → LLM answer generation, with source attribution. Reduces hallucination risk.
 
 **Voice Interface**: Real-time STT/TTS in Turkish and English.
 
-**Production Monitoring**: Prometheus + Grafana for latency, errors, and API costs.
+**Production Monitoring**: Prometheus + Grafana for latency, errors, and API costs. Sentry for frontend/backend error tracking.
 
 **Multi-LLM Support**: Switch providers without code changes.
 
@@ -80,26 +102,31 @@ graph TD
 
 **Metadata-Aware Routing**: Airline-level metadata prefiltering combined with query routing to the correct policy domain.
 
+**Graceful Degradation**: If the reranker or TTS are unavailable, the system continues in a reduced-quality mode rather than failing outright.
+
 ## Quick Start
 
 ### 1. Clone and Setup
 ```bash
 git clone <repository-url>
-cd multi-airline-rag-system
+cd global_gate
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Secrets
+
+This project uses Docker Secrets (file-based). Create the `secrets/` directory and add one file per credential:
+
 ```bash
-cp .env.example .env
+mkdir -p secrets
+echo "your_postgres_password" > secrets/postgres_password
+echo "your_openai_api_key"    > secrets/openai_api_key
+echo "your_anthropic_api_key" > secrets/anthropic_api_key
+echo "your_assemblyai_api_key" > secrets/assemblyai_api_key
+echo "your_elevenlabs_api_key" > secrets/elevenlabs_api_key
+chmod 600 secrets/*
 ```
 
-Edit the `.env` file and add your API keys:
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-AWS_ACCESS_KEY_ID=your_aws_access_key_here
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
-# ... other required keys
-```
+> The `secrets/` directory is gitignored. For local-only scripts that need a database URL (e.g. under `scripts/`), set `DATABASE_URL` in a local `.env` file.
 
 ### 3. Start the Application
 ```bash
@@ -122,6 +149,13 @@ curl http://localhost:8000/health
 |---------|-----|
 | Frontend | http://localhost:8501 |
 | API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
 | Grafana | http://localhost:3000 |
 
-Feedback and collaboration are welcome! Contact me at kadirqokdeniz@hotmail.com for live access or project inquiries.
+## Production Deployment
+
+A separate `docker-compose-prod.yml` is provided for platforms that inject secrets as environment variables (Railway, Render, Fly.io). The production compose omits the scraper and local monitoring stack.
+
+---
+
+Feedback and collaboration are welcome. Contact: kadirqokdeniz@hotmail.com
