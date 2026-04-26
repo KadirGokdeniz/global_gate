@@ -374,6 +374,150 @@
     color: hsl(var(--chrome-muted));
   }
 }
+/* ═══════════════════════════════════════════════════════════════════
+   AŞAĞIDAKİ BLOĞU MEVCUT index.css'İN EN ALTINA EKLE.
+   Hiçbir mevcut kuralı değiştirmiyor — sadece yeni @layer ekleri.
+   ═══════════════════════════════════════════════════════════════════ */
+
+
+/* ─── Layer 1: Body — Contrail animasyonları ──────────────────────── */
+
+@layer utilities {
+  /* Base — composite optimization ipucu */
+  .contrail {
+    transform-origin: 50% 50%;
+    will-change: transform, opacity;
+  }
+
+  /* Üç farklı hız + farklı opaklık + staggered başlangıç.
+     Negatif animation-delay → ilk render'da contrail'ler farklı
+     fazlarda yakalanır, "yeni başladı" hissi olmaz. */
+  .contrail-slow {
+    animation: contrail-drift 95s linear infinite;
+    --contrail-peak: 0.10;
+  }
+  .contrail-medium {
+    animation: contrail-drift 75s linear infinite -28s;
+    --contrail-peak: 0.08;
+  }
+  .contrail-fast {
+    animation: contrail-drift 60s linear infinite -50s;
+    --contrail-peak: 0.06;
+  }
+
+  @keyframes contrail-drift {
+    0%   { transform: translate(-15%, 15%); opacity: 0; }
+    15%  { opacity: var(--contrail-peak, 0.08); }
+    85%  { opacity: var(--contrail-peak, 0.08); }
+    100% { transform: translate(15%, -15%); opacity: 0; }
+  }
+
+  /* Dark mode'da contrail'leri biraz daha soluk tut — koyu zeminde
+     altın daha belirgin görünür, dengelemek için. */
+  .dark .contrail-slow   { --contrail-peak: 0.07; }
+  .dark .contrail-medium { --contrail-peak: 0.06; }
+  .dark .contrail-fast   { --contrail-peak: 0.04; }
+}
+
+
+/* ─── Layer 2: Header — "Chrome surface" treatment ────────────────────
+   Mevcut .bg-chrome utility'sine dokunmuyoruz (başka yerlerde
+   kullanılabilir). Bunun yerine yeni bir composite class ekliyoruz.
+   Header'da `bg-chrome` yerine `chrome-surface` kullan. */
+
+@layer components {
+  .chrome-surface {
+    position: relative;
+    background-color: hsl(var(--chrome));
+    /* Üst-merkezde çok soluk altın "spot" — header'a hacim verir,
+       düz blok hissini kırar. */
+    background-image: radial-gradient(
+      ellipse 70% 140% at 50% -20%,
+      hsl(var(--accent) / 0.08) 0%,
+      transparent 65%
+    );
+  }
+
+  /* Alt kenar boyunca ince altın "horizon" çizgisi — kenarlarda solar.
+     Header'ı body'den ayıran ama sert olmayan bir sınır. */
+  .chrome-surface::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--accent) / 0.45) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Dark mode — altın token'ı zaten `38 55% 62%` (daha açık),
+     opaklığı düşürmek yeterli. */
+  .dark .chrome-surface {
+    background-image: radial-gradient(
+      ellipse 70% 140% at 50% -20%,
+      hsl(var(--accent) / 0.05) 0%,
+      transparent 65%
+    );
+  }
+  .dark .chrome-surface::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--accent) / 0.30) 50%,
+      transparent 100%
+    );
+  }
+}
+
+
+/* ─── Layer 3: Card — Micro-elevation ─────────────────────────────────
+   Mevcut .surface-interactive var ama timid (-1px). Daha belirgin
+   bir alternatif: .card-lift. Cards'a opt-in olarak eklenir.
+
+   Kullanım örneği (SearchBox, ResponseCard, AirlineSelector vb):
+     <div className="card-lift rounded-lg border ...">
+
+   Klavye kullanıcıları için focus-visible'da da elevation. */
+
+@layer components {
+  .card-lift {
+    transition:
+      transform 200ms var(--ease-out-quart),
+      box-shadow 200ms var(--ease-out-quart),
+      border-color 200ms var(--ease-out-quart);
+    will-change: transform;
+  }
+
+  .card-lift:hover,
+  .card-lift:focus-within {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: hsl(var(--border) / 0.6);
+  }
+
+  /* Tıklama anında kısa "press" feedback'i */
+  .card-lift:active {
+    transform: translateY(-1px);
+    transition-duration: 80ms;
+  }
+
+  /* Reduced-motion: transform'u kapat, sadece shadow değişsin */
+  @media (prefers-reduced-motion: reduce) {
+    .card-lift,
+    .card-lift:hover,
+    .card-lift:active,
+    .card-lift:focus-within {
+      transform: none;
+      transition: box-shadow 200ms ease-out, border-color 200ms ease-out;
+    }
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    Tailwind'in tailwind.config.ts'inde chrome renklerini tanımlamaya
