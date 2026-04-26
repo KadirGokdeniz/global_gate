@@ -42,13 +42,11 @@
     --input: 215 20% 88%;
     --ring: 215 55% 16%;
 
-    /* ─── Header chrome — navy ────────────────────────────────
-       Bu yeni. Header artık body'den bağımsız bir token kullanıyor
-       ki kolayca navy yapılabilsin. */
-    --chrome: 215 55% 14%;               /* deep navy */
+    /* ─── Header chrome — navy ──────────────────────────────── */
+    --chrome: 215 55% 14%;
     --chrome-foreground: 30 20% 98%;
     --chrome-border: 215 50% 20%;
-    --chrome-muted: 215 25% 72%;         /* subtle text on chrome */
+    --chrome-muted: 215 25% 72%;
 
     --voice-primary: 215 55% 16%;
     --voice-secondary: 215 12% 42%;
@@ -75,9 +73,7 @@
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* ─── Shadow sistemi — GÜÇLENDİRİLDİ
-       Eski shadow'lar çok soluk kalmıştı (screenshot'ta kart düz
-       görünüyordu). Şimdi daha belirgin, gerçekten "yüzen" kart. */
+    /* ─── Shadow sistemi ─── */
     --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.05);
     --shadow-sm:
       0 1px 2px 0 hsl(215 50% 10% / 0.06),
@@ -125,7 +121,6 @@
     --input: 215 30% 18%;
     --ring: 38 55% 62%;
 
-    /* Dark mode'da chrome zaten koyu — body ile yakın renk tercih */
     --chrome: 215 40% 5%;
     --chrome-foreground: 30 20% 96%;
     --chrome-border: 215 30% 15%;
@@ -153,9 +148,6 @@
     font-feature-settings: 'ss01', 'cv11';
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
-
-    /* Solid krem — ambient glow kaldırıldı.
-       Header artık navy olduğu için glow gereksiz, kafa karıştırıcı. */
     background-color: hsl(var(--background));
   }
 
@@ -167,9 +159,6 @@
     line-height: 1.6;
   }
 
-  /* ─── Focus ring — details element'i için özelleştir
-     Native browser focus outline görünüyordu (mavi border). Biz custom
-     veriyoruz ama bazı elementler override ediyor. Global bir reset. */
   :focus-visible {
     @apply outline-none;
     box-shadow:
@@ -178,9 +167,6 @@
     transition: box-shadow 150ms var(--ease-out-quart);
   }
 
-  /* Details/summary — focus ring'i summary içine uygula, details'e değil.
-     Eski kodda <details>'in kendisi focus alıyordu ve mavi border ekranda
-     kalıyordu. summary'e daraltıyoruz. */
   details:focus {
     outline: none;
     box-shadow: none;
@@ -356,8 +342,7 @@
   .shadow-layer-md { box-shadow: var(--shadow-md); }
   .shadow-layer-lg { box-shadow: var(--shadow-lg); }
 
-  /* ─── Chrome utilities ──────────────────────────────────────
-     Header/navigation için navy zemin + açık metin. */
+  /* ─── Chrome utilities ─── */
   .bg-chrome {
     background-color: hsl(var(--chrome));
   }
@@ -374,35 +359,31 @@
     color: hsl(var(--chrome-muted));
   }
 }
-/* ═══════════════════════════════════════════════════════════════════
-   AŞAĞIDAKİ BLOĞU MEVCUT index.css'İN EN ALTINA EKLE.
-   Hiçbir mevcut kuralı değiştirmiyor — sadece yeni @layer ekleri.
-   ═══════════════════════════════════════════════════════════════════ */
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   BackgroundFX — atmosferik katman (contrails + horizon glow)
+   ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Layer 1: Body — Contrail animasyonları ──────────────────────── */
 
 @layer utilities {
-  /* Base — composite optimization ipucu */
   .contrail {
     transform-origin: 50% 50%;
     will-change: transform, opacity;
   }
 
-  /* Üç farklı hız + farklı opaklık + staggered başlangıç.
-     Negatif animation-delay → ilk render'da contrail'ler farklı
-     fazlarda yakalanır, "yeni başladı" hissi olmaz. */
   .contrail-slow {
     animation: contrail-drift 95s linear infinite;
-    --contrail-peak: 0.10;
+    --contrail-peak: 0.45;
   }
   .contrail-medium {
     animation: contrail-drift 75s linear infinite -28s;
-    --contrail-peak: 0.08;
+    --contrail-peak: 0.40;
   }
   .contrail-fast {
     animation: contrail-drift 60s linear infinite -50s;
-    --contrail-peak: 0.06;
+    --contrail-peak: 0.35;
   }
 
   @keyframes contrail-drift {
@@ -412,25 +393,18 @@
     100% { transform: translate(15%, -15%); opacity: 0; }
   }
 
-  /* Dark mode'da contrail'leri biraz daha soluk tut — koyu zeminde
-     altın daha belirgin görünür, dengelemek için. */
-  .dark .contrail-slow   { --contrail-peak: 0.07; }
-  .dark .contrail-medium { --contrail-peak: 0.06; }
-  .dark .contrail-fast   { --contrail-peak: 0.04; }
+  .dark .contrail-slow   { --contrail-peak: 0.30; }
+  .dark .contrail-medium { --contrail-peak: 0.25; }
+  .dark .contrail-fast   { --contrail-peak: 0.20; }
 }
 
 
-/* ─── Layer 2: Header — "Chrome surface" treatment ────────────────────
-   Mevcut .bg-chrome utility'sine dokunmuyoruz (başka yerlerde
-   kullanılabilir). Bunun yerine yeni bir composite class ekliyoruz.
-   Header'da `bg-chrome` yerine `chrome-surface` kullan. */
+/* ─── Layer 2: Header — Chrome surface treatment ──────────────────── */
 
 @layer components {
   .chrome-surface {
     position: relative;
     background-color: hsl(var(--chrome));
-    /* Üst-merkezde çok soluk altın "spot" — header'a hacim verir,
-       düz blok hissini kırar. */
     background-image: radial-gradient(
       ellipse 70% 140% at 50% -20%,
       hsl(var(--accent) / 0.08) 0%,
@@ -438,8 +412,6 @@
     );
   }
 
-  /* Alt kenar boyunca ince altın "horizon" çizgisi — kenarlarda solar.
-     Header'ı body'den ayıran ama sert olmayan bir sınır. */
   .chrome-surface::after {
     content: '';
     position: absolute;
@@ -456,8 +428,6 @@
     );
   }
 
-  /* Dark mode — altın token'ı zaten `38 55% 62%` (daha açık),
-     opaklığı düşürmek yeterli. */
   .dark .chrome-surface {
     background-image: radial-gradient(
       ellipse 70% 140% at 50% -20%,
@@ -476,14 +446,7 @@
 }
 
 
-/* ─── Layer 3: Card — Micro-elevation ─────────────────────────────────
-   Mevcut .surface-interactive var ama timid (-1px). Daha belirgin
-   bir alternatif: .card-lift. Cards'a opt-in olarak eklenir.
-
-   Kullanım örneği (SearchBox, ResponseCard, AirlineSelector vb):
-     <div className="card-lift rounded-lg border ...">
-
-   Klavye kullanıcıları için focus-visible'da da elevation. */
+/* ─── Layer 3: Card — Micro-elevation ─────────────────────────────── */
 
 @layer components {
   .card-lift {
@@ -501,13 +464,11 @@
     border-color: hsl(var(--border) / 0.6);
   }
 
-  /* Tıklama anında kısa "press" feedback'i */
   .card-lift:active {
     transform: translateY(-1px);
     transition-duration: 80ms;
   }
 
-  /* Reduced-motion: transform'u kapat, sadece shadow değişsin */
   @media (prefers-reduced-motion: reduce) {
     .card-lift,
     .card-lift:hover,
@@ -518,9 +479,3 @@
     }
   }
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   Tailwind'in tailwind.config.ts'inde chrome renklerini tanımlamaya
-   gerek yok — utility class'ları burada custom olarak oluşturduk.
-   bg-chrome, text-chrome-foreground gibi class'lar artık kullanılabilir.
-   ═══════════════════════════════════════════════════════════════════ */
