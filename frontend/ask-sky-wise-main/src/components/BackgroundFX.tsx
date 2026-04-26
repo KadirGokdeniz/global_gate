@@ -7,30 +7,29 @@ import { useId } from 'react';
  * doğru süzülen ince altın "uçuş izleri" (contrails). Çok yavaş, çok soluk,
  * marka rengiyle (`--accent`).
  *
- * Performans:
- * - Sadece SVG path + CSS `transform` ve `opacity` animasyonu → GPU compositor.
- * - Layout/paint thrashing yok, her frame composite-only.
- * - `will-change` set edilmiş; tek seferlik mount, app boyunca sabit.
+ * Z-INDEX NOTU:
+ * Negatif z-index KULLANMIYORUZ. Sebep: body'nin background-color'ı CSS
+ * stacking context'inde negatif z-indexli fixed elementleri kapatabiliyor
+ * (browser implementation farkı). Bunun yerine wrapper'ı z-index olmadan
+ * fixed konumda bırakıp, document order'a güveniyoruz: BackgroundFX,
+ * Routes'tan ÖNCE render edildiği için arkada kalır. `pointer-events:none`
+ * sayesinde interaksiyonu engellemez.
+ *
+ * Performans: SVG path + CSS transform/opacity → GPU compositor.
  *
  * Erişilebilirlik:
  * - `aria-hidden` → ekran okuyucu görmezden gelir.
  * - `pointer-events: none` → tıklamaları engellemez.
- * - `motion-reduce:hidden` → `prefers-reduced-motion: reduce` aktifken
- *   component hiç render edilmez (Tailwind utility'si).
- *
- * Mount noktası:
- * App.tsx içinde, BrowserRouter'ın iç ErrorBoundary'sinin altında, Routes'un
- * SİBLİNG'i olarak — böylece tüm route'larda görünür ve route değişince
- * remount olmaz (sürekliliği bozmaz).
+ * - Reduced-motion: index.css'teki @media query animasyonu durdurur ama
+ *   contrail'ler statik olarak görünmeye devam eder (görsel derinlik kalır).
  */
 export const BackgroundFX = () => {
-  // SSR/hydration güvenli, çoklu instance çakışmasını önleyen unique gradient ID
   const gradId = useId();
 
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 -z-10 pointer-events-none overflow-hidden motion-reduce:hidden"
+      className="fixed inset-0 pointer-events-none overflow-hidden"
     >
       {/* ─── Contrails — diyagonal süzülen altın izler ─────────────────── */}
       <svg
@@ -40,7 +39,8 @@ export const BackgroundFX = () => {
       >
         <defs>
           {/* Stroke gradient: kenarlardan başlangıç/bitiş yumuşak, ortada
-              belirgin. Çizginin başı ve sonu görünmez şekilde silinsin diye. */}
+              belirgin. style attribute kullanıyoruz (SVG attribute'ta CSS
+              variable bazı tarayıcılarda resolve olmuyor — defansif tercih). */}
           <linearGradient
             id={`contrail-${gradId}`}
             x1="0%"
@@ -48,9 +48,18 @@ export const BackgroundFX = () => {
             x2="100%"
             y2="0%"
           >
-            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-            <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity="1" />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+            <stop
+              offset="0%"
+              style={{ stopColor: 'hsl(var(--accent))', stopOpacity: 0 }}
+            />
+            <stop
+              offset="50%"
+              style={{ stopColor: 'hsl(var(--accent))', stopOpacity: 1 }}
+            />
+            <stop
+              offset="100%"
+              style={{ stopColor: 'hsl(var(--accent))', stopOpacity: 0 }}
+            />
           </linearGradient>
         </defs>
 
@@ -60,7 +69,7 @@ export const BackgroundFX = () => {
             d="M -10 95 Q 50 70 110 30"
             fill="none"
             stroke={`url(#contrail-${gradId})`}
-            strokeWidth="1.5"
+            strokeWidth="2.5"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
@@ -72,7 +81,7 @@ export const BackgroundFX = () => {
             d="M -10 70 Q 40 55 110 15"
             fill="none"
             stroke={`url(#contrail-${gradId})`}
-            strokeWidth="1.25"
+            strokeWidth="2"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
@@ -84,15 +93,14 @@ export const BackgroundFX = () => {
             d="M -10 50 Q 30 45 110 5"
             fill="none"
             stroke={`url(#contrail-${gradId})`}
-            strokeWidth="1"
+            strokeWidth="1.5"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
         </g>
       </svg>
 
-      {/* ─── Horizon glow — alt kısımda çok soluk altın aydınlanma ──────
-          Contrail'lerin geldiği "ufuk" hissini güçlendirir. Statik. */}
+      {/* ─── Horizon glow — alt kısımda çok soluk altın aydınlanma ────── */}
       <div
         className="absolute inset-x-0 bottom-0 h-[45vh]"
         style={{
