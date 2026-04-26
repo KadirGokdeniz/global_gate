@@ -9,17 +9,15 @@
 
 @layer base {
   :root {
-    /* ─── Body + Card iki farklı tabaka ────────────────────── */
-    --background: 36 25% 96%;            /* warm cream body */
+    --background: 36 25% 96%;
     --foreground: 215 45% 12%;
 
-    --card: 0 0% 100%;                   /* saf beyaz, öne çıksın */
+    --card: 0 0% 100%;
     --card-foreground: 215 45% 12%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 45% 12%;
 
-    /* ─── Primary — deep navy ─── */
     --primary: 215 55% 16%;
     --primary-foreground: 30 20% 98%;
     --primary-hover: 215 55% 22%;
@@ -30,7 +28,6 @@
     --muted: 215 15% 94%;
     --muted-foreground: 215 12% 42%;
 
-    /* ─── Accent — muted gold ─── */
     --accent: 38 55% 52%;
     --accent-foreground: 215 55% 16%;
     --accent-hover: 38 55% 46%;
@@ -42,7 +39,6 @@
     --input: 215 20% 88%;
     --ring: 215 55% 16%;
 
-    /* ─── Header chrome — navy ──────────────────────────────── */
     --chrome: 215 55% 14%;
     --chrome-foreground: 30 20% 98%;
     --chrome-border: 215 50% 20%;
@@ -73,7 +69,6 @@
     --font-heading: 'Inter', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* ─── Shadow sistemi ─── */
     --shadow-xs: 0 1px 2px 0 hsl(215 50% 10% / 0.05);
     --shadow-sm:
       0 1px 2px 0 hsl(215 50% 10% / 0.06),
@@ -342,7 +337,6 @@
   .shadow-layer-md { box-shadow: var(--shadow-md); }
   .shadow-layer-lg { box-shadow: var(--shadow-lg); }
 
-  /* ─── Chrome utilities ─── */
   .bg-chrome {
     background-color: hsl(var(--chrome));
   }
@@ -362,44 +356,8 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   BackgroundFX — atmosferik katman (contrails + horizon glow)
+   Header chrome surface — üstten radyal vurgu + alttan altın horizon
    ═══════════════════════════════════════════════════════════════════ */
-
-/* ─── Layer 1: Body — Contrail animasyonları ──────────────────────── */
-
-@layer utilities {
-  .contrail {
-    transform-origin: 50% 50%;
-    will-change: transform, opacity;
-  }
-
-  .contrail-slow {
-    animation: contrail-drift 95s linear infinite;
-    --contrail-peak: 0.45;
-  }
-  .contrail-medium {
-    animation: contrail-drift 75s linear infinite -28s;
-    --contrail-peak: 0.40;
-  }
-  .contrail-fast {
-    animation: contrail-drift 60s linear infinite -50s;
-    --contrail-peak: 0.35;
-  }
-
-  @keyframes contrail-drift {
-    0%   { transform: translate(-15%, 15%); opacity: 0; }
-    15%  { opacity: var(--contrail-peak, 0.08); }
-    85%  { opacity: var(--contrail-peak, 0.08); }
-    100% { transform: translate(15%, -15%); opacity: 0; }
-  }
-
-  .dark .contrail-slow   { --contrail-peak: 0.30; }
-  .dark .contrail-medium { --contrail-peak: 0.25; }
-  .dark .contrail-fast   { --contrail-peak: 0.20; }
-}
-
-
-/* ─── Layer 2: Header — Chrome surface treatment ──────────────────── */
 
 @layer components {
   .chrome-surface {
@@ -446,7 +404,9 @@
 }
 
 
-/* ─── Layer 3: Card — Micro-elevation ─────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   Card micro-elevation — hover/focus'ta hafif yükselme
+   ═══════════════════════════════════════════════════════════════════ */
 
 @layer components {
   .card-lift {
