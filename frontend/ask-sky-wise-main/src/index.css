@@ -439,3 +439,51 @@
     }
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Contrail animasyonları — BackgroundFX component'i tarafından kullanılır
+   ═══════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .contrail {
+    transform-origin: 50% 50%;
+    will-change: transform, opacity;
+  }
+
+  .contrail-slow {
+    animation: contrail-drift 95s linear infinite;
+    --contrail-peak: 0.45;
+  }
+  .contrail-medium {
+    animation: contrail-drift 75s linear infinite -28s;
+    --contrail-peak: 0.40;
+  }
+  .contrail-fast {
+    animation: contrail-drift 60s linear infinite -50s;
+    --contrail-peak: 0.35;
+  }
+
+  @keyframes contrail-drift {
+    0%   { transform: translate(-15%, 15%); opacity: 0; }
+    15%  { opacity: var(--contrail-peak, 0.08); }
+    85%  { opacity: var(--contrail-peak, 0.08); }
+    100% { transform: translate(15%, -15%); opacity: 0; }
+  }
+
+  /* Dark mode'da daha soluk — koyu zeminde altın daha belirgin */
+  .dark .contrail-slow   { --contrail-peak: 0.30; }
+  .dark .contrail-medium { --contrail-peak: 0.25; }
+  .dark .contrail-fast   { --contrail-peak: 0.20; }
+
+  /* Reduced-motion: animasyonu durdur, statik görünür kal */
+  @media (prefers-reduced-motion: reduce) {
+    .contrail-slow,
+    .contrail-medium,
+    .contrail-fast {
+      animation: none !important;
+      opacity: var(--contrail-peak, 0.08);
+      transform: translate(0, 0);
+    }
+  }
+}
