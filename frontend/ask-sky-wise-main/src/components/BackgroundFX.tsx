@@ -3,23 +3,21 @@ import { useId } from 'react';
 /**
  * Body arka planı için atmosferik katman.
  *
- * KRİTİK TASARIM KARARI: Contrail'ler viewport'un sadece ÜST %50'sinde
- * dolaşır. Sebep: tam ekran versiyonunda kartların altından/üstünden
- * geçince görsel kirlilik yaratıyordu. Üst banda sıkıştırınca:
- * - Header altında "gökyüzü" hissi olur (ufuk metaforu doğru durur)
- * - Yoğun içerik bölgesi (alt %50) tertemiz kalır
- * - Mobil + masaüstünde tutarlı çalışır
+ * KAPSAM: Tüm viewport. Contrail'ler her yerde drift eder, ama App.tsx'te
+ * Routes wrapper'ına verdiğimiz `relative z-10` sayesinde kartlar her
+ * zaman contrail'lerin üstünde paint edilir. Sonuç: contrail'ler sadece
+ * body-bg'sinin görünür olduğu BOŞLUK alanlarında görünür — kart
+ * bölgelerinde otomatik gizlenir.
+ *
+ * İki katman:
+ *   1) Contrails (üst-orta) — soldan-sağa-yukarı süzülen ince altın izler
+ *   2) Horizon glow (alt) — sayfanın en altında çok soluk altın aydınlanma
  *
  * Performans: SVG path + CSS transform/opacity → GPU compositor.
  *
  * Erişilebilirlik:
  * - aria-hidden, pointer-events:none
- * - prefers-reduced-motion: index.css'te animasyon kapanır,
- *   contrail'ler statik durur (görsel derinlik korunur)
- *
- * Z-index: NEGATIF DEĞİL. Negatif z-index body bg'sinin altına itiyordu.
- * Bunun yerine document order'a güveniyoruz — BackgroundFX, Routes'tan
- * önce render edildiği için arkada kalır.
+ * - prefers-reduced-motion → animasyon durur, görsel kalır
  */
 export const BackgroundFX = () => {
   const gradId = useId();
@@ -27,17 +25,15 @@ export const BackgroundFX = () => {
   return (
     <div
       aria-hidden="true"
-      className="fixed top-0 inset-x-0 h-[50vh] pointer-events-none overflow-hidden"
+      className="fixed inset-0 pointer-events-none overflow-hidden"
     >
+      {/* ─── Contrails — diyagonal süzülen altın izler ─────────────────── */}
       <svg
         className="absolute inset-0 w-full h-full"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
         <defs>
-          {/* Stroke gradient — başlangıç ve bitiş noktaları görünmez,
-              ortası belirgin. CSS değişkenleri SVG attribute'ta her
-              tarayıcıda resolve olmuyor; style kullanıyoruz. */}
           <linearGradient
             id={`contrail-${gradId}`}
             x1="0%"
@@ -72,7 +68,7 @@ export const BackgroundFX = () => {
           />
         </g>
 
-        {/* Path 2 — orta yükseklik, orta hız (75s, gecikmeli) */}
+        {/* Path 2 — orta, gecikmeli (75s) */}
         <g className="contrail contrail-medium">
           <path
             d="M -10 70 Q 40 55 110 15"
@@ -84,7 +80,7 @@ export const BackgroundFX = () => {
           />
         </g>
 
-        {/* Path 3 — yüksek, en hızlı (60s, en gecikmeli) */}
+        {/* Path 3 — yüksek, en hızlı (60s) */}
         <g className="contrail contrail-fast">
           <path
             d="M -10 50 Q 30 45 110 5"
@@ -96,6 +92,15 @@ export const BackgroundFX = () => {
           />
         </g>
       </svg>
+
+      {/* ─── Alt horizon glow — sayfanın altında çok soluk altın aydınlanma */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-[40vh]"
+        style={{
+          background:
+            'radial-gradient(ellipse 65% 100% at 50% 100%, hsl(var(--accent) / 0.08) 0%, transparent 70%)',
+        }}
+      />
     </div>
   );
 };
