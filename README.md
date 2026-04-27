@@ -22,7 +22,7 @@ Airline policy information is scattered, inconsistent, and hard to access when y
 
 ## Solution
 
-A voice-enabled assistant that understands natural language and compares policies across multiple airlines. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
+"A voice-enabled assistant that answers natural-language airline policy questions across multiple supported carriers. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e35bd43e-cf16-4771-91e9-c8eeafb01d1a" alt="RAG answer with cited sources" width="85%" />
