@@ -173,6 +173,14 @@ cot_reasoning_quality = Histogram(
     buckets=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 )
 
+# LLM Failover tracking
+# reason: 'exception' (primary patladı) | 'soft_fail' (success=False döndü)
+llm_failover_total = Counter(
+    'llm_failover_total',
+    'Total LLM failover events from primary to secondary provider',
+    ['primary', 'secondary', 'reason']
+)
+
 # =============================================================================
 # 3. SYSTEM HEALTH METRICS
 # =============================================================================
@@ -825,6 +833,108 @@ def enhance_query_simple(question: str, airline_preference: Optional[str]) -> st
     return enhanced_query
 
 # ENHANCED OPENAI CHAT WITH CoT SUPPORT
+
+# =============================================================================
+# LLM FAILOVER HELPER
+# =============================================================================
+
+async def _generate_with_llm_failover(
+    primary_service, secondary_service,
+    primary_name: str, secondary_name: str,
+    retrieved_docs, question, model, language, use_cot
+):
+    """
+    LLM çağrısını primary üzerinden dener, başarısızsa secondary'ye düşer.
+
+    Failover trigger durumları:
+      1. primary exception fırlatırsa (network, timeout, rate limit, server error)
+      2. primary success=False döndürürse (provider-side soft fail)
+
+    Secondary'ye geçerken `model=None` gönderilir; çünkü 'gpt-4o-mini' gibi
+    provider-spesifik model isimleri diğer provider'da geçersizdir — secondary
+    kendi `get_default_model()` değerini kullanır.
+
+    Response'a iki yeni field eklenir:
+        - failover_used (bool): failover gerçekleşti mi?
+        - actual_provider (str): gerçekten cevaplayan provider
+    """
+    # 1) Primary'yi dene
+    failover_reason = None
+    try:
+        response = primary_service.generate_rag_response(
+            retrieved_docs, question, model, language, use_cot
+        )
+        if response.get("success"):
+            response["failover_used"] = False
+            response["actual_provider"] = primary_name
+            return response
+        # success=False -> soft fail, failover trigger
+        failover_reason = "soft_fail"
+        logger.warning(
+            f"Primary {primary_name} returned success=False — "
+            f"falling back to {secondary_name}"
+        )
+    except Exception as e:
+        failover_reason = "exception"
+        logger.warning(
+            f"Primary {primary_name} raised {type(e).__name__}: {e} — "
+            f"falling back to {secondary_name}"
+        )
+
+    # 2) Secondary mevcut mu?
+    if secondary_service is None:
+        logger.error(
+            f"Secondary {secondary_name} not initialized — no failover possible"
+        )
+        return {
+            "success": False,
+            "error": f"{primary_name} failed and {secondary_name} unavailable",
+            "answer": "",
+            "model_used": "none",
+            "failover_used": False,
+            "actual_provider": primary_name,
+        }
+
+    # 3) Secondary'yi dene (model=None ile, kendi default'unu kullansın)
+    try:
+        response = secondary_service.generate_rag_response(
+            retrieved_docs, question, None, language, use_cot
+        )
+        # Failover counter — başarılı failover'ları say
+        try:
+            llm_failover_total.labels(
+                primary=primary_name,
+                secondary=secondary_name,
+                reason=failover_reason,
+            ).inc()
+        except Exception as metric_err:
+            logger.debug(f"Failover metric tracking error: {metric_err}")
+
+        response["failover_used"] = True
+        response["actual_provider"] = secondary_name
+        logger.info(
+            f"Failover successful: {primary_name} → {secondary_name} "
+            f"(reason: {failover_reason})"
+        )
+        return response
+    except Exception as e:
+        logger.error(
+            f"Secondary {secondary_name} ALSO failed: {type(e).__name__}: {e}"
+        )
+        return {
+            "success": False,
+            "error": (
+                f"Both providers failed: "
+                f"primary={primary_name} ({failover_reason}), "
+                f"secondary={secondary_name} ({type(e).__name__})"
+            ),
+            "answer": "",
+            "model_used": "none",
+            "failover_used": True,
+            "actual_provider": None,
+        }
+
+
 async def _chat_with_openai_logic(question: str, max_results: int, similarity_threshold: float,
                                   model: Optional[str], airline_preference: Optional[str] = None,
                                   language: str = "en", use_cot: bool = False, include_full_content: bool = False):
@@ -851,8 +961,16 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
         retrieval_time = time.time() - retrieval_start
         
         generation_start = time.time()
-        openai_response = openai_service.generate_rag_response(
-            retrieved_docs, enhanced_question, model, language, use_cot
+        openai_response = await _generate_with_llm_failover(
+            primary_service=openai_service,
+            secondary_service=claude_service,
+            primary_name="openai",
+            secondary_name="claude",
+            retrieved_docs=retrieved_docs,
+            question=enhanced_question,
+            model=model,
+            language=language,
+            use_cot=use_cot,
         )
         generation_time = time.time() - generation_start
         
@@ -863,25 +981,30 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
         
         total_duration = time.time() - start_time
         usage = openai_response.get("usage", {})
-        
-        track_rag_query("openai", total_duration, "success")
-        track_component_latency("retrieval", "openai", retrieval_time)
-        track_component_latency("generation", "openai", generation_time)
-        track_component_latency("total", "openai", total_duration)
+
+        # Failover olduysa actual_provider claude olabilir — metrikleri ona göre tag'le
+        actual_provider = openai_response.get("actual_provider", "openai")
+        failover_used = openai_response.get("failover_used", False)
+
+        track_rag_query(actual_provider, total_duration, "success")
+        track_component_latency("retrieval", actual_provider, retrieval_time)
+        track_component_latency("generation", actual_provider, generation_time)
+        track_component_latency("total", actual_provider, total_duration)
         
         source_precision = calculate_source_precision(retrieved_docs, 0.7)
         answer_completeness = calculate_answer_completeness(len(retrieved_docs), 3)
         accuracy_score = calculate_overall_accuracy(source_precision, answer_completeness)
-        
-        track_rag_accuracy("openai", airline_preference or "all", language, accuracy_score)
-        
-        input_tokens = usage.get("prompt_tokens", 0)
-        output_tokens = usage.get("completion_tokens", 0)
+
+        track_rag_accuracy(actual_provider, airline_preference or "all", language, accuracy_score)
+
+        # Token field isimleri provider'a göre değişir (OpenAI: prompt_tokens, Claude: input_tokens)
+        input_tokens = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+        output_tokens = usage.get("completion_tokens", usage.get("output_tokens", 0))
         total_cost = usage.get("estimated_cost", 0.0)
         
         if total_cost > 0:
             track_query_cost(
-                provider="openai",
+                provider=actual_provider,
                 model=openai_response.get("model_used", model or "gpt-4o-mini"),
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -892,7 +1015,7 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
         if use_cot and openai_response.get("reasoning"):
             reasoning_length = len(openai_response["reasoning"])
             cot_quality = min(reasoning_length / 500, 1.0)
-            track_cot_quality("openai", cot_quality)
+            track_cot_quality(actual_provider, cot_quality)
         
         response_data = {
             "success": True,
@@ -902,6 +1025,8 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
             "reasoning": openai_response.get("reasoning") if use_cot else None,
             "cot_enabled": use_cot,
             "model_used": openai_response["model_used"],
+            "actual_provider": actual_provider,
+            "failover_used": failover_used,
             "airline_preference": airline_preference,
             "sources": prepare_retrieved_docs_preview(
                 retrieved_docs,
@@ -925,7 +1050,11 @@ async def _chat_with_openai_logic(question: str, max_results: int, similarity_th
             "retrieval_metadata": retrieval_metadata
         }
         
-        logger.info(f"OpenAI response (CoT:{use_cot}) in {total_duration:.2f}s - Accuracy:{accuracy_score:.3f}")
+        failover_log = f" [FAILOVER → {actual_provider}]" if failover_used else ""
+        logger.info(
+            f"OpenAI endpoint response (CoT:{use_cot}){failover_log} "
+            f"in {total_duration:.2f}s - Accuracy:{accuracy_score:.3f}"
+        )
         return fix_float_values(response_data)
         
     except HTTPException:
@@ -963,8 +1092,16 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
         retrieval_time = time.time() - retrieval_start
         
         generation_start = time.time()
-        claude_response = claude_service.generate_rag_response(
-            retrieved_docs, enhanced_question, model, language, use_cot
+        claude_response = await _generate_with_llm_failover(
+            primary_service=claude_service,
+            secondary_service=openai_service,
+            primary_name="claude",
+            secondary_name="openai",
+            retrieved_docs=retrieved_docs,
+            question=enhanced_question,
+            model=model,
+            language=language,
+            use_cot=use_cot,
         )
         generation_time = time.time() - generation_start
         
@@ -975,25 +1112,30 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
         
         total_duration = time.time() - start_time
         usage = claude_response.get("usage", {})
-        
-        track_rag_query("claude", total_duration, "success")
-        track_component_latency("retrieval", "claude", retrieval_time)
-        track_component_latency("generation", "claude", generation_time)
-        track_component_latency("total", "claude", total_duration)
+
+        # Failover olduysa actual_provider openai olabilir — metrikleri ona göre tag'le
+        actual_provider = claude_response.get("actual_provider", "claude")
+        failover_used = claude_response.get("failover_used", False)
+
+        track_rag_query(actual_provider, total_duration, "success")
+        track_component_latency("retrieval", actual_provider, retrieval_time)
+        track_component_latency("generation", actual_provider, generation_time)
+        track_component_latency("total", actual_provider, total_duration)
         
         source_precision = calculate_source_precision(retrieved_docs, 0.7)
         answer_completeness = calculate_answer_completeness(len(retrieved_docs), 3)
         accuracy_score = calculate_overall_accuracy(source_precision, answer_completeness)
-        
-        track_rag_accuracy("claude", airline_preference or "all", language, accuracy_score)
-        
-        input_tokens = usage.get("input_tokens", 0)
-        output_tokens = usage.get("output_tokens", 0)
+
+        track_rag_accuracy(actual_provider, airline_preference or "all", language, accuracy_score)
+
+        # Token field isimleri provider'a göre değişir (Claude: input_tokens, OpenAI: prompt_tokens)
+        input_tokens = usage.get("input_tokens", usage.get("prompt_tokens", 0))
+        output_tokens = usage.get("output_tokens", usage.get("completion_tokens", 0))
         total_cost = usage.get("estimated_cost", 0.0)
         
         if total_cost > 0:
             track_query_cost(
-                provider="claude",
+                provider=actual_provider,
                 model=claude_response.get("model_used", model or "claude-3-5-haiku-20241022"),
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -1004,7 +1146,7 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
         if use_cot and claude_response.get("reasoning"):
             reasoning_length = len(claude_response["reasoning"])
             cot_quality = min(reasoning_length / 500, 1.0)
-            track_cot_quality("claude", cot_quality)
+            track_cot_quality(actual_provider, cot_quality)
         
         response_data = {
             "success": True,
@@ -1014,6 +1156,8 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
             "reasoning": claude_response.get("reasoning") if use_cot else None,
             "cot_enabled": use_cot,
             "model_used": claude_response["model_used"],
+            "actual_provider": actual_provider,
+            "failover_used": failover_used,
             "airline_preference": airline_preference,
             "sources": prepare_retrieved_docs_preview(
                 retrieved_docs,
@@ -1036,7 +1180,11 @@ async def _chat_with_claude_logic(question: str, max_results: int, similarity_th
             "retrieval_metadata": retrieval_metadata
         }
         
-        logger.info(f"Claude response (CoT:{use_cot}) in {total_duration:.2f}s - Accuracy:{accuracy_score:.3f}")
+        failover_log = f" [FAILOVER → {actual_provider}]" if failover_used else ""
+        logger.info(
+            f"Claude endpoint response (CoT:{use_cot}){failover_log} "
+            f"in {total_duration:.2f}s - Accuracy:{accuracy_score:.3f}"
+        )
         return fix_float_values(response_data)
         
     except HTTPException:
