@@ -165,26 +165,34 @@ export const useVoiceRecording = (language: 'en' | 'tr' = 'en') => {
 
         // Circular import'u önlemek için dinamik import
         const { apiService } = await import('@/services/api');
-        const transcript = await apiService.convertSpeechToText(
+
+        // convertSpeechToText artık { transcript, error? } döner.
+        // Eski versiyon string dönüyordu — bu yüzden eski .trim() kullanımı
+        // TypeError fırlatıp tüm voice flow'u "Ses islenemedi"ye düşürüyordu.
+        const result = await apiService.convertSpeechToText(
           audioBlob,
           language,
         );
 
-        if (transcript && transcript.trim().length > 0) {
+        if (result.transcript && result.transcript.trim().length > 0) {
           log('✅ Voice Hook: Transcript received');
           setState((prev) => ({
             ...prev,
             isProcessing: false,
-            transcript: transcript.trim(),
+            transcript: result.transcript!.trim(),
           }));
         } else {
+          // API katmanı bize spesifik bir userMessage verdiyse onu kullan
+          // (rate limit, servis down gibi durumlar). Yoksa generic mesaj.
+          const fallbackMessage =
+            language === 'en'
+              ? 'No speech detected. Please try speaking louder.'
+              : 'Konuşma algılanamadı. Lütfen daha yüksek sesle konuşun.';
+
           setState((prev) => ({
             ...prev,
             isProcessing: false,
-            error:
-              language === 'en'
-                ? 'No speech detected. Please try speaking louder.'
-                : 'Konuşma algılanamadı. Lütfen daha yüksek sesle konuşun.',
+            error: result.error?.userMessage ?? fallbackMessage,
           }));
         }
       } catch (error) {
