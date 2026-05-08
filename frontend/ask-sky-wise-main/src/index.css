@@ -487,96 +487,84 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Contrail cinematic drift
+   Stabil Contrail System — Soldan Sağa Işık Süzülmesi
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
-  .contrail {
-    transform-origin: center;
-    will-change: transform, opacity, filter;
+  /* Ana kapsayıcı: Çizgilerin yerini sabitler */
+  .contrail-container {
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      hsl(var(--accent) / 0.1) 50%, 
+      transparent 100%
+    );
     pointer-events: none;
   }
 
-  /* Yakın katman — daha belirgin */
-  .contrail-slow {
-    animation: contrail-horizontal 42s linear infinite;
-    opacity: 0.22;
-    filter: blur(0px);
-    transform: scale(1);
+  /* Işık Süzülmesi Efekti */
+  .contrail-line {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
 
-  /* Orta katman */
-  .contrail-medium {
-    animation: contrail-horizontal 60s linear infinite -12s;
-    opacity: 0.14;
-    filter: blur(1px);
-    transform: scale(0.92);
+  .contrail-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 150%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      hsl(var(--accent) / 0.4) 50%, 
+      transparent 100%
+    );
+    animation: light-sweep 8s infinite linear;
   }
 
-  /* Uzak katman */
-  .contrail-fast {
-    animation: contrail-horizontal 85s linear infinite -25s;
-    opacity: 0.08;
-    filter: blur(2px);
-    transform: scale(0.85);
+  /* Katman Farkları (Belirginlik ve Hız) */
+  .contrail-near { 
+    opacity: 1; 
+    height: 2px;
+    animation-duration: 6s; 
   }
 
-  @keyframes contrail-horizontal {
-    0% {
-      transform:
-        translateX(-30vw)
-        translateY(0px)
-        scale(var(--scale, 1));
-
-      opacity: 0;
-    }
-
-    10% {
-      opacity: inherit;
-    }
-
-    50% {
-      transform:
-        translateX(0vw)
-        translateY(-6px)
-        scale(var(--scale, 1));
-    }
-
-    90% {
-      opacity: inherit;
-    }
-
-    100% {
-      transform:
-        translateX(30vw)
-        translateY(4px)
-        scale(var(--scale, 1));
-
-      opacity: 0;
-    }
+  .contrail-mid { 
+    opacity: 0.6; 
+    animation-duration: 10s; 
+    animation-delay: -2s;
   }
 
-  /* Dark mode */
-  .dark .contrail-slow {
-    opacity: 0.18;
+  .contrail-far { 
+    opacity: 0.3; 
+    animation-duration: 15s; 
+    animation-delay: -5s;
   }
 
-  .dark .contrail-medium {
-    opacity: 0.11;
+  @keyframes light-sweep {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(200%); }
   }
 
-  .dark .contrail-fast {
-    opacity: 0.06;
+  /* Karanlık Mod Ayarı */
+  .dark .contrail-line::after {
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      hsl(var(--accent) / 0.6) 50%, 
+      transparent 100%
+    );
   }
 
-  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    .contrail-slow,
-    .contrail-medium,
-    .contrail-fast {
-      animation: none !important;
-      opacity: 0.08;
-      transform: none;
+    .contrail-line::after {
+      animation: none;
+      left: 25%;
+      width: 50%;
     }
   }
 }
