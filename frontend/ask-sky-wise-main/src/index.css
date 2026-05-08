@@ -487,91 +487,96 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Contrail animasyonları
+   Contrail cinematic drift
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
   .contrail {
-    transform-origin: 50% 50%;
-    will-change: transform, opacity;
+    transform-origin: center;
+    will-change: transform, opacity, filter;
+    pointer-events: none;
   }
 
+  /* Yakın katman — daha belirgin */
   .contrail-slow {
-    animation: contrail-drift 70s ease-in-out infinite;
-    --contrail-peak: 0.45;
+    animation: contrail-horizontal 42s linear infinite;
+    opacity: 0.22;
+    filter: blur(0px);
+    transform: scale(1);
   }
 
+  /* Orta katman */
   .contrail-medium {
-    animation: contrail-drift 50s ease-in-out infinite -15s;
-    --contrail-peak: 0.4;
+    animation: contrail-horizontal 60s linear infinite -12s;
+    opacity: 0.14;
+    filter: blur(1px);
+    transform: scale(0.92);
   }
 
+  /* Uzak katman */
   .contrail-fast {
-    animation: contrail-drift 35s ease-in-out infinite -25s;
-    --contrail-peak: 0.35;
+    animation: contrail-horizontal 85s linear infinite -25s;
+    opacity: 0.08;
+    filter: blur(2px);
+    transform: scale(0.85);
   }
 
-  @keyframes contrail-drift {
+  @keyframes contrail-horizontal {
     0% {
-      transform: translate(-20%, 20%) scale(0.9) rotate(0deg);
+      transform:
+        translateX(-30vw)
+        translateY(0px)
+        scale(var(--scale, 1));
+
       opacity: 0;
     }
 
-    25% {
-      transform:
-        translate(-10%, 10%)
-        scale(1)
-        translateY(-10px)
-        rotate(0.5deg);
-
-      opacity: calc(var(--contrail-peak) * 0.5);
+    10% {
+      opacity: inherit;
     }
 
     50% {
       transform:
-        translate(0%, 0%)
-        scale(1.05)
-        translateY(10px)
-        rotate(-0.5deg);
-
-      opacity: var(--contrail-peak);
+        translateX(0vw)
+        translateY(-6px)
+        scale(var(--scale, 1));
     }
 
-    75% {
-      transform:
-        translate(10%, -10%)
-        scale(1)
-        translateY(-5px)
-        rotate(0.2deg);
-
-      opacity: calc(var(--contrail-peak) * 0.7);
+    90% {
+      opacity: inherit;
     }
 
     100% {
-      transform: translate(20%, -20%) scale(1.1) rotate(0deg);
+      transform:
+        translateX(30vw)
+        translateY(4px)
+        scale(var(--scale, 1));
+
       opacity: 0;
     }
   }
 
+  /* Dark mode */
   .dark .contrail-slow {
-    --contrail-peak: 0.3;
+    opacity: 0.18;
   }
 
   .dark .contrail-medium {
-    --contrail-peak: 0.25;
+    opacity: 0.11;
   }
 
   .dark .contrail-fast {
-    --contrail-peak: 0.2;
+    opacity: 0.06;
   }
 
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     .contrail-slow,
     .contrail-medium,
     .contrail-fast {
       animation: none !important;
-      opacity: var(--contrail-peak, 0.08);
-      transform: translate(0, 0);
+      opacity: 0.08;
+      transform: none;
     }
   }
 }
