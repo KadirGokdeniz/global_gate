@@ -146,7 +146,12 @@
     background-color: hsl(var(--background));
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     letter-spacing: -0.02em;
   }
 
@@ -227,8 +232,13 @@
     animation: voiceRecording 1.8s var(--ease-in-out-quart) infinite;
   }
 
-  .voice-idle { background: hsl(var(--voice-inactive)); }
-  .voice-active { background: hsl(var(--voice-active)); }
+  .voice-idle {
+    background: hsl(var(--voice-inactive));
+  }
+
+  .voice-active {
+    background: hsl(var(--voice-active));
+  }
 
   .status-success {
     @apply bg-emerald-50 text-emerald-800 border-emerald-200
@@ -266,7 +276,7 @@
   }
 
   button:active:not(:disabled),
-  [role="button"]:active:not(:disabled) {
+  [role='button']:active:not(:disabled) {
     transform: scale(0.98);
     transition: transform 80ms var(--ease-out-quart);
   }
@@ -298,23 +308,49 @@
 
 @layer utilities {
   @keyframes voicePulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.04); opacity: 0.85; }
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.04);
+      opacity: 0.85;
+    }
   }
 
   @keyframes voiceRecording {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.35); }
-    50% { box-shadow: 0 0 0 8px hsl(var(--voice-active) / 0); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--voice-active) / 0.35);
+    }
+
+    50% {
+      box-shadow: 0 0 0 8px hsl(var(--voice-active) / 0);
+    }
   }
 
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   .animate-fade-in-up {
@@ -333,9 +369,17 @@
     letter-spacing: -0.025em;
   }
 
-  .shadow-layer-sm { box-shadow: var(--shadow-sm); }
-  .shadow-layer-md { box-shadow: var(--shadow-md); }
-  .shadow-layer-lg { box-shadow: var(--shadow-lg); }
+  .shadow-layer-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shadow-layer-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-layer-lg {
+    box-shadow: var(--shadow-lg);
+  }
 
   .bg-chrome {
     background-color: hsl(var(--chrome));
@@ -354,9 +398,8 @@
   }
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════
-   Header chrome surface — üstten radyal vurgu + alttan altın horizon
+   Header chrome surface
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer components {
@@ -393,19 +436,19 @@
       transparent 65%
     );
   }
+
   .dark .chrome-surface::after {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      hsl(var(--accent) / 0.30) 50%,
+      hsl(var(--accent) / 0.3) 50%,
       transparent 100%
     );
   }
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════
-   Card micro-elevation — hover/focus'ta hafif yükselme
+   Card micro-elevation
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer components {
@@ -414,6 +457,7 @@
       transform 200ms var(--ease-out-quart),
       box-shadow 200ms var(--ease-out-quart),
       border-color 200ms var(--ease-out-quart);
+
     will-change: transform;
   }
 
@@ -435,14 +479,15 @@
     .card-lift:active,
     .card-lift:focus-within {
       transform: none;
-      transition: box-shadow 200ms ease-out, border-color 200ms ease-out;
+      transition:
+        box-shadow 200ms ease-out,
+        border-color 200ms ease-out;
     }
   }
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════
-   Contrail animasyonları — BackgroundFX component'i tarafından kullanılır
+   Contrail animasyonları
    ═══════════════════════════════════════════════════════════════════ */
 
 @layer utilities {
@@ -452,31 +497,74 @@
   }
 
   .contrail-slow {
-    animation: contrail-drift 95s linear infinite;
+    animation: contrail-drift 70s ease-in-out infinite;
     --contrail-peak: 0.45;
   }
+
   .contrail-medium {
-    animation: contrail-drift 75s linear infinite -28s;
-    --contrail-peak: 0.40;
+    animation: contrail-drift 50s ease-in-out infinite -15s;
+    --contrail-peak: 0.4;
   }
+
   .contrail-fast {
-    animation: contrail-drift 60s linear infinite -50s;
+    animation: contrail-drift 35s ease-in-out infinite -25s;
     --contrail-peak: 0.35;
   }
 
   @keyframes contrail-drift {
-    0%   { transform: translate(-15%, 15%); opacity: 0; }
-    15%  { opacity: var(--contrail-peak, 0.08); }
-    85%  { opacity: var(--contrail-peak, 0.08); }
-    100% { transform: translate(15%, -15%); opacity: 0; }
+    0% {
+      transform: translate(-20%, 20%) scale(0.9) rotate(0deg);
+      opacity: 0;
+    }
+
+    25% {
+      transform:
+        translate(-10%, 10%)
+        scale(1)
+        translateY(-10px)
+        rotate(0.5deg);
+
+      opacity: calc(var(--contrail-peak) * 0.5);
+    }
+
+    50% {
+      transform:
+        translate(0%, 0%)
+        scale(1.05)
+        translateY(10px)
+        rotate(-0.5deg);
+
+      opacity: var(--contrail-peak);
+    }
+
+    75% {
+      transform:
+        translate(10%, -10%)
+        scale(1)
+        translateY(-5px)
+        rotate(0.2deg);
+
+      opacity: calc(var(--contrail-peak) * 0.7);
+    }
+
+    100% {
+      transform: translate(20%, -20%) scale(1.1) rotate(0deg);
+      opacity: 0;
+    }
   }
 
-  /* Dark mode'da daha soluk — koyu zeminde altın daha belirgin */
-  .dark .contrail-slow   { --contrail-peak: 0.30; }
-  .dark .contrail-medium { --contrail-peak: 0.25; }
-  .dark .contrail-fast   { --contrail-peak: 0.20; }
+  .dark .contrail-slow {
+    --contrail-peak: 0.3;
+  }
 
-  /* Reduced-motion: animasyonu durdur, statik görünür kal */
+  .dark .contrail-medium {
+    --contrail-peak: 0.25;
+  }
+
+  .dark .contrail-fast {
+    --contrail-peak: 0.2;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .contrail-slow,
     .contrail-medium,

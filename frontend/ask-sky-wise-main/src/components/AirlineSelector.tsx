@@ -28,8 +28,8 @@ export const AirlineSelector = ({
       code: 'TK',
       name: isEn ? 'Turkish Airlines' : 'Türk Hava Yolları',
       description: isEn
-        ? 'Flag carrier · Full-service'
-        : 'Bayrak taşıyıcı · Tam hizmet',
+        ? '·'
+        : '·',
       accent: 'bg-red-500',
     },
     {
@@ -37,8 +37,8 @@ export const AirlineSelector = ({
       code: 'PC',
       name: isEn ? 'Pegasus Airlines' : 'Pegasus Hava Yolları',
       description: isEn
-        ? 'Low-cost carrier'
-        : 'Ekonomik havayolu',
+        ? ''
+        : '',
       accent: 'bg-amber-500',
     },
   ];

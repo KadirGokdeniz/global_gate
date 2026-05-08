@@ -569,7 +569,7 @@ const Index = () => {
                 {language === 'en' ? 'Privacy' : 'Gizlilik'}
               </Link>
               <a
-                href="mailto:kadirqokdeniz@hotmail.com?subject=Airline Assistant - Feedback"
+                href="mailto:kadir@gokdeniz.co?subject=Airline Assistant - Feedback"
                 className="hover:text-foreground transition-colors"
               >
                 {language === 'en' ? 'Feedback' : 'Geri Bildirim'}

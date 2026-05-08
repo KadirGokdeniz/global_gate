@@ -30,12 +30,12 @@ const CATEGORIES: Category[] = [
     questions: [
       {
         title: {
-          en: 'Excess baggage fees comparison',
-          tr: 'Fazla bagaj ücretleri karşılaştırması',
+          en: 'Excess baggage fees',
+          tr: 'Fazla bagaj ücretleri',
         },
         desc: {
-          en: 'Turkish Airlines vs Pegasus',
-          tr: 'THY vs Pegasus karşılaştırması',
+          en: 'Turkish Airlines and Pegasus data',
+          tr: 'THY vs Pegasus verileri',
         },
       },
       {

@@ -188,7 +188,7 @@ export const PrivacyPage = () => {
               href="mailto:kadirqokdeniz@hotmail.com?subject=Airline Assistant - Privacy"
               className="inline-block text-[15px] text-accent hover:underline underline-offset-4"
             >
-              kadirqokdeniz@hotmail.com
+              kadir@gokdeniz.co
             </a>
           </section>
 

@@ -60,6 +60,17 @@ export interface APIResponse {
   airline_preference?: string;
   language?: string;
   error?: string;
+  // Hata kategorisi — toast/UI'da farklı mesaj göstermek için.
+  // Detaylı tanım api.ts içindeki APIErrorKind ile birebir aynı olmalı.
+  errorKind?:
+    | 'network'
+    | 'timeout'
+    | 'rate_limit'
+    | 'service_down'
+    | 'server_error'
+    | 'bad_request'
+    | 'unavailable'
+    | 'unknown';
   cot_enabled?: boolean;
   reasoning?: string;
 }
