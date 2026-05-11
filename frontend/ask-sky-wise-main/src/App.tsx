@@ -22,22 +22,13 @@ const handleErrorBoundaryError = (error: Error, errorInfo: { componentStack: str
   });
 };
 
-/**
- * Z-INDEX YAPISI:
- * BackgroundFX (fixed) varsayılan olarak normal flow'daki kartlardan SONRA
- * paint ediliyor — yani contrail'ler kartların üstüne çıkıyordu. Bunu
- * önlemek için Routes'u `relative z-10` wrapper ile sarıyoruz: bu wrapper
- * yeni bir stacking context yaratır ve tüm route içeriği BackgroundFX'in
- * (z-auto) üstünde paint edilir. Sonuç: contrail'ler arka planda kalır,
- * kart bölgelerinde otomatik gizlenir, sadece body-bg boşluklarında görünür.
- */
 const App = () => (
   <ErrorBoundary onError={handleErrorBoundaryError}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename="/global_gate">
           <ErrorBoundary onError={handleErrorBoundaryError}>
             <BackgroundFX />
             <div className="relative z-10">
