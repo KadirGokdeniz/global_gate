@@ -37,7 +37,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename="/global_gate">
+        <BrowserRouter>
           <ErrorBoundary onError={handleErrorBoundaryError}>
             <BackgroundFX />
             <div className="relative z-10">

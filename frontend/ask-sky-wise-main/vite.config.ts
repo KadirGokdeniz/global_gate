@@ -9,7 +9,6 @@ export default defineConfig(({ mode }) => ({
     host: '::',
     port: 8080,
   },
-  base: '/global_gate/',
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
