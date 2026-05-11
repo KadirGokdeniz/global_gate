@@ -1,6 +1,7 @@
 {
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/global_gate", "destination": "/index.html" },
-    { "source": "/global_gate/(.*)", "destination": "/index.html" }
+    { "source": "/global_gate", "destination": "/global_gate/index.html" },
+    { "source": "/global_gate/(.*)", "destination": "/global_gate/index.html" }
   ]
 }

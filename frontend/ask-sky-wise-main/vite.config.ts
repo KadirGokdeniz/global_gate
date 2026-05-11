@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
       : [],
   },
   build: {
+    outDir: 'dist/global_gate',
     sourcemap: false,
     chunkSizeWarningLimit: 800,
   },
