@@ -1,0 +1,6 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy"
