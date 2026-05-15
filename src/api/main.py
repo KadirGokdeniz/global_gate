@@ -197,6 +197,54 @@ embedding_cache_hits_total = Counter(
 )
 
 # =============================================================================
+# 5. VOICE PIPELINE METRICS  (CV Bullet 2 — Speed)
+# =============================================================================
+
+stt_duration_seconds = Histogram(
+    'stt_duration_seconds',
+    'AssemblyAI STT request latency in seconds',
+    ['language'],
+    buckets=[0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 20.0]
+)
+
+tts_duration_seconds = Histogram(
+    'tts_duration_seconds',
+    'ElevenLabs TTS request latency in seconds',
+    ['language'],
+    buckets=[0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+)
+
+# =============================================================================
+# 6. CORPUS STATS (CV Bullet 1 — Scale)
+# Gauges set on startup from DB — refresh on scraper run via /admin/refresh-corpus-stats
+# =============================================================================
+
+corpus_chunks_total = Gauge(
+    'corpus_chunks_total',
+    'Total number of indexed policy chunks in vector DB'
+)
+
+corpus_airlines_total = Gauge(
+    'corpus_airlines_total',
+    'Total number of distinct airlines indexed'
+)
+
+corpus_categories_total = Gauge(
+    'corpus_categories_total',
+    'Total number of distinct policy source categories indexed'
+)
+
+# =============================================================================
+# 7. CACHE HIT RATE (CV Bullet 2 — Speed)
+# Gauge computed from ImprovedLRUCache.get_stats() — updated after each embedding call
+# =============================================================================
+
+embedding_cache_hit_rate = Gauge(
+    'embedding_cache_hit_rate',
+    'Embedding LRU cache hit rate (0.0 - 100.0)'
+)
+
+# =============================================================================
 # 4. UNIFIED TRACKING FUNCTIONS
 # =============================================================================
 
@@ -345,6 +393,44 @@ def track_embedding_cache(hit_type: str):
     except Exception as e:
         logger.error(f"Embedding cache tracking error: {e}")
 
+def track_stt_duration(language: str, duration: float):
+    """Track AssemblyAI STT request latency — feeds Bullet 2 p95 voice latency."""
+    try:
+        stt_duration_seconds.labels(language=language).observe(duration)
+        logger.debug(f"STT latency tracked: {duration:.3f}s ({language})")
+    except Exception as e:
+        logger.error(f"STT duration tracking error: {e}")
+
+def track_tts_duration(language: str, duration: float):
+    """Track ElevenLabs TTS request latency — feeds Bullet 2 p95 voice latency."""
+    try:
+        tts_duration_seconds.labels(language=language).observe(duration)
+        logger.debug(f"TTS latency tracked: {duration:.3f}s ({language})")
+    except Exception as e:
+        logger.error(f"TTS duration tracking error: {e}")
+
+def set_corpus_stats(chunks: int, airlines: int, categories: int):
+    """Set corpus size gauges on startup — feeds Bullet 1 scale metrics."""
+    try:
+        corpus_chunks_total.set(chunks)
+        corpus_airlines_total.set(airlines)
+        corpus_categories_total.set(categories)
+        logger.info(
+            f"Corpus stats updated: {chunks:,} chunks | "
+            f"{airlines} airlines | {categories} categories"
+        )
+    except Exception as e:
+        logger.error(f"Corpus stats update error: {e}")
+
+def update_cache_hit_rate():
+    """Sync embedding cache hit rate gauge from ImprovedLRUCache internal stats."""
+    try:
+        if embedding_service and hasattr(embedding_service, 'cache'):
+            stats = embedding_service.cache.get_stats()
+            embedding_cache_hit_rate.set(stats.get("hit_rate", 0.0))
+    except Exception as e:
+        logger.error(f"Cache hit rate update error: {e}")
+
 def get_metrics_text() -> str:
     try:
         return generate_latest().decode('utf-8')
@@ -480,6 +566,15 @@ async def lifespan(app: FastAPI):
         async with db_pool.acquire() as conn:
             result = await conn.fetchval("SELECT COUNT(*) FROM policy")
             logger.info(f"Database contains {result} policies")
+
+            # Corpus stats — feeds Bullet 1 scale metrics
+            try:
+                chunk_count   = await conn.fetchval("SELECT COUNT(*) FROM policy WHERE embedding IS NOT NULL")
+                airline_count = await conn.fetchval("SELECT COUNT(DISTINCT airline) FROM policy WHERE embedding IS NOT NULL")
+                category_count= await conn.fetchval("SELECT COUNT(DISTINCT source) FROM policy WHERE embedding IS NOT NULL")
+                set_corpus_stats(chunk_count, airline_count, category_count)
+            except Exception as stats_err:
+                logger.warning(f"Corpus stats query failed (non-critical): {stats_err}")
         
         logger.info("Loading AI services...")
         
@@ -1490,9 +1585,12 @@ async def text_to_speech(
         if not aws_speech_service:
             raise HTTPException(status_code=503, detail="Speech service not available")
         
+        tts_start = time.time()
         result = aws_speech_service.text_to_audio(tts_request.text, tts_request.language)
+        tts_elapsed = time.time() - tts_start
 
         if result["success"]:
+            track_tts_duration(tts_request.language, tts_elapsed)
             return Response(
                 content=result["audio_data"],
                 media_type="audio/mpeg",
@@ -1534,11 +1632,14 @@ async def speech_to_text_realtime(
         
         logger.info(f"STT request: {audio_file.filename} ({len(audio_bytes)} bytes, lang: {language})")
         
+        stt_start = time.time()
         result = await assemblyai_service.transcribe_audio_file(
             audio_bytes=audio_bytes,
             language=language,
             filename=audio_file.filename
         )
+        stt_elapsed = time.time() - stt_start
+        track_stt_duration(language, stt_elapsed)
         
         if result["success"]:
             response_data = {
@@ -1571,8 +1672,26 @@ async def speech_to_text_realtime(
 @app.get("/metrics")
 async def get_metrics():
     """Unified metrics endpoint for Prometheus"""
+    update_cache_hit_rate()  # Sync LRU cache hit rate gauge before scrape
     metrics_text = get_metrics_text()
     return Response(content=metrics_text, media_type=CONTENT_TYPE_LATEST)
+
+@app.post("/admin/refresh-corpus-stats")
+async def refresh_corpus_stats(conn=Depends(get_db_connection)):
+    """Refresh corpus size gauges — call after scraper runs to keep metrics current."""
+    try:
+        chunk_count    = await conn.fetchval("SELECT COUNT(*) FROM policy WHERE embedding IS NOT NULL")
+        airline_count  = await conn.fetchval("SELECT COUNT(DISTINCT airline) FROM policy WHERE embedding IS NOT NULL")
+        category_count = await conn.fetchval("SELECT COUNT(DISTINCT source) FROM policy WHERE embedding IS NOT NULL")
+        set_corpus_stats(chunk_count, airline_count, category_count)
+        return {
+            "success": True,
+            "corpus_chunks": chunk_count,
+            "corpus_airlines": airline_count,
+            "corpus_categories": category_count,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Corpus stats refresh failed: {e}")
 
 @app.get("/health")
 async def health_check():
