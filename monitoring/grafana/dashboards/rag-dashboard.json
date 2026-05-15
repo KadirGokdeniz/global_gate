@@ -28,7 +28,7 @@
         "y": 0
       },
       "id": 100,
-      "title": "📊 OPERATIONAL METRICS - Core System Health",
+      "title": "\ud83d\udcca OPERATIONAL METRICS - Core System Health",
       "type": "row"
     },
     {
@@ -98,7 +98,7 @@
           "refId": "C"
         }
       ],
-      "title": "🌐 HTTP Request Rate",
+      "title": "\ud83c\udf10 HTTP Request Rate",
       "type": "timeseries"
     },
     {
@@ -148,7 +148,7 @@
           "refId": "A"
         }
       ],
-      "title": "📊 Current RPS",
+      "title": "\ud83d\udcca Current RPS",
       "type": "stat"
     },
     {
@@ -190,7 +190,7 @@
           "refId": "A"
         }
       ],
-      "title": "📈 Total Requests",
+      "title": "\ud83d\udcc8 Total Requests",
       "type": "stat"
     },
     {
@@ -240,7 +240,7 @@
           "refId": "A"
         }
       ],
-      "title": "💾 Active DB Connections",
+      "title": "\ud83d\udcbe Active DB Connections",
       "type": "stat"
     },
     {
@@ -273,7 +273,7 @@
           "refId": "A"
         }
       ],
-      "title": "⚡ Cache Hit Rate",
+      "title": "\u26a1 Cache Hit Rate",
       "type": "stat"
     },
     {
@@ -285,7 +285,7 @@
         "y": 9
       },
       "id": 101,
-      "title": "🤖 RAG PERFORMANCE - Query & Vector Metrics",
+      "title": "\ud83e\udd16 RAG PERFORMANCE - Query & Vector Metrics",
       "type": "row"
     },
     {
@@ -356,7 +356,7 @@
           "refId": "C"
         }
       ],
-      "title": "🤖 RAG Query Duration",
+      "title": "\ud83e\udd16 RAG Query Duration",
       "type": "timeseries"
     },
     {
@@ -427,7 +427,7 @@
           "refId": "C"
         }
       ],
-      "title": "🔍 Vector Search Performance",
+      "title": "\ud83d\udd0d Vector Search Performance",
       "type": "timeseries"
     },
     {
@@ -498,7 +498,7 @@
           "refId": "C"
         }
       ],
-      "title": "⚙️ RAG Component Latency Breakdown (Enhanced)",
+      "title": "\u2699\ufe0f RAG Component Latency Breakdown (Enhanced)",
       "type": "timeseries"
     },
     {
@@ -510,7 +510,7 @@
         "y": 26
       },
       "id": 102,
-      "title": "🧠 BUSINESS INTELLIGENCE - Accuracy & Quality",
+      "title": "\ud83e\udde0 BUSINESS INTELLIGENCE - Accuracy & Quality",
       "type": "row"
     },
     {
@@ -577,7 +577,7 @@
           "refId": "B"
         }
       ],
-      "title": "🎯 RAG Accuracy Score (Enhanced)",
+      "title": "\ud83c\udfaf RAG Accuracy Score (Enhanced)",
       "type": "timeseries"
     },
     {
@@ -630,7 +630,7 @@
           "refId": "A"
         }
       ],
-      "title": "📊 Accuracy by Provider",
+      "title": "\ud83d\udcca Accuracy by Provider",
       "type": "gauge"
     },
     {
@@ -642,7 +642,7 @@
         "y": 35
       },
       "id": 103,
-      "title": "💰 COST ANALYSIS - Financial & Efficiency Metrics",
+      "title": "\ud83d\udcb0 COST ANALYSIS - Financial & Efficiency Metrics",
       "type": "row"
     },
     {
@@ -687,7 +687,7 @@
           "refId": "A"
         }
       ],
-      "title": "💰 AI API Cost Rate",
+      "title": "\ud83d\udcb0 AI API Cost Rate",
       "type": "timeseries"
     },
     {
@@ -752,7 +752,7 @@
           "refId": "B"
         }
       ],
-      "title": "💸 Cost Per Query (Enhanced)",
+      "title": "\ud83d\udcb8 Cost Per Query (Enhanced)",
       "type": "timeseries"
     },
     {
@@ -800,7 +800,7 @@
           "refId": "B"
         }
       ],
-      "title": "🔢 Token Usage Distribution (Enhanced)",
+      "title": "\ud83d\udd22 Token Usage Distribution (Enhanced)",
       "type": "timeseries"
     },
     {
@@ -865,7 +865,7 @@
           "refId": "B"
         }
       ],
-      "title": "⚖️ Cost Efficiency (Enhanced)",
+      "title": "\u2696\ufe0f Cost Efficiency (Enhanced)",
       "type": "timeseries"
     },
     {
@@ -877,7 +877,7 @@
         "y": 52
       },
       "id": 104,
-      "title": "😊 USER EXPERIENCE - Satisfaction & Feedback",
+      "title": "\ud83d\ude0a USER EXPERIENCE - Satisfaction & Feedback",
       "type": "row"
     },
     {
@@ -947,17 +947,17 @@
         {
           "datasource": "Prometheus",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_up\"}[5m]) * 60",
-          "legendFormat": "👍 Positive",
+          "legendFormat": "\ud83d\udc4d Positive",
           "refId": "A"
         },
         {
           "datasource": "Prometheus",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_down\"}[5m]) * 60",
-          "legendFormat": "👎 Negative",
+          "legendFormat": "\ud83d\udc4e Negative",
           "refId": "B"
         }
       ],
-      "title": "😊 User Satisfaction Trends",
+      "title": "\ud83d\ude0a User Satisfaction Trends",
       "type": "timeseries"
     },
     {
@@ -1010,7 +1010,7 @@
           "refId": "A"
         }
       ],
-      "title": "👍 Satisfaction Rate",
+      "title": "\ud83d\udc4d Satisfaction Rate",
       "type": "gauge"
     },
     {
@@ -1022,7 +1022,7 @@
         "y": 61
       },
       "id": 105,
-      "title": "📈 SUMMARY STATS - Key Performance Indicators",
+      "title": "\ud83d\udcc8 SUMMARY STATS - Key Performance Indicators",
       "type": "row"
     },
     {
@@ -1072,7 +1072,7 @@
           "refId": "A"
         }
       ],
-      "title": "⏱️ Avg RAG Duration",
+      "title": "\u23f1\ufe0f Avg RAG Duration",
       "type": "stat"
     },
     {
@@ -1122,7 +1122,7 @@
           "refId": "A"
         }
       ],
-      "title": "⚡ Avg Vector Search",
+      "title": "\u26a1 Avg Vector Search",
       "type": "stat"
     },
     {
@@ -1172,7 +1172,7 @@
           "refId": "A"
         }
       ],
-      "title": "💳 Total API Cost",
+      "title": "\ud83d\udcb3 Total API Cost",
       "type": "stat"
     },
     {
@@ -1222,7 +1222,7 @@
           "refId": "A"
         }
       ],
-      "title": "📅 Daily API Cost",
+      "title": "\ud83d\udcc5 Daily API Cost",
       "type": "stat"
     },
     {
@@ -1264,7 +1264,7 @@
           "refId": "A"
         }
       ],
-      "title": "🎯 RAG Queries Today",
+      "title": "\ud83c\udfaf RAG Queries Today",
       "type": "stat"
     },
     {
@@ -1306,8 +1306,345 @@
           "refId": "A"
         }
       ],
-      "title": "📝 Total Feedback",
+      "title": "\ud83d\udcdd Total Feedback",
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 100
+      },
+      "id": 200,
+      "title": "\ud83c\udf99\ufe0f VOICE PIPELINE \u2014 STT / TTS Latency",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "AssemblyAI STT latency p50/p95/p99 by language",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "axisLabel": "Duration (s)"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 101
+      },
+      "id": 201,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(stt_duration_seconds_bucket[5m]))",
+          "legendFormat": "STT p50 {{language}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(stt_duration_seconds_bucket[5m]))",
+          "legendFormat": "STT p95 {{language}}",
+          "refId": "B"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.99, rate(stt_duration_seconds_bucket[5m]))",
+          "legendFormat": "STT p99 {{language}}",
+          "refId": "C"
+        }
+      ],
+      "title": "\ud83c\udf99\ufe0f STT Latency (AssemblyAI)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "ElevenLabs TTS latency p50/p95/p99 by language",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "axisLabel": "Duration (s)"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 101
+      },
+      "id": 202,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.50, rate(tts_duration_seconds_bucket[5m]))",
+          "legendFormat": "TTS p50 {{language}}",
+          "refId": "A"
+        },
+        {
+          "datasource": "Prometheus",
+          "expr": "histogram_quantile(0.95, rate(tts_duration_seconds_bucket[5m]))",
+          "legendFormat": "TTS p95 {{language}}",
+          "refId": "B"
+        }
+      ],
+      "title": "\ud83d\udd0a TTS Latency (ElevenLabs)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 110
+      },
+      "id": 210,
+      "title": "\ud83d\udcda CORPUS STATS \u2014 Scale Metrics (Bullet 1)",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total indexed policy chunks in vector DB",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 111
+      },
+      "id": 211,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "corpus_chunks_total",
+          "legendFormat": "Chunks",
+          "refId": "A"
+        }
+      ],
+      "title": "\ud83d\udcc4 Total Policy Chunks",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total distinct airlines indexed",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 111
+      },
+      "id": 212,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "corpus_airlines_total",
+          "legendFormat": "Airlines",
+          "refId": "A"
+        }
+      ],
+      "title": "\u2708\ufe0f Airlines Indexed",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total distinct policy source categories",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 111
+      },
+      "id": 213,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "corpus_categories_total",
+          "legendFormat": "Categories",
+          "refId": "A"
+        }
+      ],
+      "title": "\ud83d\uddc2\ufe0f Policy Categories",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Embedding LRU cache hit rate % \u2014 updated on each /metrics scrape",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 40
+              },
+              {
+                "color": "green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 116
+      },
+      "id": 214,
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": "Prometheus",
+          "expr": "embedding_cache_hit_rate",
+          "legendFormat": "Hit Rate %",
+          "refId": "A"
+        }
+      ],
+      "title": "\u26a1 Cache Hit Rate %",
+      "type": "gauge"
     }
   ],
   "refresh": "30s",
@@ -1316,7 +1653,7 @@
   "tags": [
     "rag",
     "unified",
-    "metrics", 
+    "metrics",
     "business-intelligence",
     "operational"
   ],
