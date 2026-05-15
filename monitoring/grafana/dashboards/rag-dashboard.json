@@ -32,7 +32,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total HTTP requests per second by status code",
       "fieldConfig": {
         "defaults": {
@@ -80,19 +80,19 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(http_requests_total{status_code=~\"2..\"}[5m])",
           "legendFormat": "2xx Success",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(http_requests_total{status_code=~\"4..\"}[5m])",
           "legendFormat": "4xx Client Error",
           "refId": "B"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
           "legendFormat": "5xx Server Error",
           "refId": "C"
@@ -102,7 +102,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Current request rate across all endpoints",
       "fieldConfig": {
         "defaults": {
@@ -142,7 +142,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(rate(http_requests_total[5m]))",
           "legendFormat": "Total RPS",
           "refId": "A"
@@ -152,7 +152,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total requests processed (cumulative)",
       "fieldConfig": {
         "defaults": {
@@ -184,7 +184,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(http_requests_total)",
           "legendFormat": "Total Requests",
           "refId": "A"
@@ -194,7 +194,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "System health indicators",
       "fieldConfig": {
         "defaults": {
@@ -234,7 +234,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "active_database_connections",
           "legendFormat": "DB Connections",
           "refId": "A"
@@ -244,7 +244,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Embedding cache performance",
       "fieldConfig": {
         "defaults": {
@@ -267,7 +267,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(rate(embedding_cache_hits_total{hit_type=\"hit\"}[5m]))",
           "legendFormat": "Cache Hits/s",
           "refId": "A"
@@ -289,7 +289,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "RAG query duration by provider and status",
       "fieldConfig": {
         "defaults": {
@@ -338,19 +338,19 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(rag_query_duration_seconds_bucket[5m]))",
           "legendFormat": "{{provider}} {{status}} p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(rag_query_duration_seconds_bucket[5m]))",
           "legendFormat": "{{provider}} {{status}} p95",
           "refId": "B"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.99, rate(rag_query_duration_seconds_bucket[5m]))",
           "legendFormat": "{{provider}} {{status}} p99",
           "refId": "C"
@@ -360,7 +360,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Vector search performance metrics",
       "fieldConfig": {
         "defaults": {
@@ -409,19 +409,19 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(vector_search_duration_seconds_bucket[5m]))",
           "legendFormat": "Vector Search p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(vector_search_duration_seconds_bucket[5m]))",
           "legendFormat": "Vector Search p95",
           "refId": "B"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.99, rate(vector_search_duration_seconds_bucket[5m]))",
           "legendFormat": "Vector Search p99",
           "refId": "C"
@@ -431,7 +431,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "RAG component latency breakdown - Enhanced metric showing retrieval vs generation timing",
       "fieldConfig": {
         "defaults": {
@@ -480,19 +480,19 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(rag_component_latency_seconds_bucket{component=\"retrieval\"}[5m]))",
           "legendFormat": "{{provider}} Retrieval p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(rag_component_latency_seconds_bucket{component=\"generation\"}[5m]))",
           "legendFormat": "{{provider}} Generation p50",
           "refId": "B"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(rag_component_latency_seconds_bucket{component=\"total\"}[5m]))",
           "legendFormat": "{{provider}} Total p95",
           "refId": "C"
@@ -514,7 +514,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "RAG response accuracy score by provider, airline and language - NEW ENHANCED METRIC",
       "fieldConfig": {
         "defaults": {
@@ -565,13 +565,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(rag_accuracy_score_bucket[5m]))",
           "legendFormat": "{{provider}} {{airline}} {{language}} p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(rag_accuracy_score_bucket[5m]))",
           "legendFormat": "{{provider}} {{airline}} {{language}} p95",
           "refId": "B"
@@ -581,7 +581,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Current average accuracy across providers",
       "fieldConfig": {
         "defaults": {
@@ -624,7 +624,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "avg by (provider) (rate(rag_accuracy_score_sum[5m]) / rate(rag_accuracy_score_count[5m]))",
           "legendFormat": "{{provider}}",
           "refId": "A"
@@ -646,7 +646,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "AI API costs - cumulative total (existing metric)",
       "fieldConfig": {
         "defaults": {
@@ -681,7 +681,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(ai_api_cost_total_usd[5m]) * 3600",
           "legendFormat": "{{provider}} {{model}} /hour",
           "refId": "A"
@@ -691,7 +691,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Cost per individual query - NEW ENHANCED METRIC",
       "fieldConfig": {
         "defaults": {
@@ -740,13 +740,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(cost_per_query_usd_bucket[5m]))",
           "legendFormat": "{{provider}} {{model}} p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(cost_per_query_usd_bucket[5m]))",
           "legendFormat": "{{provider}} {{model}} p95",
           "refId": "B"
@@ -756,7 +756,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Token usage distribution by provider and model - NEW ENHANCED METRIC",
       "fieldConfig": {
         "defaults": {
@@ -788,13 +788,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(token_usage_per_query_bucket{token_type=\"input\"}[5m]))",
           "legendFormat": "{{provider}} {{model}} Input p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(token_usage_per_query_bucket{token_type=\"output\"}[5m]))",
           "legendFormat": "{{provider}} {{model}} Output p50",
           "refId": "B"
@@ -804,7 +804,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Cost efficiency: accuracy per dollar spent - NEW ENHANCED METRIC",
       "fieldConfig": {
         "defaults": {
@@ -853,13 +853,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(query_cost_efficiency_bucket[5m]))",
           "legendFormat": "{{provider}} {{model}} p50",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "avg by (provider) (rate(query_cost_efficiency_sum[5m]) / rate(query_cost_efficiency_count[5m]))",
           "legendFormat": "{{provider}} Average",
           "refId": "B"
@@ -881,7 +881,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "User satisfaction feedback trends",
       "fieldConfig": {
         "defaults": {
@@ -945,13 +945,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_up\"}[5m]) * 60",
           "legendFormat": "\ud83d\udc4d Positive",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "rate(user_satisfaction_total{rating=\"thumbs_down\"}[5m]) * 60",
           "legendFormat": "\ud83d\udc4e Negative",
           "refId": "B"
@@ -961,7 +961,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "User satisfaction percentage",
       "fieldConfig": {
         "defaults": {
@@ -1004,7 +1004,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "(sum(user_satisfaction_total{rating=\"thumbs_up\"}) / sum(user_satisfaction_total) * 100) or vector(0)",
           "legendFormat": "Satisfaction %",
           "refId": "A"
@@ -1026,7 +1026,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Average RAG query duration",
       "fieldConfig": {
         "defaults": {
@@ -1066,7 +1066,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(rag_query_duration_seconds_bucket[5m]))",
           "legendFormat": "Avg Duration",
           "refId": "A"
@@ -1076,7 +1076,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Average vector search duration",
       "fieldConfig": {
         "defaults": {
@@ -1116,7 +1116,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(vector_search_duration_seconds_bucket[5m]))",
           "legendFormat": "Avg Search Time",
           "refId": "A"
@@ -1126,7 +1126,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total AI API costs (cumulative)",
       "fieldConfig": {
         "defaults": {
@@ -1166,7 +1166,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(ai_api_cost_total_usd)",
           "legendFormat": "Total Cost",
           "refId": "A"
@@ -1176,7 +1176,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Daily API cost",
       "fieldConfig": {
         "defaults": {
@@ -1216,7 +1216,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(increase(ai_api_cost_total_usd[24h]))",
           "legendFormat": "Daily Cost",
           "refId": "A"
@@ -1226,7 +1226,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total RAG queries processed",
       "fieldConfig": {
         "defaults": {
@@ -1258,7 +1258,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(increase(rag_query_duration_seconds_count[24h]))",
           "legendFormat": "RAG Queries (24h)",
           "refId": "A"
@@ -1268,7 +1268,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total feedback collected",
       "fieldConfig": {
         "defaults": {
@@ -1300,7 +1300,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "sum(user_satisfaction_total)",
           "legendFormat": "Total Feedback",
           "refId": "A"
@@ -1322,7 +1322,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "AssemblyAI STT latency p50/p95/p99 by language",
       "fieldConfig": {
         "defaults": {
@@ -1370,19 +1370,19 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(stt_duration_seconds_bucket[5m]))",
           "legendFormat": "STT p50 {{language}}",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(stt_duration_seconds_bucket[5m]))",
           "legendFormat": "STT p95 {{language}}",
           "refId": "B"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.99, rate(stt_duration_seconds_bucket[5m]))",
           "legendFormat": "STT p99 {{language}}",
           "refId": "C"
@@ -1392,7 +1392,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "ElevenLabs TTS latency p50/p95/p99 by language",
       "fieldConfig": {
         "defaults": {
@@ -1440,13 +1440,13 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.50, rate(tts_duration_seconds_bucket[5m]))",
           "legendFormat": "TTS p50 {{language}}",
           "refId": "A"
         },
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "histogram_quantile(0.95, rate(tts_duration_seconds_bucket[5m]))",
           "legendFormat": "TTS p95 {{language}}",
           "refId": "B"
@@ -1468,7 +1468,7 @@
       "type": "row"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total indexed policy chunks in vector DB",
       "fieldConfig": {
         "defaults": {
@@ -1500,7 +1500,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "corpus_chunks_total",
           "legendFormat": "Chunks",
           "refId": "A"
@@ -1510,7 +1510,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total distinct airlines indexed",
       "fieldConfig": {
         "defaults": {
@@ -1542,7 +1542,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "corpus_airlines_total",
           "legendFormat": "Airlines",
           "refId": "A"
@@ -1552,7 +1552,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Total distinct policy source categories",
       "fieldConfig": {
         "defaults": {
@@ -1584,7 +1584,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "corpus_categories_total",
           "legendFormat": "Categories",
           "refId": "A"
@@ -1594,7 +1594,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": "grafanacloud-kadirqokdeniz-prom",
       "description": "Embedding LRU cache hit rate % \u2014 updated on each /metrics scrape",
       "fieldConfig": {
         "defaults": {
@@ -1637,7 +1637,7 @@
       },
       "targets": [
         {
-          "datasource": "Prometheus",
+          "datasource": "grafanacloud-kadirqokdeniz-prom",
           "expr": "embedding_cache_hit_rate",
           "legendFormat": "Hit Rate %",
           "refId": "A"
@@ -1665,7 +1665,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "Prometheus",
+        "datasource": "grafanacloud-kadirqokdeniz-prom",
         "definition": "label_values(rag_query_duration_seconds, provider)",
         "hide": 0,
         "includeAll": true,
@@ -1689,7 +1689,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "Prometheus",
+        "datasource": "grafanacloud-kadirqokdeniz-prom",
         "definition": "label_values(rag_accuracy_score, airline)",
         "hide": 0,
         "includeAll": true,
