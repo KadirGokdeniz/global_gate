@@ -23,14 +23,8 @@ prometheus.remote_write "grafana_cloud" {
       password = env("GRAFANA_API_KEY")
     }
   }
-
-  queue_config {
-    capacity             = 2500
-    max_shards           = 200
-    max_samples_per_send = 500
-  }
 }
 ALLOY_EOF
 
 EXPOSE 12345
-CMD ["run", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/config.alloy"]
+CMD ["/bin/alloy", "run", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/config.alloy"]
