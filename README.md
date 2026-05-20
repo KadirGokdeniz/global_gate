@@ -22,7 +22,7 @@ Airline policy information is scattered, inconsistent, and hard to access when y
 
 ## Solution
 
-"A voice-enabled assistant that answers natural-language airline policy questions across multiple supported carriers. Semantic search interprets intent—not just keywords. Response time under 3 seconds. Voice support in Turkish and English for hands-free use.
+"A voice-enabled assistant that answers natural-language airline policy questions across multiple supported carriers. Semantic search interprets intent—not just keywords. Median end-to-end response around 3.5 seconds. Voice support in Turkish and English for hands-free use.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e35bd43e-cf16-4771-91e9-c8eeafb01d1a" alt="RAG answer with cited sources" width="85%" />
@@ -97,6 +97,35 @@ For deeper rationale on each decision, see [ARCHITECTURE.md](ARCHITECTURE.md).
 **Metadata-Aware Routing**: Airline-level metadata prefiltering combined with query routing to the correct policy domain.
 
 **Graceful Degradation**: If the reranker or TTS are unavailable, the system continues in a reduced-quality mode rather than failing outright.
+
+## Results
+
+- **92% Hit Rate@5** on a held-out bilingual (TR/EN) query set — offline eval, [`eval_hitrate.py`](eval_hitrate.py)
+- **~3.5s median end-to-end latency** (p95 ~8–10s, provider-dependent) — see chart below
+- **~50ms median vector search** (p99 ~2s under load) — see chart below
+- **85.8% LRU cache hit rate** — live (Prometheus/Grafana)
+- **90% query completion** across 5 failure scenarios — [`chaos_test.py`](chaos_test.py)
+- **Scale:** 2,720 policy chunks · 2 airlines · 35 categories · 44+ metrics tracked
+
+<table>
+<tr>
+<td width="50%" align="center">
+<img src="assets/1.png" alt="RAG end-to-end query duration — p50 / p95 / p99 by provider" />
+<br/>
+<em>End-to-end RAG latency: median (p50) ~3.5s, p95 ~8–10s, p99 spikes to ~20s under load.</em>
+</td>
+<td width="50%" align="center">
+<img src="assets/2.png" alt="Vector search latency — p50 / p95 / p99" />
+<br/>
+<em>Vector search: median (p50) ~50ms, p99 up to ~2s under load.</em>
+</td>
+</tr>
+</table>
+
+> Live figures are exported from the running service via Prometheus and visualized in
+> Grafana, captured over a 1-hour demo / load-test window (117 RAG queries) — representative,
+> not production-scale. Hit Rate@5 and the failure-scenario result come from offline
+> evaluation and a chaos-test suite, not the live dashboard.
 
 ## Quick Start
 
