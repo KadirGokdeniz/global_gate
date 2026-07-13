@@ -22,6 +22,35 @@ from api.services.llm_base import (
 logger = logging.getLogger(__name__)
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Anthropic tarafindan emekliye ayrilmis (retired) modeller.
+# Bu ID'lere yapilan istekler API'den 404 not_found_error doner.
+# Frontend hala eski bir ID gonderse bile default'a cevirip 404'u onluyoruz.
+# Kaynak: https://platform.claude.com/docs/en/about-claude/model-deprecations
+# ─────────────────────────────────────────────────────────────────────
+_RETIRED_CLAUDE_MODELS = {
+    "claude-3-haiku-20240307",       # retired 2026-04-20
+    "claude-3-5-haiku-20241022",     # retired 2026-02-19
+    "claude-3-5-sonnet-20240620",    # retired 2025-10-28
+    "claude-3-5-sonnet-20241022",    # retired 2025-10-28
+    "claude-3-7-sonnet-20250219",    # retired 2026-02-19
+    "claude-3-opus-20240229",        # retired 2026-01-05
+    "claude-sonnet-4-20250514",      # retired 2026-06-15
+    "claude-sonnet-4-0",             # alias -> retired
+    "claude-opus-4-20250514",        # retired 2026-06-15
+    "claude-opus-4-0",               # alias -> retired
+}
+
+# Bu modeller sampling parametrelerini (temperature/top_p/top_k) desteklemez;
+# non-default bir deger gonderilirse 400 doner. Bu modellerde temperature
+# parametresini hic gondermiyoruz. (Yeni modeller ciktikca listeyi guncelle.)
+_NO_SAMPLING_PARAM_TAGS = ("opus-4-7", "opus-4-8", "sonnet-5", "fable-5", "mythos-5")
+
+
+def _supports_temperature(model: str) -> bool:
+    return not any(tag in model for tag in _NO_SAMPLING_PARAM_TAGS)
+
+
 class ClaudeService(BaseLLMService):
     """Anthropic Claude RAG service."""
 
@@ -43,13 +72,25 @@ class ClaudeService(BaseLLMService):
         self, system_instruction: str, user_prompt: str,
         model: str, max_tokens: int, temperature: float,
     ) -> LLMCallResult:
-        response = self.client.messages.create(
+        # 1) Emekli model istendiyse calisan default'a cevir (404 onleme)
+        if model in _RETIRED_CLAUDE_MODELS:
+            logger.warning(
+                f"Requested retired Claude model '{model}' — "
+                f"falling back to default '{self.get_default_model()}'"
+            )
+            model = self.get_default_model()
+
+        # 2) Parametreleri kur; temperature'i yalnizca destekleyen modellere gonder
+        params = dict(
             model=model,
             max_tokens=max_tokens,
-            temperature=temperature,
             system=system_instruction,
             messages=[{"role": "user", "content": user_prompt}],
         )
+        if _supports_temperature(model):
+            params["temperature"] = temperature
+
+        response = self.client.messages.create(**params)
         text = response.content[0].text if response.content else ""
         return LLMCallResult(
             text=text,
