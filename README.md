@@ -181,4 +181,4 @@ A separate `docker-compose-prod.yml` is provided for platforms that inject secre
 
 ---
 
-Feedback and collaboration are welcome. Contact: kadirqokdeniz@hotmail.com
+Feedback and collaboration are welcome. Contact: kadir@gokdeniz.co
