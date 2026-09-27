@@ -63,13 +63,13 @@ const Index = () => {
 
   const [provider, setProvider] = useLocalStorage<Provider>(
     'airline-assistant:provider',
-    'OpenAI',
+    'Claude',
     isValidProvider,
   );
 
   const [model, setModel] = useLocalStorage<string>(
     'airline-assistant:model',
-    'gpt-4o-mini',
+    'claude-3-5-haiku-20241022',
   );
 
   const [enableCoT, setEnableCoT] = useLocalStorage<boolean>(
